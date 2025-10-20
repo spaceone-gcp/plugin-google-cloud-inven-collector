@@ -14,7 +14,7 @@
 #   limitations under the License.
 
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 with open("VERSION", "r") as f:
     VERSION = f.read().strip()
@@ -33,6 +33,7 @@ setup(
     install_requires=[
         "grpcio",
         "spaceone-api",
+        "spaceone-core==1.12.37",
         "schematics",
         "google-api-python-client",
         "MarkupSafe>=2.0.0rc2",
@@ -43,7 +44,11 @@ setup(
     package_data={
         "spaceone": [
             "inventory/model/*/*/widget/*.yml",
+            "inventory/model/*/*/widget/*.yaml",
+            "inventory/model/*/*/*/widget/*.yml",
+            "inventory/model/*/*/*/widget/*.yaml",
             "inventory/metrics/**/**/*.yaml",
+            "inventory/metrics/**/**/*.yml",
         ]
     },
     zip_safe=False,

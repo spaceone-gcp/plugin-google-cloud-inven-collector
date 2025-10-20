@@ -1,6 +1,6 @@
 import logging
 
-from spaceone.api.inventory.plugin import collector_pb2_grpc, collector_pb2
+from spaceone.api.inventory.plugin import collector_pb2, collector_pb2_grpc
 from spaceone.core.pygrpc import BaseAPI
 from spaceone.inventory.service import CollectorService
 

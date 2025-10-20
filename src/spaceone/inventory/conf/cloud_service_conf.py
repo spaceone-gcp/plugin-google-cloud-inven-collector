@@ -1,4 +1,3 @@
-MAX_WORKER = 20
 SUPPORTED_RESOURCE_TYPE = [
     "inventory.CloudService",
     "inventory.CloudServiceType",
@@ -26,6 +25,8 @@ CLOUD_SERVICE_GROUP_MAP = {
         "LoadBalancingManager",
         "RouteManager",
         "VPCNetworkManager",
+        "VPCSubnetManager",
+        "VPCGatewayManager",
     ],
     "PubSub": [
         "SchemaManager",
@@ -34,6 +35,60 @@ CLOUD_SERVICE_GROUP_MAP = {
         "TopicManager",
     ],
     "CloudFunctions": ["FunctionGen2Manager", "FunctionGen1Manager"],
+    "Filestore": [
+        "FilestoreInstanceManager",
+        "FilestoreSnapshotManager",
+        "FilestoreBackupManager",
+    ],
+    "Firebase": ["FirebaseManager"],
+    "Batch": ["BatchManager"],
+    "CloudBuild": [
+        "CloudBuildBuildV1Manager",
+        "CloudBuildTriggerV1Manager",
+        "CloudBuildWorkerPoolV1Manager",
+        "CloudBuildConnectionV2Manager",
+        "CloudBuildRepositoryV2Manager",
+    ],
+    "CloudRun": [
+        # V1 API
+        # "CloudRunServiceV1Manager",
+        # "CloudRunJobV1Manager",
+        # "CloudRunWorkerPoolV1Manager",
+        "CloudRunDomainMappingV1Manager",
+        "CloudRunRouteV1Manager",
+        "CloudRunConfigurationV1Manager",
+        # V2 API
+        "CloudRunServiceV2Manager",
+        "CloudRunJobV2Manager",
+        "CloudRunWorkerPoolV2Manager",
+        # "CloudRunOperationV2Manager",
+    ],
+    "KubernetesEngine": ["GKEClusterV1Manager", "GKENodePoolV1Manager"],
+    "AppEngine": [
+        "AppEngineApplicationV1Manager",
+        "AppEngineServiceV1Manager",
+        "AppEngineVersionV1Manager",
+        "AppEngineInstanceV1Manager",
+    ],
+    "Datastore": [
+        # "DatastoreIndexManager",
+        "DatastoreDatabaseManager",
+        "DatastoreNamespaceManager",
+    ],
+    "Dataproc": ["DataprocClusterManager"],
+    "StorageTransfer": [
+        "StorageTransferAgentPoolManager",
+        "StorageTransferManager",
+        "StorageTransferOperationManager",
+    ],
+    "Firestore": [
+        "FirestoreDatabaseManager",
+        "FirestoreCollectionManager",
+        "FirestoreIndexManager",
+        "FirestoreBackupScheduleManager",
+        "FirestoreBackupManager",
+    ],
+    "KMS": ["KMSKeyRingManager"],
     # "Recommender": ["RecommendationManager"],
 }
 
@@ -64,6 +119,28 @@ CLOUD_LOGGING_RESOURCE_TYPE_MAP = {
         }
     },
     "BigQuery": {},
+    "CloudBuild": {
+        "Build": {
+            "resource_type": "cloud_build",
+            "labels_key": "resource.labels.build_id",
+        },
+        "Trigger": {
+            "resource_type": "cloud_build_trigger",
+            "labels_key": "resource.labels.trigger_id",
+        },
+        "WorkerPool": {
+            "resource_type": "cloud_build_worker_pool",
+            "labels_key": "resource.labels.worker_pool_id",
+        },
+        "Connection": {
+            "resource_type": "cloud_build_connection",
+            "labels_key": "resource.labels.connection_id",
+        },
+        "Repository": {
+            "resource_type": "cloud_build_repository",
+            "labels_key": "resource.labels.repository_id",
+        },
+    },
     "CloudStorage": {
         "Bucket": {
             "resource_type": "gcs_bucket",
@@ -89,6 +166,132 @@ CLOUD_LOGGING_RESOURCE_TYPE_MAP = {
         "Function": {
             "resource_type": "cloud_function",
             "labels_key": "resource.labels.function_name",
+        }
+    },
+    "Filestore": {
+        "Instance": {
+            "resource_type": "filestore_instance",
+            "labels_key": "resource.labels.instance_id",
+        },
+        "Snapshot": {
+            "resource_type": "filestore_snapshot",
+            "labels_key": "resource.labels.snapshot_id",
+        },
+        "Backup": {
+            "resource_type": "filestore_backup",
+            "labels_key": "resource.labels.backup_id",
+        },
+    },
+    "Firebase": {
+        "App": {
+            "resource_type": "firebase_app",
+            "labels_key": "resource.labels.app_id",
+        },
+    },
+    "Batch": {
+        "Job": {
+            "resource_type": "batch_job",
+            "labels_key": "resource.labels.job_id",
+        },
+    },
+    "CloudRun": {
+        "Configuration": {
+            "resource_type": "cloud_run_configuration",
+            "labels_key": "resource.labels.configuration_name",
+        },
+        "Route": {
+            "resource_type": "cloud_run_route",
+            "labels_key": "resource.labels.route_name",
+        },
+        "DomainMapping": {
+            "resource_type": "cloud_run_domain_mapping",
+            "labels_key": "resource.labels.domain_mapping_name",
+        },
+        "Service": {
+            "resource_type": "cloud_run_service",
+            "labels_key": "resource.labels.service_name",
+        },
+        "Job": {
+            "resource_type": "cloud_run_job",
+            "labels_key": "resource.labels.job_name",
+        },
+        "WorkerPool": {
+            "resource_type": "cloud_run_worker_pool",
+            "labels_key": "resource.labels.worker_pool_name",
+        },
+    },
+    "KubernetesEngine": {
+        "Cluster": {
+            "resource_type": "gke_cluster",
+            "labels_key": "resource.labels.cluster_name",
+        },
+        "NodePool": {
+            "resource_type": "gke_nodepool",
+            "labels_key": "resource.labels.nodepool_name",
+        },
+    },
+    "AppEngine": {
+        "Application": {
+            "resource_type": "gae_app",
+            "labels_key": "resource.labels.module_id",
+        },
+        "Service": {
+            "resource_type": "gae_app",
+            "labels_key": "resource.labels.module_id",
+        },
+        "Version": {
+            "resource_type": "gae_app",
+            "labels_key": "resource.labels.version_id",
+        },
+        "Instance": {
+            "resource_type": "gae_app",
+            "labels_key": "resource.labels.instance_id",
+        },
+    },
+    "Datastore": {
+        "Database": {
+            "resource_type": "datastore_database",
+            "labels_key": "resource.labels.database_id",
+        },
+        "Namespace": {
+            "resource_type": "datastore_namespace",
+            "labels_key": "resource.labels.namespace_id",
+        },
+        "Index": {
+            "resource_type": "datastore_index",
+            "labels_key": "resource.labels.index_id",
+        },
+    },
+    "Dataproc": {
+        "Cluster": {
+            "resource_type": "dataproc_cluster",
+            "labels_key": "resource.labels.cluster_name",
+        },
+    },
+    "StorageTransfer": {
+        "AgentPool": {
+            "resource_type": "storage_transfer_agent_pool",
+            "labels_key": "resource.labels.pool_name",
+        },
+        "TransferJob": {
+            "resource_type": "storage_transfer_job",
+            "labels_key": "resource.labels.job_name",
+        },
+        "TransferOperation": {
+            "resource_type": "storage_transfer_operation",
+            "labels_key": "resource.labels.operation_name",
+        },
+    },
+    "Firestore": {
+        "Database": {
+            "resource_type": "firestore_database",
+            "labels_key": "resource.labels.database_id",
+        }
+    },
+    "KMS": {
+        "KeyRing": {
+            "resource_type": "kms_keyring",
+            "labels_key": "resource.labels.keyring_id",
         }
     },
     "Recommender": {},

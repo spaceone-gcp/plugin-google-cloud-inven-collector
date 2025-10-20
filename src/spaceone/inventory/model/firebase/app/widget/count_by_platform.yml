@@ -1,0 +1,19 @@
+---
+cloud_service_group: Firebase
+cloud_service_type: App
+name: Count By Platform
+query:
+  aggregate:
+    - group:
+        keys:
+          - name: name
+            key: data.platform
+        fields:
+          - name: value
+            operator: count
+  filter:
+    - key: data.platform
+      value: true
+      operator: exists
+options:
+  chart_type: DONUT

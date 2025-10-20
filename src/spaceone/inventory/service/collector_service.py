@@ -1,17 +1,31 @@
+import json
+import logging
 import os
 import time
-import logging
-import json
-import concurrent.futures
-from spaceone.inventory.connector.resource_manager.project import ProjectConnector
-from spaceone.inventory.libs.manager import GoogleCloudManager
+
 from spaceone.core import utils
-from spaceone.core.service import *
+from spaceone.core.service import (
+    BaseService,
+    authentication_handler,
+    check_required,
+    transaction,
+)
+from spaceone.inventory.conf.cloud_service_conf import (
+    CLOUD_SERVICE_GROUP_MAP,
+    FILTER_FORMAT,
+    SUPPORTED_FEATURES,
+    SUPPORTED_RESOURCE_TYPE,
+    SUPPORTED_SCHEDULES,
+)
+from spaceone.inventory.libs.manager import GoogleCloudManager
+from spaceone.inventory.libs.schema.base import (
+    BaseResponse,
+    log_state_summary,
+    reset_state_counters,
+)
 from spaceone.inventory.libs.schema.cloud_service import (
     ErrorResourceResponse,
-    CloudServiceResponse,
 )
-from spaceone.inventory.conf.cloud_service_conf import *
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -41,7 +55,12 @@ class CollectorService(BaseService):
             'FirewallManager',
             'RouteManager',
             'LoadBalancingManager',
-            'VMInstance'
+            'VMInstance',
+            'FirebaseAppManager',
+            'CloudRunServiceManager',
+            'CloudRunJobManager',
+            'CloudRunWorkerPoolManager',
+            'CloudRunDomainMappingManager'
         ]
         """
 
@@ -65,11 +84,10 @@ class CollectorService(BaseService):
                 - options
                 - secret_data
         """
-        options = params["options"]
         secret_data = params.get("secret_data", {})
         if secret_data != {}:
             google_manager = GoogleCloudManager()
-            active = google_manager.verify({}, secret_data)
+            google_manager.verify({}, secret_data)
 
         return {}
 
@@ -85,19 +103,17 @@ class CollectorService(BaseService):
                 - filter
         """
 
-        project_conn = self.locator.get_connector(ProjectConnector, **params)
-        try:
-            # _LOGGER.debug(f"[collect] project => {project_id} / {project_state}")
-            project_info = project_conn.get_project_info()
-            project_id = project_info["projectId"]
-            project_state = project_info["state"]
-        except Exception as e:
-            _LOGGER.debug(f"[collect] failed to get project_info => {e}")
-            return CloudServiceResponse().to_primitive()
+        # Project validation을 건너뛰고 바로 매니저 실행으로 진행
+        secret_data = params.get("secret_data", {})
+        project_id = secret_data.get("project_id", "unknown")
+        _LOGGER.debug(f"[collect] project => {project_id}")
 
         start_time = time.time()
 
-        _LOGGER.debug(f"EXECUTOR START: Google Cloud Service")
+        # State 카운터 초기화
+        reset_state_counters()
+
+        _LOGGER.debug("EXECUTOR START: Google Cloud Service")
         # Get target manager to collect
         try:
             self.execute_managers = self._get_target_execute_manager(
@@ -113,33 +129,29 @@ class CollectorService(BaseService):
             )
             yield error_resource_response.to_primitive()
 
-        # Execute manager
-        with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKER) as executor:
-            future_executors = []
-            for execute_manager in self.execute_managers:
+        # Execute manager (순차 처리)
+        for execute_manager in self.execute_managers:
+            try:
                 _manager = self.locator.get_manager(execute_manager)
-                future_executors.append(
-                    executor.submit(_manager.collect_resources, params)
+                for result in _manager.collect_resources(params):
+                    yield result.to_primitive()
+            except Exception as e:
+                _LOGGER.error(
+                    f"[collect] failed to yield result from {execute_manager} => {e}",
+                    exc_info=True,
                 )
-
-            for future in concurrent.futures.as_completed(future_executors):
-                try:
-                    for result in future.result():
-                        yield result.to_primitive()
-                except Exception as e:
-                    _LOGGER.error(
-                        f"[collect] failed to yield result => {e}", exc_info=True
-                    )
-                    error_resource_response = self.generate_error_response(
-                        e, "", "inventory.Error"
-                    )
-                    _LOGGER.debug(error_resource_response)
-                    yield error_resource_response.to_primitive()
+                error_resource_response = self.generate_error_response(
+                    e, "", "inventory.Error"
+                )
+                _LOGGER.debug(error_resource_response)
+                yield error_resource_response.to_primitive()
 
         for service in CLOUD_SERVICE_GROUP_MAP.keys():
             for response in self.collect_metrics(service):
                 yield response
 
+        # 최종 요약 정보 로깅
+        log_state_summary()
         _LOGGER.debug(f"TOTAL TIME : {time.time() - start_time} Seconds")
 
     def _get_target_execute_manager(self, options):
@@ -165,26 +177,36 @@ class CollectorService(BaseService):
 
     @staticmethod
     def generate_error_response(e, cloud_service_group, cloud_service_type):
+        """
+        개선된 로깅 기능을 사용하여 에러 응답을 생성합니다.
+
+        Args:
+            e: 발생한 예외 또는 에러 정보
+            cloud_service_group: 클라우드 서비스 그룹
+            cloud_service_type: 클라우드 서비스 타입
+
+        Returns:
+            ErrorResourceResponse 인스턴스
+        """
         if type(e) is dict:
-            error_resource_response = ErrorResourceResponse(
-                {
-                    "message": json.dumps(e),
-                    "resource": {
-                        "cloud_service_group": cloud_service_group,
-                        "cloud_service_type": cloud_service_type,
-                    },
-                }
-            )
+            error_message = json.dumps(e)
+            error_code = "DICT_ERROR"
         else:
-            error_resource_response = ErrorResourceResponse(
-                {
-                    "message": str(e),
-                    "resource": {
-                        "cloud_service_group": cloud_service_group,
-                        "cloud_service_type": cloud_service_type,
-                    },
-                }
-            )
+            error_message = str(e)
+            error_code = type(e).__name__
+
+        # 추가 컨텍스트 정보
+        additional_context = {
+            "cloud_service_group": cloud_service_group,
+            "cloud_service_type": cloud_service_type,
+        }
+
+        # 로깅과 함께 에러 응답 생성
+        error_resource_response = ErrorResourceResponse.create_with_logging(
+            error_message=error_message,
+            error_code=error_code,
+            additional_data=additional_context,
+        )
 
         return error_resource_response
 
@@ -214,7 +236,23 @@ class CollectorService(BaseService):
         namespace=None,
         resource_type: str = "inventory.Metric",
     ) -> dict:
+        """
+        Namespace 또는 Metric 응답을 생성하고 상태를 로깅합니다.
 
+        Args:
+            metric: 메트릭 데이터
+            namespace: 네임스페이스 데이터
+            resource_type: 리소스 타입
+
+        Returns:
+            응답 딕셔너리
+        """
+        # SUCCESS state 카운터 업데이트 (로깅은 하지 않음)
+        import spaceone.inventory.libs.schema.base as base_schema
+
+        base_schema._STATE_COUNTERS["SUCCESS"] += 1
+
+        # 기존 방식으로 응답 생성 (스키마 검증 오류 방지)
         response = {
             "state": "SUCCESS",
             "resource_type": resource_type,
@@ -227,3 +265,80 @@ class CollectorService(BaseService):
             response["resource"] = namespace
 
         return response
+
+    @staticmethod
+    def handle_error_with_logging(
+        error: Exception,
+        operation: str = "",
+        resource_type: str = "inventory.ErrorResource",
+        additional_context: dict = None,
+    ) -> dict:
+        """
+        예외를 처리하고 적절한 상태 로깅과 함께 에러 응답을 생성합니다.
+
+        Args:
+            error: 발생한 예외
+            operation: 실행 중이던 작업명
+            resource_type: 리소스 타입
+            additional_context: 추가 컨텍스트 정보
+
+        Returns:
+            에러 응답 딕셔너리
+        """
+        error_message = str(error)
+        error_type = type(error).__name__
+
+        # 에러 종류별 state 결정
+        if "timeout" in error_message.lower() or error_type in [
+            "TimeoutError",
+            "ConnectTimeout",
+        ]:
+            # TIMEOUT 상태로 로깅
+            timeout_response = BaseResponse.create_with_logging(
+                state="TIMEOUT",
+                resource_type=resource_type,
+                message=f"Timeout during {operation}: {error_message}",
+            )
+            return timeout_response.to_primitive()
+        else:
+            # FAILURE 상태로 로깅
+            error_response = ErrorResourceResponse.create_with_logging(
+                error_message=f"Error during {operation}: {error_message}",
+                error_code=error_type,
+                resource_type=resource_type,
+                additional_data=additional_context,
+            )
+            return error_response.to_primitive()
+
+    @transaction
+    @check_required(["options", "secret_data"])
+    def get_firebase_projects(self, params):
+        """
+        특정 프로젝트의 Firebase 앱들을 조회합니다.
+        Firebase Management API의 searchApps 엔드포인트를 사용합니다.
+
+        Args:
+            params:
+                - options
+                - secret_data
+
+        Returns:
+            dict: Firebase 앱 목록
+        """
+        try:
+            from spaceone.inventory.connector.firebase.firebase_v1beta1 import (
+                FirebaseConnector,
+            )
+
+            firebase_conn = FirebaseConnector(**params)
+            firebase_apps = firebase_conn.list_firebase_apps()
+
+            return {
+                "apps": firebase_apps,
+                "total_count": len(firebase_apps),
+                "project_id": params["secret_data"]["project_id"],
+            }
+
+        except Exception as e:
+            _LOGGER.error(f"Failed to get Firebase apps: {e}")
+            raise e

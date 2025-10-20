@@ -1,41 +1,65 @@
-from spaceone.inventory.manager.cloud_sql.instance_manager import CloudSQLManager
-from spaceone.inventory.manager.compute_engine.instance_group_manager import (
-    InstanceGroupManager,
-)
-from spaceone.inventory.manager.compute_engine.instance_template_manager import (
-    InstanceTemplateManager,
-)
-from spaceone.inventory.manager.compute_engine.machine_image_manager import (
-    MachineImageManager,
-)
-from spaceone.inventory.manager.compute_engine.disk_manager import DiskManager
-from spaceone.inventory.manager.compute_engine.snapshot_manager import SnapshotManager
-from spaceone.inventory.manager.cloud_storage.storage_manager import StorageManager
-from spaceone.inventory.manager.networking.vpc_network_manager import VPCNetworkManager
-from spaceone.inventory.manager.networking.external_ip_address_manager import (
-    ExternalIPAddressManager,
-)
-from spaceone.inventory.manager.networking.firewall_manager import FirewallManager
-from spaceone.inventory.manager.networking.route_manager import RouteManager
-from spaceone.inventory.manager.networking.load_balancing_manager import (
-    LoadBalancingManager,
-)
-from spaceone.inventory.manager.bigquery.sql_workspace_manager import (
-    SQLWorkspaceManager,
-)
-from spaceone.inventory.manager.compute_engine.vm_instance_manager import (
-    VMInstanceManager,
-)
-from spaceone.inventory.manager.pub_sub.schema_manager import SchemaManager
-from spaceone.inventory.manager.pub_sub.snapshot_manager import SnapshotManager
-from spaceone.inventory.manager.pub_sub.subscription_manager import SubscriptionManager
-from spaceone.inventory.manager.pub_sub.topic_manager import TopicManager
-from spaceone.inventory.manager.cloud_functions.function_gen2_manager import (
-    FunctionGen2Manager,
-)
-from spaceone.inventory.manager.cloud_functions.function_gen1_manager import (
-    FunctionGen1Manager,
-)
-from spaceone.inventory.manager.recommender.recommendation_manager import (
-    RecommendationManager,
-)
+from .app_engine.application_v1_manager import AppEngineApplicationV1Manager
+from .app_engine.instance_v1_manager import AppEngineInstanceV1Manager
+from .app_engine.service_v1_manager import AppEngineServiceV1Manager
+from .app_engine.version_v1_manager import AppEngineVersionV1Manager
+from .batch.batch_manager import BatchManager
+from .bigquery.sql_workspace_manager import SQLWorkspaceManager
+from .cloud_build.build_v1_manager import CloudBuildBuildV1Manager
+from .cloud_build.connection_v2_manager import CloudBuildConnectionV2Manager
+from .cloud_build.repository_v2_manager import CloudBuildRepositoryV2Manager
+from .cloud_build.trigger_v1_manager import CloudBuildTriggerV1Manager
+from .cloud_build.worker_pool_v1_manager import CloudBuildWorkerPoolV1Manager
+from .cloud_functions.function_gen1_manager import FunctionGen1Manager
+from .cloud_functions.function_gen2_manager import FunctionGen2Manager
+from .cloud_run.configuration_v1_manager import CloudRunConfigurationV1Manager
+from .cloud_run.domain_mapping_v1_manager import CloudRunDomainMappingV1Manager
+from .cloud_run.job_v1_manager import CloudRunJobV1Manager
+from .cloud_run.job_v2_manager import CloudRunJobV2Manager
+from .cloud_run.operation_v2_manager import CloudRunOperationV2Manager
+from .cloud_run.route_v1_manager import CloudRunRouteV1Manager
+from .cloud_run.service_v1_manager import CloudRunServiceV1Manager
+from .cloud_run.service_v2_manager import CloudRunServiceV2Manager
+from .cloud_run.worker_pool_v1_manager import CloudRunWorkerPoolV1Manager
+from .cloud_run.worker_pool_v2_manager import CloudRunWorkerPoolV2Manager
+from .cloud_sql.instance_manager import CloudSQLManager
+from .cloud_storage.storage_manager import StorageManager
+from .compute_engine.disk_manager import DiskManager
+from .compute_engine.instance_group_manager import InstanceGroupManager
+from .compute_engine.instance_template_manager import InstanceTemplateManager
+from .compute_engine.machine_image_manager import MachineImageManager
+from .compute_engine.snapshot_manager import SnapshotManager
+from .compute_engine.vm_instance_manager import VMInstanceManager
+from .dataproc.cluster_manager import DataprocClusterManager
+from .datastore.database_manager import DatastoreDatabaseManager
+from .datastore.index_manager import DatastoreIndexManager
+from .datastore.namespace_manager import DatastoreNamespaceManager
+from .filestore.backup_v1_manager import FilestoreBackupManager
+from .filestore.instance_v1_manager import FilestoreInstanceManager
+from .filestore.instance_v1beta1_manager import FilestoreInstanceV1Beta1Manager
+from .filestore.snapshot_v1_manager import FilestoreSnapshotManager
+from .firebase.app_manager import FirebaseManager
+from .firestore.backup_manager import FirestoreBackupManager
+from .firestore.backup_schedule_manager import FirestoreBackupScheduleManager
+from .firestore.collection_manager import FirestoreCollectionManager
+from .firestore.database_manager import FirestoreDatabaseManager
+from .firestore.index_manager import FirestoreIndexManager
+from .kms.kms_manager import KMSKeyRingManager
+from .kubernetes_engine.cluster_v1_manager import GKEClusterV1Manager
+from .kubernetes_engine.cluster_v1beta_manager import GKEClusterV1BetaManager
+from .kubernetes_engine.node_pool_v1_manager import GKENodePoolV1Manager
+from .kubernetes_engine.node_pool_v1beta_manager import GKENodePoolV1BetaManager
+from .networking.external_ip_address_manager import ExternalIPAddressManager
+from .networking.firewall_manager import FirewallManager
+from .networking.load_balancing_manager import LoadBalancingManager
+from .networking.route_manager import RouteManager
+from .networking.vpc_network_manager import VPCNetworkManager
+from .networking.vpc_subnet_manager import VPCSubnetManager
+from .networking.vpc_gateway_manager import VPCGatewayManager
+from .pub_sub.schema_manager import SchemaManager
+from .pub_sub.snapshot_manager import SnapshotManager
+from .pub_sub.subscription_manager import SubscriptionManager
+from .pub_sub.topic_manager import TopicManager
+from .recommender.recommendation_manager import RecommendationManager
+from .storage_transfer.agent_pool_manager import StorageTransferAgentPoolManager
+from .storage_transfer.transfer_job_manager import StorageTransferManager
+from .storage_transfer.transfer_operation_manager import StorageTransferOperationManager

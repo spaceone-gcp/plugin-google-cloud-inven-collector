@@ -1,0 +1,19 @@
+---
+cloud_service_group: Firebase
+cloud_service_type: App
+name: Count By Region
+query:
+  aggregate:
+    - group:
+        keys:
+          - name: name
+            key: region_code
+        fields:
+          - name: value
+            operator: count
+  filter:
+    - key: region_code
+      value: true
+      operator: exists
+options:
+  chart_type: DONUT

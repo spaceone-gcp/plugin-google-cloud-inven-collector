@@ -22,3 +22,5 @@ def ResourceInfo(resource_dict):
         )
 
     return collector_pb2.ResourceInfo(**resource_dict)
+
+

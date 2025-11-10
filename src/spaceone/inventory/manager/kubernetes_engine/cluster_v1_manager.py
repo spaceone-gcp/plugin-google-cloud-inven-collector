@@ -165,13 +165,17 @@ class GKEClusterV1Manager(GoogleCloudManager):
             # Get node pools for this cluster
             node_pools = cluster_connector.list_node_pools(cluster_name, location)
 
+            _LOGGER.info(
+                f"[CLUSTER_RESOURCES] Cluster {cluster_name}: Found {len(node_pools)} node pools"
+            )
+
             total_cpu = 0
             total_memory_gb = 0
             total_nodes = 0
 
-            # Machine type to CPU/Memory mapping (common GCP machine types)
+            # Machine type to CPU/Memory mapping (comprehensive GCP machine types)
             machine_type_specs = {
-                # Standard machine types
+                # N1 Standard machine types
                 "n1-standard-1": {"cpu": 1, "memory_gb": 3.75},
                 "n1-standard-2": {"cpu": 2, "memory_gb": 7.5},
                 "n1-standard-4": {"cpu": 4, "memory_gb": 15},
@@ -180,7 +184,7 @@ class GKEClusterV1Manager(GoogleCloudManager):
                 "n1-standard-32": {"cpu": 32, "memory_gb": 120},
                 "n1-standard-64": {"cpu": 64, "memory_gb": 240},
                 "n1-standard-96": {"cpu": 96, "memory_gb": 360},
-                # High-memory machine types
+                # N1 High-memory machine types
                 "n1-highmem-2": {"cpu": 2, "memory_gb": 13},
                 "n1-highmem-4": {"cpu": 4, "memory_gb": 26},
                 "n1-highmem-8": {"cpu": 8, "memory_gb": 52},
@@ -188,7 +192,7 @@ class GKEClusterV1Manager(GoogleCloudManager):
                 "n1-highmem-32": {"cpu": 32, "memory_gb": 208},
                 "n1-highmem-64": {"cpu": 64, "memory_gb": 416},
                 "n1-highmem-96": {"cpu": 96, "memory_gb": 624},
-                # High-CPU machine types
+                # N1 High-CPU machine types
                 "n1-highcpu-16": {"cpu": 16, "memory_gb": 14.4},
                 "n1-highcpu-32": {"cpu": 32, "memory_gb": 28.8},
                 "n1-highcpu-64": {"cpu": 64, "memory_gb": 57.6},
@@ -199,6 +203,15 @@ class GKEClusterV1Manager(GoogleCloudManager):
                 "e2-standard-8": {"cpu": 8, "memory_gb": 32},
                 "e2-standard-16": {"cpu": 16, "memory_gb": 64},
                 "e2-standard-32": {"cpu": 32, "memory_gb": 128},
+                "e2-highmem-2": {"cpu": 2, "memory_gb": 16},
+                "e2-highmem-4": {"cpu": 4, "memory_gb": 32},
+                "e2-highmem-8": {"cpu": 8, "memory_gb": 64},
+                "e2-highmem-16": {"cpu": 16, "memory_gb": 128},
+                "e2-highcpu-2": {"cpu": 2, "memory_gb": 2},
+                "e2-highcpu-4": {"cpu": 4, "memory_gb": 4},
+                "e2-highcpu-8": {"cpu": 8, "memory_gb": 8},
+                "e2-highcpu-16": {"cpu": 16, "memory_gb": 16},
+                "e2-highcpu-32": {"cpu": 32, "memory_gb": 32},
                 # N2 machine types
                 "n2-standard-2": {"cpu": 2, "memory_gb": 8},
                 "n2-standard-4": {"cpu": 4, "memory_gb": 16},
@@ -209,15 +222,122 @@ class GKEClusterV1Manager(GoogleCloudManager):
                 "n2-standard-64": {"cpu": 64, "memory_gb": 256},
                 "n2-standard-80": {"cpu": 80, "memory_gb": 320},
                 "n2-standard-128": {"cpu": 128, "memory_gb": 512},
+                "n2-highmem-2": {"cpu": 2, "memory_gb": 16},
+                "n2-highmem-4": {"cpu": 4, "memory_gb": 32},
+                "n2-highmem-8": {"cpu": 8, "memory_gb": 64},
+                "n2-highmem-16": {"cpu": 16, "memory_gb": 128},
+                "n2-highmem-32": {"cpu": 32, "memory_gb": 256},
+                "n2-highmem-48": {"cpu": 48, "memory_gb": 384},
+                "n2-highmem-64": {"cpu": 64, "memory_gb": 512},
+                "n2-highmem-80": {"cpu": 80, "memory_gb": 640},
+                "n2-highmem-96": {"cpu": 96, "memory_gb": 768},
+                "n2-highmem-128": {"cpu": 128, "memory_gb": 864},
+                "n2-highcpu-2": {"cpu": 2, "memory_gb": 2},
+                "n2-highcpu-4": {"cpu": 4, "memory_gb": 4},
+                "n2-highcpu-8": {"cpu": 8, "memory_gb": 8},
+                "n2-highcpu-16": {"cpu": 16, "memory_gb": 16},
+                "n2-highcpu-32": {"cpu": 32, "memory_gb": 32},
+                "n2-highcpu-48": {"cpu": 48, "memory_gb": 48},
+                "n2-highcpu-64": {"cpu": 64, "memory_gb": 64},
+                "n2-highcpu-80": {"cpu": 80, "memory_gb": 80},
+                "n2-highcpu-96": {"cpu": 96, "memory_gb": 96},
+                # N2D machine types
+                "n2d-standard-2": {"cpu": 2, "memory_gb": 8},
+                "n2d-standard-4": {"cpu": 4, "memory_gb": 16},
+                "n2d-standard-8": {"cpu": 8, "memory_gb": 32},
+                "n2d-standard-16": {"cpu": 16, "memory_gb": 64},
+                "n2d-standard-32": {"cpu": 32, "memory_gb": 128},
+                "n2d-standard-48": {"cpu": 48, "memory_gb": 192},
+                "n2d-standard-64": {"cpu": 64, "memory_gb": 256},
+                "n2d-standard-80": {"cpu": 80, "memory_gb": 320},
+                "n2d-standard-96": {"cpu": 96, "memory_gb": 384},
+                "n2d-standard-128": {"cpu": 128, "memory_gb": 512},
+                "n2d-standard-224": {"cpu": 224, "memory_gb": 896},
+                "n2d-highmem-2": {"cpu": 2, "memory_gb": 16},
+                "n2d-highmem-4": {"cpu": 4, "memory_gb": 32},
+                "n2d-highmem-8": {"cpu": 8, "memory_gb": 64},
+                "n2d-highmem-16": {"cpu": 16, "memory_gb": 128},
+                "n2d-highmem-32": {"cpu": 32, "memory_gb": 256},
+                "n2d-highmem-48": {"cpu": 48, "memory_gb": 384},
+                "n2d-highmem-64": {"cpu": 64, "memory_gb": 512},
+                "n2d-highmem-80": {"cpu": 80, "memory_gb": 640},
+                "n2d-highmem-96": {"cpu": 96, "memory_gb": 768},
+                "n2d-highcpu-16": {"cpu": 16, "memory_gb": 16},
+                "n2d-highcpu-32": {"cpu": 32, "memory_gb": 32},
+                "n2d-highcpu-48": {"cpu": 48, "memory_gb": 48},
+                "n2d-highcpu-64": {"cpu": 64, "memory_gb": 64},
+                "n2d-highcpu-80": {"cpu": 80, "memory_gb": 80},
+                "n2d-highcpu-96": {"cpu": 96, "memory_gb": 96},
+                "n2d-highcpu-128": {"cpu": 128, "memory_gb": 128},
+                "n2d-highcpu-224": {"cpu": 224, "memory_gb": 224},
+                # C2 machine types
+                "c2-standard-4": {"cpu": 4, "memory_gb": 16},
+                "c2-standard-8": {"cpu": 8, "memory_gb": 32},
+                "c2-standard-16": {"cpu": 16, "memory_gb": 64},
+                "c2-standard-30": {"cpu": 30, "memory_gb": 120},
+                "c2-standard-60": {"cpu": 60, "memory_gb": 240},
+                # C2D machine types
+                "c2d-standard-2": {"cpu": 2, "memory_gb": 8},
+                "c2d-standard-4": {"cpu": 4, "memory_gb": 16},
+                "c2d-standard-8": {"cpu": 8, "memory_gb": 32},
+                "c2d-standard-16": {"cpu": 16, "memory_gb": 64},
+                "c2d-standard-32": {"cpu": 32, "memory_gb": 128},
+                "c2d-standard-56": {"cpu": 56, "memory_gb": 224},
+                "c2d-standard-112": {"cpu": 112, "memory_gb": 448},
+                "c2d-highmem-2": {"cpu": 2, "memory_gb": 16},
+                "c2d-highmem-4": {"cpu": 4, "memory_gb": 32},
+                "c2d-highmem-8": {"cpu": 8, "memory_gb": 64},
+                "c2d-highmem-16": {"cpu": 16, "memory_gb": 128},
+                "c2d-highmem-32": {"cpu": 32, "memory_gb": 256},
+                "c2d-highmem-56": {"cpu": 56, "memory_gb": 448},
+                "c2d-highmem-112": {"cpu": 112, "memory_gb": 896},
+                "c2d-highcpu-2": {"cpu": 2, "memory_gb": 2},
+                "c2d-highcpu-4": {"cpu": 4, "memory_gb": 4},
+                "c2d-highcpu-8": {"cpu": 8, "memory_gb": 8},
+                "c2d-highcpu-16": {"cpu": 16, "memory_gb": 16},
+                "c2d-highcpu-32": {"cpu": 32, "memory_gb": 32},
+                "c2d-highcpu-56": {"cpu": 56, "memory_gb": 56},
+                "c2d-highcpu-112": {"cpu": 112, "memory_gb": 112},
+                # T2D machine types
+                "t2d-standard-1": {"cpu": 1, "memory_gb": 4},
+                "t2d-standard-2": {"cpu": 2, "memory_gb": 8},
+                "t2d-standard-4": {"cpu": 4, "memory_gb": 16},
+                "t2d-standard-8": {"cpu": 8, "memory_gb": 32},
+                "t2d-standard-16": {"cpu": 16, "memory_gb": 64},
+                "t2d-standard-32": {"cpu": 32, "memory_gb": 128},
+                "t2d-standard-48": {"cpu": 48, "memory_gb": 192},
+                "t2d-standard-60": {"cpu": 60, "memory_gb": 240},
+                # T2A machine types (ARM-based)
+                "t2a-standard-1": {"cpu": 1, "memory_gb": 4},
+                "t2a-standard-2": {"cpu": 2, "memory_gb": 8},
+                "t2a-standard-4": {"cpu": 4, "memory_gb": 16},
+                "t2a-standard-8": {"cpu": 8, "memory_gb": 32},
+                "t2a-standard-16": {"cpu": 16, "memory_gb": 64},
+                "t2a-standard-32": {"cpu": 32, "memory_gb": 128},
+                "t2a-standard-48": {"cpu": 48, "memory_gb": 192},
+                # G1 small (shared-core)
+                "g1-small": {"cpu": 1, "memory_gb": 1.7},
+                # F1 micro (shared-core)
+                "f1-micro": {"cpu": 1, "memory_gb": 0.6},
             }
 
             for node_pool in node_pools:
                 try:
+                    pool_name = node_pool.get("name", "unknown")
+
                     # Get node count
                     current_node_count = node_pool.get(
                         "currentNodeCount", 0
                     ) or node_pool.get("initialNodeCount", 0)
+
+                    _LOGGER.info(
+                        f"[CLUSTER_RESOURCES] Pool {pool_name}: currentNodeCount={current_node_count}"
+                    )
+
                     if not current_node_count:
+                        _LOGGER.info(
+                            f"[CLUSTER_RESOURCES] Pool {pool_name}: Skipping - no nodes"
+                        )
                         continue
 
                     total_nodes += current_node_count
@@ -226,10 +346,19 @@ class GKEClusterV1Manager(GoogleCloudManager):
                     node_config = node_pool.get("config", {})
                     machine_type = node_config.get("machineType", "")
 
+                    _LOGGER.info(
+                        f"[CLUSTER_RESOURCES] Pool {pool_name}: machineType={machine_type}"
+                    )
+
                     if machine_type in machine_type_specs:
                         specs = machine_type_specs[machine_type]
-                        total_cpu += specs["cpu"] * current_node_count
-                        total_memory_gb += specs["memory_gb"] * current_node_count
+                        pool_cpu = specs["cpu"] * current_node_count
+                        pool_memory = specs["memory_gb"] * current_node_count
+                        total_cpu += pool_cpu
+                        total_memory_gb += pool_memory
+                        _LOGGER.info(
+                            f"[CLUSTER_RESOURCES] Pool {pool_name}: {machine_type} x {current_node_count} = {pool_cpu} CPU, {pool_memory} GB RAM"
+                        )
                     else:
                         # For unknown machine types, try to parse from name
                         # e.g., "n1-standard-4" -> 4 CPUs
@@ -246,8 +375,13 @@ class GKEClusterV1Manager(GoogleCloudManager):
                                     else:
                                         memory_gb = cpu_count * 3.75  # Standard ratio
 
-                                    total_cpu += cpu_count * current_node_count
-                                    total_memory_gb += memory_gb * current_node_count
+                                    pool_cpu = cpu_count * current_node_count
+                                    pool_memory = memory_gb * current_node_count
+                                    total_cpu += pool_cpu
+                                    total_memory_gb += pool_memory
+                                    _LOGGER.info(
+                                        f"[CLUSTER_RESOURCES] Pool {pool_name}: {machine_type} (parsed) x {current_node_count} = {pool_cpu} CPU, {pool_memory} GB RAM"
+                                    )
                         except Exception:
                             _LOGGER.debug(
                                 f"Could not parse machine type: {machine_type}"
@@ -259,17 +393,28 @@ class GKEClusterV1Manager(GoogleCloudManager):
                     )
                     continue
 
-            return {
+            result = {
                 "total_cpu": int(total_cpu),
                 "total_memory_gb": round(total_memory_gb, 1),
+                "total_memory_mb": int(total_memory_gb * 1024),  # GB를 MB로 변환
                 "total_nodes": total_nodes,
             }
+
+            _LOGGER.info(
+                f"[CLUSTER_RESOURCES] Cluster {cluster_name} final result: {result}"
+            )
+            return result
 
         except Exception as e:
             _LOGGER.debug(
                 f"Failed to calculate cluster resources for {cluster_name}: {e}"
             )
-            return {"total_cpu": 0, "total_memory_gb": 0, "total_nodes": 0}
+            return {
+                "total_cpu": 0,
+                "total_memory_gb": 0,
+                "total_memory_mb": 0,
+                "total_nodes": 0,
+            }
 
     def collect_cloud_service(
         self, params: Dict[str, Any]
@@ -331,6 +476,7 @@ class GKEClusterV1Manager(GoogleCloudManager):
                     # Add calculated total resources
                     "total_cpu": str(cluster_resources.get("total_cpu", 0)),
                     "total_memory_gb": str(cluster_resources.get("total_memory_gb", 0)),
+                    "total_memory_mb": str(cluster_resources.get("total_memory_mb", 0)),
                 }
 
                 # 네트워크 설정 추가

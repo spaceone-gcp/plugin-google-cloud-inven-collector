@@ -127,8 +127,8 @@ def parse_cluster_data(
     if "resourceLimits" in cluster_data:
         parsed_data["resourceLimits"] = cluster_data["resourceLimits"]
 
-    # v1beta 전용 정보 (Fleet, Membership)
-    # v1beta1 specific fields are handled separately
+        # v1beta 전용 정보 (Fleet, Membership)
+        # v1beta1 specific fields are handled separately
         if fleet_info:
             parsed_data["fleet_info"] = {
                 "fleetProject": str(fleet_info.get("fleetProject", "")),
@@ -306,7 +306,12 @@ class GKECluster(BaseResource):
     )
     # Total cluster resources (calculated from node pools)
     total_cpu = IntType(deserialize_from="total_cpu", serialize_when_none=False)
-    total_memory_gb = StringType(deserialize_from="total_memory_gb", serialize_when_none=False)
+    total_memory_gb = StringType(
+        deserialize_from="total_memory_gb", serialize_when_none=False
+    )
+    total_memory_mb = IntType(
+        deserialize_from="total_memory_mb", serialize_when_none=False
+    )
     create_time = StringType(deserialize_from="createTime", serialize_when_none=False)
     resource_labels = DictType(
         StringType, deserialize_from="resourceLabels", serialize_when_none=False

@@ -165,6 +165,10 @@ class GKEClusterV1BetaManager(GoogleCloudManager):
             # Get node pools for this cluster
             node_pools = cluster_connector.list_node_pools(cluster_name, location)
 
+            _LOGGER.info(
+                f"[CLUSTER_RESOURCES] Cluster {cluster_name}: Found {len(node_pools)} node pools"
+            )
+
             total_cpu = 0
             total_memory_gb = 0
             total_nodes = 0
@@ -213,11 +217,21 @@ class GKEClusterV1BetaManager(GoogleCloudManager):
 
             for node_pool in node_pools:
                 try:
+                    pool_name = node_pool.get("name", "unknown")
+
                     # Get node count
                     current_node_count = node_pool.get(
                         "currentNodeCount", 0
                     ) or node_pool.get("initialNodeCount", 0)
+
+                    _LOGGER.info(
+                        f"[CLUSTER_RESOURCES] Pool {pool_name}: currentNodeCount={current_node_count}"
+                    )
+
                     if not current_node_count:
+                        _LOGGER.info(
+                            f"[CLUSTER_RESOURCES] Pool {pool_name}: Skipping - no nodes"
+                        )
                         continue
 
                     total_nodes += current_node_count
@@ -225,6 +239,10 @@ class GKEClusterV1BetaManager(GoogleCloudManager):
                     # Get machine type from node config
                     node_config = node_pool.get("config", {})
                     machine_type = node_config.get("machineType", "")
+
+                    _LOGGER.info(
+                        f"[CLUSTER_RESOURCES] Pool {pool_name}: machineType={machine_type}"
+                    )
 
                     if machine_type in machine_type_specs:
                         specs = machine_type_specs[machine_type]
@@ -262,6 +280,7 @@ class GKEClusterV1BetaManager(GoogleCloudManager):
             return {
                 "total_cpu": int(total_cpu),
                 "total_memory_gb": round(total_memory_gb, 1),
+                "total_memory_mb": int(total_memory_gb * 1024),  # GB를 MB로 변환
                 "total_nodes": total_nodes,
             }
 
@@ -269,7 +288,12 @@ class GKEClusterV1BetaManager(GoogleCloudManager):
             _LOGGER.debug(
                 f"Failed to calculate cluster resources for {cluster_name}: {e}"
             )
-            return {"total_cpu": 0, "total_memory_gb": 0, "total_nodes": 0}
+            return {
+                "total_cpu": 0,
+                "total_memory_gb": 0,
+                "total_memory_mb": 0,
+                "total_nodes": 0,
+            }
 
     def list_fleets(self, params: Dict[str, Any]) -> List[Dict[str, Any]]:
         """GKE Fleet 목록을 조회합니다 (v1beta1 API).
@@ -404,6 +428,7 @@ class GKEClusterV1BetaManager(GoogleCloudManager):
                     # Add calculated total resources
                     "total_cpu": str(cluster_resources.get("total_cpu", 0)),
                     "total_memory_gb": str(cluster_resources.get("total_memory_gb", 0)),
+                    "total_memory_mb": str(cluster_resources.get("total_memory_mb", 0)),
                 }
 
                 # 네트워크 설정 추가

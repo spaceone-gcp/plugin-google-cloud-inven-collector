@@ -92,8 +92,12 @@ class InstanceGroupManager(GoogleCloudManager):
                                         match_instance_group_manager
                                     )
                                 }
-                            }
+                            },
                         }
+                    )
+
+                    labels = self._convert_labels_to_list(
+                        match_instance_group_manager
                     )
 
                     ##################################
@@ -172,13 +176,15 @@ class InstanceGroupManager(GoogleCloudManager):
                     }
                 ]
 
+                ext_region = display_loc.get("zone") or display_loc.get("region")
+
                 instance_group.update(
                     {
                         "power_scheduler": scheduler,
                         "instances": self.get_instances(instances),
                         "instance_counts": len(instances),
                         "display_location": display_loc,
-                        "region": region,
+                        "region": ext_region,
                         "google_cloud_monitoring": self.set_google_cloud_monitoring(
                             project_id,
                             "compute.googleapis.com/instance_group",
@@ -187,7 +193,7 @@ class InstanceGroupManager(GoogleCloudManager):
                         ),
                     }
                 )
-                # No labels
+    
                 _name = instance_group.get("name", "")
 
                 instance_group.update(
@@ -211,6 +217,7 @@ class InstanceGroupManager(GoogleCloudManager):
                         "name": _name,
                         "account": project_id,
                         "region_code": region,
+                        "tags": labels,
                         "data": instance_group_data,
                         "reference": ReferenceModel(instance_group_data.reference()),
                     }
@@ -305,6 +312,19 @@ class InstanceGroupManager(GoogleCloudManager):
                     disks_vos.append({"key": key, "value": val})
 
         return disks_vos
+
+    @staticmethod
+    def _convert_labels_to_list(match_instance_group_manager):
+        labels_list = []
+        all_instances_config = match_instance_group_manager.get("allInstancesConfig")
+        if all_instances_config:
+            properties = all_instances_config.get("properties")
+            if properties:
+                labels_dict = properties.get("labels", {})
+                for key, val in labels_dict.items():
+                    labels_list.append({"key": key, "value": val})
+
+        return labels_list
 
     @staticmethod
     def _get_instance_group_type(instance_group_manager):

@@ -4,7 +4,11 @@ from typing import Dict, List, Optional, Tuple
 
 from spaceone.inventory.connector.kms.kms_v1 import KMSConnector
 from spaceone.inventory.libs.manager import GoogleCloudManager
-from spaceone.inventory.libs.schema.base import ReferenceModel, reset_state_counters, log_state_summary
+from spaceone.inventory.libs.schema.base import (
+    ReferenceModel,
+    log_state_summary,
+    reset_state_counters,
+)
 from spaceone.inventory.libs.schema.cloud_service import CloudServiceResponse
 from spaceone.inventory.model.kms.keyring.cloud_service import (
     KMSKeyRingResource,
@@ -25,7 +29,7 @@ class KMSKeyRingManager(GoogleCloudManager):
 
     KMS KeyRing 리소스를 효율적으로 수집하고 처리하는 매니저 클래스
     - KeyRing 목록 수집
-    - KeyRing 상세 정보 처리  
+    - KeyRing 상세 정보 처리
     - 리소스 응답 생성
     """
 
@@ -64,15 +68,16 @@ class KMSKeyRingManager(GoogleCloudManager):
 
             # 모든 KeyRing 조회
             key_rings = self._list_key_rings(kms_connector, params)
-            
+
             # KeyRing이 없는 경우 적절한 로그 레벨로 처리
             if not key_rings:
                 from spaceone.inventory.conf.kms_config import LOG_LEVEL_CONFIG
+
                 log_level = LOG_LEVEL_CONFIG["keyring_not_found"]
                 log_method = getattr(_LOGGER, log_level.lower())
                 log_method("No KeyRings found in any location")
                 return resource_responses, error_responses
-            
+
             _LOGGER.info(f"Found {len(key_rings)} KeyRings to process")
 
             # 각 KeyRing에 대해 리소스 생성
@@ -84,7 +89,9 @@ class KMSKeyRingManager(GoogleCloudManager):
                     resource_responses.append(resource_response)
                 except Exception as e:
                     keyring_name = keyring_data.get("name", "unknown")
-                    _LOGGER.error(f"Failed to process KeyRing {keyring_name}: {e}", exc_info=True)
+                    _LOGGER.error(
+                        f"Failed to process KeyRing {keyring_name}: {e}", exc_info=True
+                    )
                     error_response = self.generate_resource_error_response(
                         e, "KMS", "KeyRing", keyring_name
                     )
@@ -109,10 +116,12 @@ class KMSKeyRingManager(GoogleCloudManager):
         """커넥터 인스턴스를 가져옵니다."""
         return self.locator.get_connector(self.connector_name, **params)
 
-    def _list_key_rings(self, kms_connector: KMSConnector, params: Optional[Dict] = None) -> List[Dict]:
+    def _list_key_rings(
+        self, kms_connector: KMSConnector, params: Optional[Dict] = None
+    ) -> List[Dict]:
         """
         KMS의 모든 KeyRing을 조회합니다.
-        
+
         성능 최적화:
         - CryptoKey 중첩 조회 제거 (필요시 별도 API로 처리)
         - 메모리 효율적인 데이터 구조 사용
@@ -136,8 +145,10 @@ class KMSKeyRingManager(GoogleCloudManager):
                 _LOGGER.info("Searching all available KMS locations")
 
             # KeyRing 기본 정보만 조회 (중첩 조회 제거)
-            raw_key_rings = kms_connector.list_all_key_rings(target_locations=specified_locations)
-            
+            raw_key_rings = kms_connector.list_all_key_rings(
+                target_locations=specified_locations
+            )
+
             processed_key_rings = []
             for key_ring in raw_key_rings:
                 # KeyRing 정보와 CryptoKey 정보 함께 처리
@@ -152,7 +163,9 @@ class KMSKeyRingManager(GoogleCloudManager):
             _LOGGER.error(f"Error listing key rings: {e}", exc_info=True)
             raise e
 
-    def _process_keyring_data(self, keyring: Dict, kms_connector: KMSConnector) -> Optional[Dict]:
+    def _process_keyring_data(
+        self, keyring: Dict, kms_connector: KMSConnector
+    ) -> Optional[Dict]:
         """
         KeyRing 데이터를 처리합니다.
 
@@ -171,14 +184,14 @@ class KMSKeyRingManager(GoogleCloudManager):
             location_data = keyring.get("location_data", {})
 
             # 정규 표현식을 사용한 KeyRing 이름 파싱
-            keyring_pattern = r'projects/([^/]+)/locations/([^/]+)/keyRings/([^/]+)'
+            keyring_pattern = r"projects/([^/]+)/locations/([^/]+)/keyRings/([^/]+)"
             match = re.match(keyring_pattern, name)
-            
+
             if match:
                 project_id = match.group(1)
                 parsed_location_id = match.group(2)
                 keyring_id = match.group(3)
-                
+
                 # location_id가 없으면 파싱된 값 사용
                 if not location_id:
                     location_id = parsed_location_id
@@ -188,12 +201,14 @@ class KMSKeyRingManager(GoogleCloudManager):
 
             # Location 정보 처리 - 설정에서 표시 이름 가져오기
             from spaceone.inventory.conf.kms_config import LOCATION_DISPLAY_NAMES
-            location_display_name = LOCATION_DISPLAY_NAMES.get(location_id, 
-                                                             location_data.get("displayName", location_id))
+
+            location_display_name = LOCATION_DISPLAY_NAMES.get(
+                location_id, location_data.get("displayName", location_id)
+            )
 
             # CryptoKey 정보 조회
             crypto_keys = self.get_crypto_keys_for_keyring(name, kms_connector)
-            
+
             # 데이터 구조 생성
             return {
                 "name": name,
@@ -202,7 +217,7 @@ class KMSKeyRingManager(GoogleCloudManager):
                 "location_id": location_id,
                 "location_display_name": location_display_name,
                 "create_time": create_time,
-                "display_name": f"{keyring_id} ({location_display_name})",
+                "display_name": keyring_id,
                 "full_location_path": f"projects/{project_id}/locations/{location_id}",
                 # CryptoKey 정보 포함
                 "crypto_keys": crypto_keys,
@@ -212,7 +227,6 @@ class KMSKeyRingManager(GoogleCloudManager):
         except Exception as e:
             _LOGGER.error(f"Error processing KeyRing data: {e}", exc_info=True)
             return None
-
 
     def _create_keyring_response(
         self, keyring_data: Dict, params: Dict
@@ -239,23 +253,30 @@ class KMSKeyRingManager(GoogleCloudManager):
             keyring_data_obj = KMSKeyRingData(keyring_data, strict=False)
 
             # 리소스 생성
-            resource = KMSKeyRingResource({
-                "name": keyring_data["display_name"],
-                "account": project_id,
-                "data": keyring_data_obj,
-                "region_code": location_id,
-                "reference": ReferenceModel({
-                    "resource_id": resource_id,
-                    "external_link": f"https://console.cloud.google.com/security/kms/keyring/manage/{location_id}/{keyring_id}?project={project_id}",
-                }),
-            })
+            resource = KMSKeyRingResource(
+                {
+                    "name": keyring_data["display_name"],
+                    "account": project_id,
+                    "data": keyring_data_obj,
+                    "region_code": location_id,
+                    "reference": ReferenceModel(
+                        {
+                            "resource_id": resource_id,
+                            "external_link": f"https://console.cloud.google.com/security/kms/keyring/manage/{location_id}/{keyring_id}?project={project_id}",
+                        }
+                    ),
+                }
+            )
 
             # 표준 응답 생성 (다른 모듈들과 동일한 방식)
             return KMSKeyRingResponse({"resource": resource})
 
         except Exception as e:
             keyring_name = keyring_data.get("name", "unknown")
-            _LOGGER.error(f"Failed to create KMS KeyRing response for {keyring_name}: {e}", exc_info=True)
+            _LOGGER.error(
+                f"Failed to create KMS KeyRing response for {keyring_name}: {e}",
+                exc_info=True,
+            )
             raise e
 
     # ===== 선택적 상세 정보 조회 메서드들 =====
@@ -266,7 +287,7 @@ class KMSKeyRingManager(GoogleCloudManager):
     ) -> List[Dict]:
         """
         특정 KeyRing의 CryptoKey 기본 정보를 조회합니다.
-        
+
         Args:
             keyring_name: KeyRing의 전체 이름
             kms_connector: KMS 커넥터 인스턴스
@@ -290,7 +311,9 @@ class KMSKeyRingManager(GoogleCloudManager):
             _LOGGER.warning(f"Error collecting crypto keys for {keyring_name}: {e}")
             return []
 
-    def _process_crypto_key_data(self, crypto_key: Dict, kms_connector: KMSConnector) -> Optional[Dict]:
+    def _process_crypto_key_data(
+        self, crypto_key: Dict, kms_connector: KMSConnector
+    ) -> Optional[Dict]:
         """
         CryptoKey 데이터와 CryptoKeyVersion 정보를 함께 처리합니다.
 
@@ -308,9 +331,9 @@ class KMSKeyRingManager(GoogleCloudManager):
             create_time = crypto_key.get("createTime", "")
 
             # 정규 표현식을 사용한 CryptoKey 이름 파싱
-            crypto_key_pattern = r'projects/([^/]+)/locations/([^/]+)/keyRings/([^/]+)/cryptoKeys/([^/]+)'
+            crypto_key_pattern = r"projects/([^/]+)/locations/([^/]+)/keyRings/([^/]+)/cryptoKeys/([^/]+)"
             match = re.match(crypto_key_pattern, name)
-            
+
             if match:
                 crypto_key_id = match.group(4)
             else:
@@ -354,39 +377,43 @@ class KMSKeyRingManager(GoogleCloudManager):
             _LOGGER.error(f"Error processing CryptoKey data: {e}", exc_info=True)
             return None
 
-    def _get_crypto_key_versions(self, crypto_key_name: str, kms_connector: KMSConnector) -> List[Dict]:
+    def _get_crypto_key_versions(
+        self, crypto_key_name: str, kms_connector: KMSConnector
+    ) -> List[Dict]:
         """
         특정 CryptoKey의 CryptoKeyVersion 목록을 조회하고 처리합니다.
-        
+
         Args:
             crypto_key_name: CryptoKey의 전체 이름
             kms_connector: KMS 커넥터 인스턴스
-            
+
         Returns:
             list: 처리된 CryptoKeyVersion 목록
         """
         try:
             raw_versions = kms_connector.list_crypto_key_versions(crypto_key_name)
             processed_versions = []
-            
+
             for version in raw_versions:
                 processed_version = self._process_crypto_key_version_data(version)
                 if processed_version:
                     processed_versions.append(processed_version)
-                    
+
             return processed_versions
-            
+
         except Exception as e:
-            _LOGGER.warning(f"Error collecting crypto key versions for {crypto_key_name}: {e}")
+            _LOGGER.warning(
+                f"Error collecting crypto key versions for {crypto_key_name}: {e}"
+            )
             return []
 
     def _process_crypto_key_version_data(self, version: Dict) -> Optional[Dict]:
         """
         CryptoKeyVersion 데이터를 처리합니다.
-        
+
         Args:
             version: 원본 CryptoKeyVersion 데이터
-            
+
         Returns:
             dict: 처리된 CryptoKeyVersion 데이터
         """
@@ -403,10 +430,10 @@ class KMSKeyRingManager(GoogleCloudManager):
             import_time = version.get("importTime", "")
             import_failure_reason = version.get("importFailureReason", "")
             reimport_eligible = str(version.get("reimportEligible", False))
-            
+
             # Version ID 추출 (name의 마지막 부분)
             version_id = name.split("/")[-1] if name else ""
-            
+
             return {
                 "name": name,
                 "version_id": version_id,
@@ -422,8 +449,7 @@ class KMSKeyRingManager(GoogleCloudManager):
                 "import_failure_reason": import_failure_reason,
                 "reimport_eligible": reimport_eligible,
             }
-            
+
         except Exception as e:
             _LOGGER.error(f"Error processing CryptoKeyVersion data: {e}", exc_info=True)
             return None
-

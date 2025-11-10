@@ -305,13 +305,7 @@ class GKECluster(BaseResource):
         deserialize_from="currentNodeCount", serialize_when_none=False
     )
     # Total cluster resources (calculated from node pools)
-    total_cpu = IntType(deserialize_from="total_cpu", serialize_when_none=False)
-    total_memory_gb = StringType(
-        deserialize_from="total_memory_gb", serialize_when_none=False
-    )
-    total_memory_mb = IntType(
-        deserialize_from="total_memory_mb", serialize_when_none=False
-    )
+    machine_type = StringType(deserialize_from="machine_type", serialize_when_none=False)
     create_time = StringType(deserialize_from="createTime", serialize_when_none=False)
     resource_labels = DictType(
         StringType, deserialize_from="resourceLabels", serialize_when_none=False

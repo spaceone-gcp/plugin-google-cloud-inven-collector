@@ -39,7 +39,7 @@ cst_trigger._metadata = CloudServiceTypeMeta.set_meta(
         TextDyField.data_source("Trigger ID", "data.id"),
         TextDyField.data_source("Description", "data.description"),
         TextDyField.data_source("Repository", "data.github.name"),
-        TextDyField.data_source("Event", "data.github.push.branch"),
+        TextDyField.data_source("Branch", "data.github.push.branch"),
         TextDyField.data_source("Build Config", "data.autodetect_display"),
         TextDyField.data_source("Status", "data.disabled_display"),
         DateTimeDyField.data_source("Create Time", "data.create_time"),

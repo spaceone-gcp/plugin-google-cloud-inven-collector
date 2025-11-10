@@ -127,6 +127,10 @@ class CloudBuildBuildV1Manager(GoogleCloudManager):
                     {"key": "resource.labels.build_id", "value": build_id},
                 ]
 
+                # Convert tags list to labels format for tags field
+                build_tags = build.get("tags", []) or []
+                tags = self._convert_tags_to_labels_format(build_tags)
+
                 ##################################
                 # 2. Make Base Data
                 ##################################
@@ -163,6 +167,7 @@ class CloudBuildBuildV1Manager(GoogleCloudManager):
                         "name": build_name_short,
                         "account": project_id,
                         "region_code": location_id,
+                        "tags": tags,
                         "data": build_data,
                         "reference": ReferenceModel(
                             {
@@ -188,6 +193,23 @@ class CloudBuildBuildV1Manager(GoogleCloudManager):
         _LOGGER.debug(f"** Cloud Build Build END ** ({time.time() - start_time:.2f}s)")
 
         return collected_cloud_services, error_responses
+
+    @staticmethod
+    def _convert_tags_to_labels_format(tags_list):
+        """
+        Convert tags list to labels format for tags field.
+        
+        Args:
+            tags_list (list): List of tag strings
+            
+        Returns:
+            list: List of dictionaries with key and empty value
+        """
+        converted_tags = []
+        for tag in tags_list or []:
+            if tag:  # Skip empty tags
+                converted_tags.append({"key": tag, "value": ""})
+        return converted_tags
 
     @staticmethod
     def _set_multiple_google_cloud_monitoring(

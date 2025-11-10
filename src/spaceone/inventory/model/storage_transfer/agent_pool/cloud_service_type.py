@@ -45,7 +45,9 @@ cst_agent_pool._metadata = CloudServiceTypeMeta.set_meta(
                 "alert": ["DELETING"],
             },
         ),
-        TextDyField.data_source("Bandwidth Limit", "data.bandwidth_limit.limit_mbps"),
+        TextDyField.data_source(
+            "Bandwidth Limit (Mbps)", "data.bandwidth_limit.limit_mbps"
+        ),
     ],
     search=[
         SearchField.set(name="Display Name", key="data.display_name"),

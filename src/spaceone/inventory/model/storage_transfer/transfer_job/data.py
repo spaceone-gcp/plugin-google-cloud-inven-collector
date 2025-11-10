@@ -40,6 +40,16 @@ class TransferSpec(Model):
     posix_data_source = DictType(
         StringType, deserialize_from="posixDataSource", serialize_when_none=False
     )
+    aws_s3_compatible_data_source = DictType(
+        StringType,
+        deserialize_from="awsS3CompatibleDataSource",
+        serialize_when_none=False,
+    )
+    hdfs_data_source = DictType(
+        StringType,
+        deserialize_from="hdfsDataSource",
+        serialize_when_none=False,
+    )
 
     # Union field data_sink - Only one can be set
     gcs_data_sink = DictType(
@@ -68,6 +78,8 @@ class TransferSpec(Model):
 
     # Source priority definition (higher number has higher priority)
     SOURCE_PRIORITY = {
+        "aws_s3_compatible_data_source": 6,
+        "hdfs_data_source": 5,
         "gcs_data_source": 5,  # Most stable and common
         "aws_s3_data_source": 4,  # Cloud-to-cloud migration main case
         "posix_data_source": 3,  # On-premise connection
@@ -89,6 +101,8 @@ class TransferSpec(Model):
             "http_data_source": self.http_data_source,
             "azure_blob_storage_data_source": self.azure_blob_storage_data_source,
             "posix_data_source": self.posix_data_source,
+            "aws_s3_compatible_data_source": self.aws_s3_compatible_data_source,
+            "hdfs_data_source": self.hdfs_data_source,
         }
 
         active_sources = {k: v for k, v in sources.items() if v is not None}
@@ -117,6 +131,57 @@ class TransferSpec(Model):
 
         return selected_source, active_sources[selected_source]
 
+    def get_active_source_details(self) -> Optional[str]:
+        """Return formatted active source details"""
+        source_name, source_data = self.get_active_source()
+
+        if not source_name or not source_data:
+            return None
+
+        # Extract key information based on source type
+        if source_name == "gcs_data_source":
+            bucket = source_data.get("bucketName", "")
+            path = source_data.get("path", "")
+            if bucket:
+                return f"Bucket: {bucket}" + (f", Path: {path}" if path else "")
+            elif path:
+                return f"Path: {path}"
+        elif source_name == "aws_s3_data_source":
+            bucket = source_data.get("bucketName", "")
+            path = source_data.get("path", "")
+            if bucket:
+                return f"Bucket: {bucket}" + (f", Path: {path}" if path else "")
+            elif path:
+                return f"Path: {path}"
+        elif source_name == "posix_data_source":
+            root_dir = source_data.get("rootDirectory", "")
+            if root_dir:
+                return f"Directory: {root_dir}"
+        elif source_name == "http_data_source":
+            list_url = source_data.get("listUrl", "")
+            if list_url:
+                return f"List URL: {list_url}"
+        elif source_name == "azure_blob_storage_data_source":
+            container = source_data.get("container", "")
+            path = source_data.get("path", "")
+            if container:
+                return f"Container: {container}" + (f", Path: {path}" if path else "")
+            elif path:
+                return f"Path: {path}"
+        elif source_name == "aws_s3_compatible_data_source":
+            bucket = source_data.get("bucketName", "")
+            path = source_data.get("path", "")
+            if bucket:
+                return f"Bucket: {bucket}" + (f", Path: {path}" if path else "")
+            elif path:
+                return f"Path: {path}"
+        elif source_name == "hdfs_data_source":
+            path = source_data.get("path", "")
+            if path:
+                return f"Path: {path}"
+
+        return None
+
     def get_active_sink(self) -> Tuple[Optional[str], Optional[Dict[str, Any]]]:
         """Return active sink based on priority"""
         sinks = {
@@ -143,6 +208,28 @@ class TransferSpec(Model):
 
         return selected_sink, active_sinks[selected_sink]
 
+    def get_active_sink_details(self) -> Optional[str]:
+        """Return formatted active sink details"""
+        sink_name, sink_data = self.get_active_sink()
+
+        if not sink_name or not sink_data:
+            return None
+
+        # Extract key information based on sink type
+        if sink_name == "gcs_data_sink":
+            bucket = sink_data.get("bucketName", "")
+            path = sink_data.get("path", "")
+            if bucket:
+                return f"Bucket: {bucket}" + (f", Path: {path}" if path else "")
+            elif path:
+                return f"Path: {path}"
+        elif sink_name == "posix_data_sink":
+            root_dir = sink_data.get("rootDirectory", "")
+            if root_dir:
+                return f"Directory: {root_dir}"
+
+        return None
+
     def get_source_type(self) -> Optional[str]:
         """Return active source type"""
         source_name, _ = self.get_active_source()
@@ -157,6 +244,8 @@ class TransferSpec(Model):
             "http_data_source": "HTTP",
             "azure_blob_storage_data_source": "AZURE_BLOB",
             "posix_data_source": "POSIX",
+            "aws_s3_compatible_data_source": "S3_COMPATIBLE",
+            "hdfs_data_source": "HDFS",
         }
 
         return source_type_map.get(source_name)
@@ -202,7 +291,7 @@ class TransferSpec(Model):
     def _format_source_details(source_type: str, source_data: Dict[str, Any]) -> str:
         """Format source details in human-readable format"""
         if not source_data:
-            return "⚠️ Not configured"
+            return "Not configured"
 
         if source_type == "GCS":
             bucket = source_data.get("bucketName", "Unknown")
@@ -249,7 +338,7 @@ class TransferSpec(Model):
     def _format_sink_details(sink_type: str, sink_data: Dict[str, Any]) -> str:
         """Format sink details in human-readable format"""
         if not sink_data:
-            return "⚠️ Not configured"
+            return "Not configured"
 
         if sink_type == "GCS":
             bucket = sink_data.get("bucketName", "Unknown")
@@ -285,22 +374,33 @@ class Schedule(Model):
 class NotificationConfig(Model):
     """Notification configuration information"""
 
-    pubsub_topic = StringType(deserialize_from="pubsubTopic")
-    event_types = ListType(StringType, deserialize_from="eventTypes", default=[])
+    pubsub_topic = StringType(
+        deserialize_from="pubsubTopic", serialize_when_none=False, default="-"
+    )
+    event_types = ListType(
+        StringType, deserialize_from="eventTypes", serialize_when_none=False, default=[]
+    )
     payload_format = StringType(
-        deserialize_from="payloadFormat", serialize_when_none=False
+        deserialize_from="payloadFormat", serialize_when_none=False, default="-"
     )
 
 
 class LoggingConfig(Model):
     """Logging configuration information"""
 
-    log_actions = ListType(StringType, deserialize_from="logActions", default=[])
+    log_actions = ListType(
+        StringType, deserialize_from="logActions", serialize_when_none=False, default=[]
+    )
     log_action_states = ListType(
-        StringType, deserialize_from="logActionStates", default=[]
+        StringType,
+        deserialize_from="logActionStates",
+        serialize_when_none=False,
+        default=[],
     )
     enable_onprem_gcs_transfer_logs = BooleanType(
-        deserialize_from="enableOnpremGcsTransferLogs", serialize_when_none=False
+        deserialize_from="enableOnpremGcsTransferLogs",
+        serialize_when_none=False,
+        default=False,
     )
 
 
@@ -336,8 +436,8 @@ class TransferJob(BaseResource):
     transfer_options_display = StringType(serialize_when_none=False)
 
     # Union Field information (active source/sink details)
-    active_source_details = StringType(serialize_when_none=False)
-    active_sink_details = StringType(serialize_when_none=False)
+    active_source_details = StringType()
+    active_sink_details = StringType()
 
     def validate(self, raw_data=None, context=None):
         """Flexible validation (warning log approach)"""
@@ -352,16 +452,6 @@ class TransferJob(BaseResource):
                 self.source_type = self.transfer_spec.get_source_type()
             if not self.sink_type:
                 self.sink_type = self.transfer_spec.get_sink_type()
-
-            # Set active source/sink detail information (human-readable format)
-            if active_config["source_data"] and self.source_type:
-                self.active_source_details = TransferSpec._format_source_details(
-                    self.source_type, active_config["source_data"]
-                )
-            if active_config["sink_data"] and self.sink_type:
-                self.active_sink_details = TransferSpec._format_sink_details(
-                    self.sink_type, active_config["sink_data"]
-                )
 
             # Additional logging (for debugging)
             if active_config["active_source"] and active_config["active_sink"]:

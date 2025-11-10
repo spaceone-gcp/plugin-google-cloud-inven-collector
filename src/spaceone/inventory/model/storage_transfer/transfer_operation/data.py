@@ -82,5 +82,5 @@ class TransferOperation(BaseResource):
     def reference(self):
         return {
             "resource_id": f"https://storagetransfer.googleapis.com/v1/{self.full_name}",
-            "external_link": f"https://console.cloud.google.com/transfer/jobs/transferJobs%2F{self.transfer_job_id}?project={self.project}",
+            "external_link": f"https://console.cloud.google.com/transfer/jobs/transferJobs%2F{self.transfer_job_id}/runs/transferOperations%2F{self.name}?project={self.project}",
         }

@@ -42,7 +42,7 @@ build_overview = ItemDynamicLayout.set_fields(
 build_config = ItemDynamicLayout.set_fields(
     "Build Configuration",
     fields=[
-        ListDyField.data_source("Images", "data.images"),
+        ListDyField.data_source("Run Image", "data.substitutions._GOOGLE_LABEL_RUN_IMAGE"),
         ListDyField.data_source("Tags", "data.tags"),
     ],
 )

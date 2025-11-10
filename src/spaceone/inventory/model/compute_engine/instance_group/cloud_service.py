@@ -58,7 +58,7 @@ instance_template_item = ItemDynamicLayout.set_fields(
         TextDyField.data_source("Name", "data.template.name"),
         TextDyField.data_source("Description", "data.template.description"),
         TextDyField.data_source("Self Link", "data.template.self_link"),
-        DateTimeDyField.data_source("Creation Time", "data.creation_timestamp"),
+        DateTimeDyField.data_source("Creation Time", "data.template.creation_timestamp"),
     ],
 )
 

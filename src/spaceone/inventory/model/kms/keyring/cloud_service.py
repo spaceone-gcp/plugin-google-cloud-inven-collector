@@ -29,6 +29,7 @@ kms_keyring_info_meta = ItemDynamicLayout.set_fields(
         TextDyField.data_source("Name", "data.keyring_id"),
         TextDyField.data_source("Full Name", "data.name"),
         TextDyField.data_source("Project ID", "data.project_id"),
+        TextDyField.data_source("Location", "data.location_display_name"),
         TextDyField.data_source("CryptoKey Count", "data.crypto_key_count"),
         DateTimeDyField.data_source("Created", "data.create_time"),
     ],
@@ -41,7 +42,6 @@ kms_keyring_crypto_keys_meta = TableDynamicLayout.set_fields(
     root_path="data.crypto_keys",
     fields=[
         TextDyField.data_source("Name", "crypto_key_id"),
-        TextDyField.data_source("Display Name", "display_name"),
         TextDyField.data_source("Purpose", "purpose"),
         TextDyField.data_source("Primary State", "primary_state"),
         TextDyField.data_source("Protection Level", "protection_level"),

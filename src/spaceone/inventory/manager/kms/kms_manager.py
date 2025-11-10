@@ -222,6 +222,10 @@ class KMSKeyRingManager(GoogleCloudManager):
                 # CryptoKey 정보 포함
                 "crypto_keys": crypto_keys,
                 "crypto_key_count": len(crypto_keys),
+                # Logging data
+                "google_cloud_logging": self.set_google_cloud_logging(
+                    "KMS", "KeyRing", project_id, keyring_id
+                ),
             }
 
         except Exception as e:

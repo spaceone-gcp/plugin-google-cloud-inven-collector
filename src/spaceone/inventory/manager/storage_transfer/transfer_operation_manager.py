@@ -84,6 +84,12 @@ class StorageTransferOperationManager(GoogleCloudManager):
                             "transfer_job_id": transfer_job_id,
                             "transfer_job_name": transfer_job_name,
                             "duration": duration,
+                            "google_cloud_logging": self.set_google_cloud_logging(
+                                "StorageTransfer",
+                                "TransferOperation",
+                                project_id,
+                                operation_id,
+                            ),
                         }
                     )
 

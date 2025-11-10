@@ -178,6 +178,7 @@ class InstanceGroupManager(GoogleCloudManager):
                         "instances": self.get_instances(instances),
                         "instance_counts": len(instances),
                         "display_location": display_loc,
+                        "region": region,
                         "google_cloud_monitoring": self.set_google_cloud_monitoring(
                             project_id,
                             "compute.googleapis.com/instance_group",

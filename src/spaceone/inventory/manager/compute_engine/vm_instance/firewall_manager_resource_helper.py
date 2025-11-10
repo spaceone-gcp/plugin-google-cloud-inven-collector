@@ -44,7 +44,7 @@ class FirewallManagerResourceHelper(GoogleCloudManager):
             "name": firewall_rule.get("name", ""),
             "description": firewall_rule.get("description", ""),
             "priority": firewall_rule.get("priority", ""),
-            "direction": firewall_rule.get("direction", "").lower(),
+            "direction": firewall_rule.get("direction", "").upper(),
             "action": self._get_action(firewall_rule),
             "source_cidrs": firewall_rule.get("sourceRanges", []),
             "destination_cidrs": firewall_rule.get("destinationRanges", []),

@@ -332,5 +332,5 @@ class InstanceGroup(BaseResource):
     def reference(self):
         return {
             "resource_id": self.self_link,
-            "external_link": f"https://console.cloud.google.com/compute/instanceGroups/details/{self.zone}/{self.name}?authuser=1&project={self.project}",
+            "external_link": f"https://console.cloud.google.com/compute/instanceGroups/details/{self.region}/{self.name}?project={self.project}",
         }

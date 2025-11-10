@@ -1,24 +1,20 @@
 import logging
 from typing import Any, Dict, List, Tuple
 
-from spaceone.inventory.connector.app_engine.instance_v1 import (
-    AppEngineInstanceV1Connector,
-)
+from spaceone.inventory.connector.app_engine.instance_v1 import \
+    AppEngineInstanceV1Connector
 from spaceone.inventory.libs.manager import GoogleCloudManager
-from spaceone.inventory.libs.schema.base import (
-    BaseResponse,
-    log_state_summary,
-    reset_state_counters,
-)
+from spaceone.inventory.libs.schema.base import (BaseResponse,
+                                                 log_state_summary,
+                                                 reset_state_counters)
 from spaceone.inventory.libs.schema.cloud_service import ErrorResourceResponse
-from spaceone.inventory.model.app_engine.instance.cloud_service import (
-    AppEngineInstanceResource,
-)
-from spaceone.inventory.model.app_engine.instance.cloud_service_type import (
-    CLOUD_SERVICE_TYPES,
-)
+from spaceone.inventory.model.app_engine.instance.cloud_service import \
+    AppEngineInstanceResource
+from spaceone.inventory.model.app_engine.instance.cloud_service_type import \
+    CLOUD_SERVICE_TYPES
 from spaceone.inventory.model.app_engine.instance.data import AppEngineInstance
-from spaceone.inventory.model.kubernetes_engine.cluster.data import convert_datetime
+from spaceone.inventory.model.kubernetes_engine.cluster.data import \
+    convert_datetime
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -86,30 +82,29 @@ class AppEngineInstanceV1Manager(GoogleCloudManager):
         core_metrics = [
             "appengine.googleapis.com/http/server/response_count",
             "appengine.googleapis.com/system/cpu/usage",
-            "appengine.googleapis.com/system/memory/usage"
+            "appengine.googleapis.com/system/memory/usage",
         ]
-        
+
         # 단순한 필터 구성
         base_filter = f'resource.labels.project_id="{project_id}" AND resource.labels.module_id="{service_id}" AND resource.labels.version_id="{version_id}"'
-        
+
         monitoring_config = {
             "project": f"projects/{project_id}",
             "resource_id": instance_id,
-            "metrics": []
+            "metrics": [],
         }
-        
+
         for metric_type in core_metrics:
             # HTTP 메트릭은 gae_app, 시스템 메트릭은 gae_instance 리소스 타입 사용
             if "http/server" in metric_type:
                 resource_filter = f'resource.type="gae_app" AND {base_filter}'
             else:
                 resource_filter = f'resource.type="gae_instance" AND {base_filter} AND resource.labels.instance_id="{instance_id}"'
-            
-            monitoring_config["metrics"].append({
-                "metric_type": metric_type,
-                "filter": resource_filter
-            })
-        
+
+            monitoring_config["metrics"].append(
+                {"metric_type": metric_type, "filter": resource_filter}
+            )
+
         return monitoring_config
 
     def list_instances(
@@ -615,16 +610,17 @@ class AppEngineInstanceV1Manager(GoogleCloudManager):
                                         )
                                         instance_id = "unknown"
 
-
                                     # 단순화된 모니터링 설정 적용
-                                    _LOGGER.debug(f"Setting up simplified monitoring for instance {instance_id}")
-                                    
+                                    _LOGGER.debug(
+                                        f"Setting up simplified monitoring for instance {instance_id}"
+                                    )
+
                                     instance_data["google_cloud_monitoring"] = (
                                         self._set_simple_google_cloud_monitoring(
                                             project_id,
                                             service_id,
                                             version_id,
-                                            instance_id
+                                            instance_id,
                                         )
                                     )
                                     instance_data["google_cloud_logging"] = (
@@ -632,7 +628,7 @@ class AppEngineInstanceV1Manager(GoogleCloudManager):
                                             "AppEngine",
                                             "Instance",
                                             project_id,
-                                            monitoring_resource_id,
+                                            instance_id,
                                         )
                                     )
 

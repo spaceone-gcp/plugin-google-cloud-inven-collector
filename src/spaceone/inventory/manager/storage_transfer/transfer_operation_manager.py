@@ -187,12 +187,15 @@ class StorageTransferOperationManager(GoogleCloudManager):
                 )
                 duration = end_time - start_time
 
-                # Format time
+                # Format time with days
                 total_seconds = int(duration.total_seconds())
-                hours, remainder = divmod(total_seconds, 3600)
+                days, remainder = divmod(total_seconds, 86400)  # 86400 seconds = 1 day
+                hours, remainder = divmod(remainder, 3600)
                 minutes, seconds = divmod(remainder, 60)
 
-                if hours > 0:
+                if days > 0:
+                    return f"{days}일 {hours}시간"
+                elif hours > 0:
                     return f"{hours}h {minutes}m {seconds}s"
                 elif minutes > 0:
                     return f"{minutes}m {seconds}s"
@@ -203,10 +206,13 @@ class StorageTransferOperationManager(GoogleCloudManager):
                 now = datetime.now(start_time.tzinfo)
                 duration = now - start_time
                 total_seconds = int(duration.total_seconds())
-                hours, remainder = divmod(total_seconds, 3600)
+                days, remainder = divmod(total_seconds, 86400)  # 86400 seconds = 1 day
+                hours, remainder = divmod(remainder, 3600)
                 minutes, seconds = divmod(remainder, 60)
 
-                if hours > 0:
+                if days > 0:
+                    return f"{days}일 {hours}시간"
+                elif hours > 0:
                     return f"{hours}h {minutes}m"
                 elif minutes > 0:
                     return f"{minutes}m {seconds}s"

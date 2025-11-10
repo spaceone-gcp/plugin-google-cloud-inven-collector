@@ -47,45 +47,9 @@ operation_configuration_meta = ItemDynamicLayout.set_fields(
     ],
 )
 
-# TAB - Transfer Counters
-transfer_counters_meta = ItemDynamicLayout.set_fields(
-    "Transfer Statistics",
-    fields=[
-        TextDyField.data_source(
-            "Objects Found", "data.metadata.counters.objects_found_from_source"
-        ),
-        TextDyField.data_source(
-            "Bytes Found", "data.metadata.counters.bytes_found_from_source"
-        ),
-        TextDyField.data_source(
-            "Objects Transferred", "data.metadata.counters.objects_copied_to_sink"
-        ),
-        TextDyField.data_source(
-            "Bytes Transferred", "data.metadata.counters.bytes_copied_to_sink"
-        ),
-        TextDyField.data_source(
-            "Objects Failed", "data.metadata.counters.objects_from_source_failed"
-        ),
-        TextDyField.data_source(
-            "Bytes Failed", "data.metadata.counters.bytes_from_source_failed"
-        ),
-    ],
-)
-
-# TAB - Operation Error
-operation_error_meta = ItemDynamicLayout.set_fields(
-    "Operation Error",
-    fields=[
-        TextDyField.data_source("Error Code", "data.error.code"),
-        TextDyField.data_source("Error Message", "data.error.message"),
-    ],
-)
-
 transfer_operation_meta = CloudServiceMeta.set_layouts(
     [
         operation_configuration_meta,
-        transfer_counters_meta,
-        operation_error_meta,
     ]
 )
 

@@ -1,24 +1,20 @@
 import logging
 from typing import Any, Dict, List, Tuple
 
-from spaceone.inventory.connector.app_engine.instance_v1 import (
-    AppEngineInstanceV1Connector,
-)
+from spaceone.inventory.connector.app_engine.instance_v1 import \
+    AppEngineInstanceV1Connector
 from spaceone.inventory.libs.manager import GoogleCloudManager
-from spaceone.inventory.libs.schema.base import (
-    BaseResponse,
-    log_state_summary,
-    reset_state_counters,
-)
+from spaceone.inventory.libs.schema.base import (BaseResponse,
+                                                 log_state_summary,
+                                                 reset_state_counters)
 from spaceone.inventory.libs.schema.cloud_service import ErrorResourceResponse
-from spaceone.inventory.model.app_engine.instance.cloud_service import (
-    AppEngineInstanceResource,
-)
-from spaceone.inventory.model.app_engine.instance.cloud_service_type import (
-    CLOUD_SERVICE_TYPES,
-)
+from spaceone.inventory.model.app_engine.instance.cloud_service import \
+    AppEngineInstanceResource
+from spaceone.inventory.model.app_engine.instance.cloud_service_type import \
+    CLOUD_SERVICE_TYPES
 from spaceone.inventory.model.app_engine.instance.data import AppEngineInstance
-from spaceone.inventory.model.kubernetes_engine.cluster.data import convert_datetime
+from spaceone.inventory.model.kubernetes_engine.cluster.data import \
+    convert_datetime
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -63,49 +59,53 @@ class AppEngineInstanceV1Manager(GoogleCloudManager):
 
         return memory_mb
 
-    def _set_multiple_google_cloud_monitoring(
+    def _set_simple_google_cloud_monitoring(
         self,
         project_id: str,
-        metric_types: List[str],
-        resource_id: str,
-        filters: List[Dict[str, str]],
+        service_id: str,
+        version_id: str,
+        instance_id: str,
     ) -> Dict[str, Any]:
         """
-        App Engine Instance에 대한 여러 메트릭 타입을 설정합니다.
-        메트릭 타입에 따라 적절한 리소스 타입과 라벨을 사용합니다.
+        App Engine Instance에 대한 단순화된 모니터링 설정을 생성합니다.
 
         Args:
             project_id: GCP 프로젝트 ID
-            metric_types: 메트릭 타입 목록
-            resource_id: 리소스 ID
-            filters: 기본 필터 목록
+            service_id: App Engine 서비스 ID
+            version_id: App Engine 버전 ID
+            instance_id: App Engine 인스턴스 ID
 
         Returns:
-            Google Cloud Monitoring 설정 딕셔너리
+            단순화된 Google Cloud Monitoring 설정 딕셔너리
         """
-        monitoring_filters = []
+        # 핵심 메트릭만 포함
+        core_metrics = [
+            "appengine.googleapis.com/http/server/response_count",
+            "appengine.googleapis.com/system/cpu/usage",
+            "appengine.googleapis.com/system/memory/usage",
+        ]
 
-        for metric_type in metric_types:
-            # 메트릭 타입에 따라 적절한 필터 설정
-            if "http/server" in metric_type or "dos_intercept" in metric_type:
-                # HTTP 관련 메트릭은 gae_app 리소스 타입 사용 (instance_id 제외)
-                app_filters = [
-                    f for f in filters if "instance_id" not in f.get("key", "")
-                ]
-                monitoring_filters.append(
-                    {"metric_type": metric_type, "labels": app_filters}
-                )
-            else:
-                # 시스템 메트릭은 gae_instance 리소스 타입 사용 (모든 라벨 포함)
-                monitoring_filters.append(
-                    {"metric_type": metric_type, "labels": filters}
-                )
+        # 단순한 필터 구성
+        base_filter = f'resource.labels.project_id="{project_id}" AND resource.labels.module_id="{service_id}" AND resource.labels.version_id="{version_id}"'
 
-        return {
-            "name": f"projects/{project_id}",
-            "resource_id": resource_id,
-            "filters": monitoring_filters,
+        monitoring_config = {
+            "project": f"projects/{project_id}",
+            "resource_id": instance_id,
+            "metrics": [],
         }
+
+        for metric_type in core_metrics:
+            # HTTP 메트릭은 gae_app, 시스템 메트릭은 gae_instance 리소스 타입 사용
+            if "http/server" in metric_type:
+                resource_filter = f'resource.type="gae_app" AND {base_filter}'
+            else:
+                resource_filter = f'resource.type="gae_instance" AND {base_filter} AND resource.labels.instance_id="{instance_id}"'
+
+            monitoring_config["metrics"].append(
+                {"metric_type": metric_type, "filter": resource_filter}
+            )
+
+        return monitoring_config
 
     def list_instances(
         self, service_id: str, version_id: str, params: Dict[str, Any]
@@ -610,84 +610,17 @@ class AppEngineInstanceV1Manager(GoogleCloudManager):
                                         )
                                         instance_id = "unknown"
 
-                                    # Google Cloud Monitoring/Logging 리소스 ID: App Engine Instance의 경우 instance_id 사용
-                                    monitoring_resource_id = instance_id
-
-                                    # App Engine Instance 모니터링 필터 설정
-                                    # gae_instance 리소스 타입 사용 (인스턴스별 메트릭)
-                                    google_cloud_monitoring_filters = [
-                                        {
-                                            "key": "resource.labels.project_id",
-                                            "value": project_id,
-                                        },
-                                        {
-                                            "key": "resource.labels.module_id",  # App Engine에서는 module_id가 정확함
-                                            "value": service_id,
-                                        },
-                                        {
-                                            "key": "resource.labels.version_id",
-                                            "value": version_id,
-                                        },
-                                        {
-                                            "key": "resource.labels.instance_id",
-                                            "value": instance_id,
-                                        },
-                                    ]
-
-                                    # App Engine 환경 타입 확인 (Standard vs Flexible)
-                                    vm_details = instance.get("vmDetails", {})
-                                    is_flexible = bool(
-                                        vm_details
-                                    )  # vmDetails가 있으면 Flexible 환경
-
-                                    # 기본 메트릭 타입들 (모든 환경에서 사용 가능)
-                                    base_metric_types = [
-                                        # HTTP 관련 메트릭 (gae_app 리소스 타입)
-                                        "appengine.googleapis.com/http/server/response_count",
-                                        "appengine.googleapis.com/http/server/response_latencies",
-                                        "appengine.googleapis.com/http/server/dos_intercept_count",
-                                    ]
-
-                                    # 환경별 추가 메트릭
-                                    if is_flexible:
-                                        # Flexible 환경 메트릭
-                                        flex_metrics = [
-                                            "appengine.googleapis.com/flex/cpu/reserved_cores",
-                                            "appengine.googleapis.com/flex/cpu/utilization",
-                                            "appengine.googleapis.com/flex/disk/read_bytes_count",
-                                            "appengine.googleapis.com/flex/disk/write_bytes_count",
-                                            "appengine.googleapis.com/flex/disk/utilization",
-                                            "appengine.googleapis.com/flex/connections/current",
-                                        ]
-                                        app_engine_metric_types = (
-                                            base_metric_types + flex_metrics
-                                        )
-                                        _LOGGER.debug(
-                                            f"Using Flexible environment metrics for instance {instance_id}"
-                                        )
-                                    else:
-                                        # Standard 환경 메트릭
-                                        standard_metrics = [
-                                            "appengine.googleapis.com/system/cpu/usage",
-                                            "appengine.googleapis.com/system/memory/usage",
-                                            "appengine.googleapis.com/system/memory/utilization",
-                                            "appengine.googleapis.com/system/network/sent_bytes_count",
-                                            "appengine.googleapis.com/system/network/received_bytes_count",
-                                            "appengine.googleapis.com/system/instance_count",
-                                        ]
-                                        app_engine_metric_types = (
-                                            base_metric_types + standard_metrics
-                                        )
-                                        _LOGGER.debug(
-                                            f"Using Standard environment metrics for instance {instance_id}"
-                                        )
+                                    # 단순화된 모니터링 설정 적용
+                                    _LOGGER.debug(
+                                        f"Setting up simplified monitoring for instance {instance_id}"
+                                    )
 
                                     instance_data["google_cloud_monitoring"] = (
-                                        self._set_multiple_google_cloud_monitoring(
+                                        self._set_simple_google_cloud_monitoring(
                                             project_id,
-                                            app_engine_metric_types,
-                                            monitoring_resource_id,
-                                            google_cloud_monitoring_filters,
+                                            service_id,
+                                            version_id,
+                                            instance_id,
                                         )
                                     )
                                     instance_data["google_cloud_logging"] = (
@@ -695,7 +628,7 @@ class AppEngineInstanceV1Manager(GoogleCloudManager):
                                             "AppEngine",
                                             "Instance",
                                             project_id,
-                                            monitoring_resource_id,
+                                            instance_id,
                                         )
                                     )
 

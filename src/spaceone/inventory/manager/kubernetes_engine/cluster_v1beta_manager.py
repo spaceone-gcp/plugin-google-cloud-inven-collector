@@ -169,13 +169,48 @@ class GKEClusterV1BetaManager(GoogleCloudManager):
                 f"[CLUSTER_RESOURCES] Cluster {cluster_name}: Found {len(node_pools)} node pools"
             )
 
+            # 노드풀이 없는 경우 상세 로깅
+            if not node_pools:
+                _LOGGER.warning(
+                    f"[CLUSTER_RESOURCES] Cluster {cluster_name}: No node pools found! This may indicate:"
+                )
+                _LOGGER.warning("  - API permission issues")
+                _LOGGER.warning("  - Cluster has no node pools")
+                _LOGGER.warning("  - API call failed silently")
+                return {
+                    "total_nodes": 0,
+                    "machine_type": "Unknown",
+                }
+
+            # 노드풀 구조 디버깅 (처음 1개만)
+            if node_pools:
+                sample_pool = node_pools[0]
+                _LOGGER.info(
+                    f"[CLUSTER_RESOURCES] Sample node pool structure keys: {list(sample_pool.keys())}"
+                )
+                _LOGGER.info(
+                    f"[CLUSTER_RESOURCES] Sample node pool name: {sample_pool.get('name')}"
+                )
+                _LOGGER.info(
+                    f"[CLUSTER_RESOURCES] Sample node pool status: {sample_pool.get('status')}"
+                )
+
             total_cpu = 0
             total_memory_gb = 0
             total_nodes = 0
 
             # Machine type to CPU/Memory mapping (common GCP machine types)
             machine_type_specs = {
-                # Standard machine types
+                # E2 machine types
+                "e2-micro": {"cpu": 1, "memory_gb": 1},
+                "e2-small": {"cpu": 1, "memory_gb": 2},
+                "e2-medium": {"cpu": 1, "memory_gb": 4},
+                "e2-standard-2": {"cpu": 2, "memory_gb": 8},
+                "e2-standard-4": {"cpu": 4, "memory_gb": 16},
+                "e2-standard-8": {"cpu": 8, "memory_gb": 32},
+                "e2-standard-16": {"cpu": 16, "memory_gb": 64},
+                "e2-standard-32": {"cpu": 32, "memory_gb": 128},
+                # N1 Standard machine types
                 "n1-standard-1": {"cpu": 1, "memory_gb": 3.75},
                 "n1-standard-2": {"cpu": 2, "memory_gb": 7.5},
                 "n1-standard-4": {"cpu": 4, "memory_gb": 15},
@@ -219,13 +254,52 @@ class GKEClusterV1BetaManager(GoogleCloudManager):
                 try:
                     pool_name = node_pool.get("name", "unknown")
 
-                    # Get node count
-                    current_node_count = node_pool.get(
-                        "currentNodeCount", 0
-                    ) or node_pool.get("initialNodeCount", 0)
+                    # Get node count - 다양한 필드명 시도
+                    current_node_count = (
+                        node_pool.get("currentNodeCount", 0)
+                        or node_pool.get("initialNodeCount", 0)
+                        or node_pool.get("nodeCount", 0)
+                        or 0
+                    )
+
+                    # 노드 개수 관련 모든 필드 로깅
+                    _LOGGER.info(
+                        f"[CLUSTER_RESOURCES] Pool {pool_name} node count fields:"
+                    )
+                    _LOGGER.info(
+                        f"  - currentNodeCount: {node_pool.get('currentNodeCount')} (type: {type(node_pool.get('currentNodeCount'))})"
+                    )
+                    _LOGGER.info(
+                        f"  - initialNodeCount: {node_pool.get('initialNodeCount')} (type: {type(node_pool.get('initialNodeCount'))})"
+                    )
+                    _LOGGER.info(
+                        f"  - nodeCount: {node_pool.get('nodeCount')} (type: {type(node_pool.get('nodeCount'))})"
+                    )
+                    _LOGGER.info(
+                        f"  - Final count used: {current_node_count} (type: {type(current_node_count)})"
+                    )
+
+                    # 오토스케일링 정보도 확인
+                    if "autoscaling" in node_pool:
+                        autoscaling = node_pool["autoscaling"]
+                        _LOGGER.info(
+                            f"  - Autoscaling enabled: {autoscaling.get('enabled')}"
+                        )
+                        _LOGGER.info(
+                            f"  - Min nodes: {autoscaling.get('minNodeCount')}"
+                        )
+                        _LOGGER.info(
+                            f"  - Max nodes: {autoscaling.get('maxNodeCount')}"
+                        )
+
+                    # 인스턴스 그룹 URL도 확인
+                    if "instanceGroupUrls" in node_pool:
+                        _LOGGER.info(
+                            f"  - Instance groups: {len(node_pool['instanceGroupUrls'])}"
+                        )
 
                     _LOGGER.info(
-                        f"[CLUSTER_RESOURCES] Pool {pool_name}: currentNodeCount={current_node_count}"
+                        f"[CLUSTER_RESOURCES] Pool {pool_name}: Final currentNodeCount={current_node_count}"
                     )
 
                     if not current_node_count:
@@ -241,13 +315,34 @@ class GKEClusterV1BetaManager(GoogleCloudManager):
                     machine_type = node_config.get("machineType", "")
 
                     _LOGGER.info(
-                        f"[CLUSTER_RESOURCES] Pool {pool_name}: machineType={machine_type}"
+                        f"[CLUSTER_RESOURCES] Pool {pool_name} machine config:"
                     )
+                    _LOGGER.info(
+                        f"  - machineType: '{machine_type}' (type: {type(machine_type)})"
+                    )
+                    _LOGGER.info(f"  - diskSizeGb: {node_config.get('diskSizeGb')}")
+                    _LOGGER.info(f"  - imageType: {node_config.get('imageType')}")
+                    _LOGGER.info(f"  - config keys: {list(node_config.keys())}")
 
                     if machine_type in machine_type_specs:
                         specs = machine_type_specs[machine_type]
-                        total_cpu += specs["cpu"] * current_node_count
-                        total_memory_gb += specs["memory_gb"] * current_node_count
+                        pool_cpu = specs["cpu"] * current_node_count
+                        pool_memory = specs["memory_gb"] * current_node_count
+                        total_cpu += pool_cpu
+                        total_memory_gb += pool_memory
+
+                        _LOGGER.info(
+                            f"[CLUSTER_RESOURCES] Pool {pool_name} resource calculation:"
+                        )
+                        _LOGGER.info(f"  - Machine type: {machine_type}")
+                        _LOGGER.info(
+                            f"  - Specs: {specs['cpu']} CPU, {specs['memory_gb']} GB per node"
+                        )
+                        _LOGGER.info(f"  - Node count: {current_node_count}")
+                        _LOGGER.info(f"  - Total: {pool_cpu} CPU, {pool_memory} GB RAM")
+                        _LOGGER.info(
+                            f"  - Running totals: CPU={total_cpu}, Memory={total_memory_gb} GB"
+                        )
                     else:
                         # For unknown machine types, try to parse from name
                         # e.g., "n1-standard-4" -> 4 CPUs
@@ -264,11 +359,41 @@ class GKEClusterV1BetaManager(GoogleCloudManager):
                                     else:
                                         memory_gb = cpu_count * 3.75  # Standard ratio
 
-                                    total_cpu += cpu_count * current_node_count
-                                    total_memory_gb += memory_gb * current_node_count
-                        except Exception:
-                            _LOGGER.debug(
-                                f"Could not parse machine type: {machine_type}"
+                                    pool_cpu = cpu_count * current_node_count
+                                    pool_memory = memory_gb * current_node_count
+                                    total_cpu += pool_cpu
+                                    total_memory_gb += pool_memory
+
+                                    _LOGGER.info(
+                                        f"[CLUSTER_RESOURCES] Pool {pool_name} parsed resource calculation:"
+                                    )
+                                    _LOGGER.info(
+                                        f"  - Machine type: {machine_type} (parsed)"
+                                    )
+                                    _LOGGER.info(
+                                        f"  - Parsed specs: {cpu_count} CPU, {memory_gb} GB per node"
+                                    )
+                                    _LOGGER.info(
+                                        f"  - Node count: {current_node_count}"
+                                    )
+                                    _LOGGER.info(
+                                        f"  - Total: {pool_cpu} CPU, {pool_memory} GB RAM"
+                                    )
+                                    _LOGGER.info(
+                                        f"  - Running totals: CPU={total_cpu}, Memory={total_memory_gb} GB"
+                                    )
+                        except Exception as e:
+                            _LOGGER.warning(
+                                f"[CLUSTER_RESOURCES] Pool {pool_name}: Could not parse machine type '{machine_type}': {e}"
+                            )
+                            _LOGGER.warning(
+                                "  - This machine type is not in our specs and couldn't be parsed"
+                            )
+                            _LOGGER.warning(
+                                "  - Pool will contribute 0 CPU/Memory to totals"
+                            )
+                            _LOGGER.warning(
+                                f"  - Consider adding '{machine_type}' to machine_type_specs dictionary"
                             )
 
                 except Exception as e:
@@ -277,22 +402,35 @@ class GKEClusterV1BetaManager(GoogleCloudManager):
                     )
                     continue
 
-            return {
-                "total_cpu": int(total_cpu),
-                "total_memory_gb": round(total_memory_gb, 1),
-                "total_memory_mb": int(total_memory_gb * 1024),  # GB를 MB로 변환
+            # 첫 번째 노드풀의 머신 타입을 가져오기
+            first_machine_type = "Unknown"
+            if node_pools:
+                first_node_pool = node_pools[0]
+                node_config = first_node_pool.get("config", {})
+                first_machine_type = node_config.get("machineType", "Unknown")
+            
+            result = {
                 "total_nodes": total_nodes,
+                "machine_type": first_machine_type,
             }
+
+            _LOGGER.info(
+                f"[CLUSTER_RESOURCES] Cluster {cluster_name} FINAL CALCULATION SUMMARY:"
+            )
+            _LOGGER.info(f"  - Processed {len(node_pools)} node pools")
+            _LOGGER.info(f"  - Total nodes: {total_nodes}")
+            _LOGGER.info(f"  - Machine type: {first_machine_type}")
+            _LOGGER.info(f"  - Final result dict: {result}")
+
+            return result
 
         except Exception as e:
             _LOGGER.debug(
                 f"Failed to calculate cluster resources for {cluster_name}: {e}"
             )
             return {
-                "total_cpu": 0,
-                "total_memory_gb": 0,
-                "total_memory_mb": 0,
                 "total_nodes": 0,
+                "machine_type": "Unknown",
             }
 
     def list_fleets(self, params: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -425,10 +563,8 @@ class GKEClusterV1BetaManager(GoogleCloudManager):
                     "resourceLabels": {
                         k: str(v) for k, v in cluster.get("resourceLabels", {}).items()
                     },
-                    # Add calculated total resources
-                    "total_cpu": str(cluster_resources.get("total_cpu", 0)),
-                    "total_memory_gb": str(cluster_resources.get("total_memory_gb", 0)),
-                    "total_memory_mb": str(cluster_resources.get("total_memory_mb", 0)),
+                    # Add machine type from first node pool
+                    "machine_type": cluster_resources.get("machine_type", "Unknown"),
                 }
 
                 # 네트워크 설정 추가

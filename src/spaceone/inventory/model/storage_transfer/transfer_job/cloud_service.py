@@ -70,57 +70,6 @@ active_transfer_config_meta = ItemDynamicLayout.set_fields(
     ],
 )
 
-# TAB - Complete Transfer Specification (All fields displayed)
-transfer_spec_meta = ItemDynamicLayout.set_fields(
-    "Complete Transfer Specification",
-    fields=[
-        # Union Field group 1: Data Source (Only one can be activated)
-        TextDyField.data_source(
-            "GCS Data Source",
-            "data.transfer_spec.gcs_data_source",
-            options={"is_optional": True, "translation_id": "COMMON.GCS_SOURCE"},
-        ),
-        TextDyField.data_source(
-            "AWS S3 Data Source",
-            "data.transfer_spec.aws_s3_data_source",
-            options={"is_optional": True},
-        ),
-        TextDyField.data_source(
-            "Azure Blob Storage Data Source",
-            "data.transfer_spec.azure_blob_storage_data_source",
-            options={"is_optional": True},
-        ),
-        TextDyField.data_source(
-            "HTTP Data Source",
-            "data.transfer_spec.http_data_source",
-            options={"is_optional": True},
-        ),
-        TextDyField.data_source(
-            "POSIX Data Source",
-            "data.transfer_spec.posix_data_source",
-            options={"is_optional": True},
-        ),
-        # Union Field group 2: Data Sink (Only one can be activated)
-        TextDyField.data_source(
-            "GCS Data Sink",
-            "data.transfer_spec.gcs_data_sink",
-            options={"is_optional": True, "translation_id": "COMMON.GCS_SINK"},
-        ),
-        TextDyField.data_source(
-            "POSIX Data Sink",
-            "data.transfer_spec.posix_data_sink",
-            options={"is_optional": True},
-        ),
-        # Other non-Union fields
-        TextDyField.data_source(
-            "Object Conditions", "data.transfer_spec.object_conditions"
-        ),
-        TextDyField.data_source(
-            "Transfer Manifest", "data.transfer_spec.transfer_manifest"
-        ),
-    ],
-)
-
 # TAB - Notification Configuration
 notification_config_meta = ItemDynamicLayout.set_fields(
     "Notification Configuration",
@@ -155,7 +104,6 @@ transfer_job_meta = CloudServiceMeta.set_layouts(
     [
         transfer_job_configuration_meta,
         active_transfer_config_meta,
-        transfer_spec_meta,
         notification_config_meta,
         logging_config_meta,
     ]

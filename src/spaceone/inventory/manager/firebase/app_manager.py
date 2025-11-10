@@ -3,17 +3,15 @@ import time
 
 from spaceone.inventory.connector.firebase.firebase_v1beta1 import FirebaseConnector
 from spaceone.inventory.libs.manager import GoogleCloudManager
-
 from spaceone.inventory.libs.schema.base import (
     ReferenceModel,
-    reset_state_counters,
     log_state_summary,
+    reset_state_counters,
 )
-
+from spaceone.inventory.libs.schema.cloud_service import ErrorResourceResponse
 from spaceone.inventory.model.firebase.app.cloud_service import AppResource, AppResponse
 from spaceone.inventory.model.firebase.app.cloud_service_type import CLOUD_SERVICE_TYPES
 from spaceone.inventory.model.firebase.app.data import App
-from spaceone.inventory.libs.schema.cloud_service import ErrorResourceResponse
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -100,7 +98,7 @@ class FirebaseManager(GoogleCloudManager):
                 "WEB": "firebasestorage.googleapis.com",  # Cloud Storage for Firebase (공식 지원)
             }
             service_id = service_id_map.get(platform, "firestore.googleapis.com")
-            
+
             app_data.update(
                 {
                     "name": app_id,
@@ -132,12 +130,7 @@ class FirebaseManager(GoogleCloudManager):
                     "name": app_data.get("displayName", app_id),
                     "account": project_id,
                     "data": app_model,
-                    "reference": ReferenceModel(
-                        {
-                            "resource_id": app_id,
-                            "external_link": f"https://console.firebase.google.com/project/{project_id}/settings/general/{app_id}",
-                        }
-                    ),
+                    "reference": ReferenceModel(app_model.reference()),
                     "region_code": "global",
                 }
             )
@@ -147,5 +140,3 @@ class FirebaseManager(GoogleCloudManager):
         except Exception as e:
             _LOGGER.error(f"Failed to process Firebase app {app_id}: {e}")
             raise
-
-

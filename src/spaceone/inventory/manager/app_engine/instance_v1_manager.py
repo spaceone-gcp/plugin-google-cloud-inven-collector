@@ -1,20 +1,24 @@
 import logging
 from typing import Any, Dict, List, Tuple
 
-from spaceone.inventory.connector.app_engine.instance_v1 import \
-    AppEngineInstanceV1Connector
+from spaceone.inventory.connector.app_engine.instance_v1 import (
+    AppEngineInstanceV1Connector,
+)
 from spaceone.inventory.libs.manager import GoogleCloudManager
-from spaceone.inventory.libs.schema.base import (BaseResponse,
-                                                 log_state_summary,
-                                                 reset_state_counters)
+from spaceone.inventory.libs.schema.base import (
+    BaseResponse,
+    log_state_summary,
+    reset_state_counters,
+)
 from spaceone.inventory.libs.schema.cloud_service import ErrorResourceResponse
-from spaceone.inventory.model.app_engine.instance.cloud_service import \
-    AppEngineInstanceResource
-from spaceone.inventory.model.app_engine.instance.cloud_service_type import \
-    CLOUD_SERVICE_TYPES
+from spaceone.inventory.model.app_engine.instance.cloud_service import (
+    AppEngineInstanceResource,
+)
+from spaceone.inventory.model.app_engine.instance.cloud_service_type import (
+    CLOUD_SERVICE_TYPES,
+)
 from spaceone.inventory.model.app_engine.instance.data import AppEngineInstance
-from spaceone.inventory.model.kubernetes_engine.cluster.data import \
-    convert_datetime
+from spaceone.inventory.model.kubernetes_engine.cluster.data import convert_datetime
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -68,6 +72,7 @@ class AppEngineInstanceV1Manager(GoogleCloudManager):
     ) -> Dict[str, Any]:
         """
         App Engine Instance에 대한 단순화된 모니터링 설정을 생성합니다.
+        SpaceONE 표준 구조에 맞게 filters 배열을 반환합니다.
 
         Args:
             project_id: GCP 프로젝트 ID
@@ -76,7 +81,7 @@ class AppEngineInstanceV1Manager(GoogleCloudManager):
             instance_id: App Engine 인스턴스 ID
 
         Returns:
-            단순화된 Google Cloud Monitoring 설정 딕셔너리
+            SpaceONE 표준 Google Cloud Monitoring 설정 딕셔너리
         """
         # 핵심 메트릭만 포함
         core_metrics = [
@@ -85,27 +90,34 @@ class AppEngineInstanceV1Manager(GoogleCloudManager):
             "appengine.googleapis.com/system/memory/usage",
         ]
 
-        # 단순한 필터 구성
-        base_filter = f'resource.labels.project_id="{project_id}" AND resource.labels.module_id="{service_id}" AND resource.labels.version_id="{version_id}"'
-
-        monitoring_config = {
-            "project": f"projects/{project_id}",
-            "resource_id": instance_id,
-            "metrics": [],
-        }
+        # SpaceONE 표준 필터 구조 생성
+        filters = []
 
         for metric_type in core_metrics:
             # HTTP 메트릭은 gae_app, 시스템 메트릭은 gae_instance 리소스 타입 사용
             if "http/server" in metric_type:
-                resource_filter = f'resource.type="gae_app" AND {base_filter}'
+                # gae_app 리소스 타입 (instance_id 제외)
+                labels = [
+                    {"key": "resource.labels.project_id", "value": project_id},
+                    {"key": "resource.labels.module_id", "value": service_id},
+                    {"key": "resource.labels.version_id", "value": version_id},
+                ]
             else:
-                resource_filter = f'resource.type="gae_instance" AND {base_filter} AND resource.labels.instance_id="{instance_id}"'
+                # gae_instance 리소스 타입 (instance_id 포함)
+                labels = [
+                    {"key": "resource.labels.project_id", "value": project_id},
+                    {"key": "resource.labels.module_id", "value": service_id},
+                    {"key": "resource.labels.version_id", "value": version_id},
+                    {"key": "resource.labels.instance_id", "value": instance_id},
+                ]
 
-            monitoring_config["metrics"].append(
-                {"metric_type": metric_type, "filter": resource_filter}
-            )
+            filters.append({"metric_type": metric_type, "labels": labels})
 
-        return monitoring_config
+        return {
+            "name": f"projects/{project_id}",
+            "resource_id": instance_id,
+            "filters": filters,
+        }
 
     def list_instances(
         self, service_id: str, version_id: str, params: Dict[str, Any]

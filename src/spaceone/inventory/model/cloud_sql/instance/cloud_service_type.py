@@ -48,7 +48,6 @@ cst_instance._metadata = CloudServiceTypeMeta.set_meta(
             },
         ),
         TextDyField.data_source("Type", "data.database_version"),
-        TextDyField.data_source("Project", "data.project"),
         ListDyField.data_source(
             "Public IP Address",
             "data.ip_addresses",

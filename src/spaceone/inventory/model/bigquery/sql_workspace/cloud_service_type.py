@@ -1,21 +1,21 @@
 import os
 
+from spaceone.inventory.conf.cloud_service_conf import ASSET_URL
 from spaceone.inventory.libs.common_parser import *
+from spaceone.inventory.libs.schema.cloud_service_type import (
+    CloudServiceTypeMeta,
+    CloudServiceTypeResource,
+    CloudServiceTypeResponse,
+)
+from spaceone.inventory.libs.schema.metadata.dynamic_field import (
+    DateTimeDyField,
+    SearchField,
+    TextDyField,
+)
 from spaceone.inventory.libs.schema.metadata.dynamic_widget import (
     CardWidget,
     ChartWidget,
 )
-from spaceone.inventory.libs.schema.metadata.dynamic_field import (
-    TextDyField,
-    SearchField,
-    DateTimeDyField,
-)
-from spaceone.inventory.libs.schema.cloud_service_type import (
-    CloudServiceTypeResource,
-    CloudServiceTypeResponse,
-    CloudServiceTypeMeta,
-)
-from spaceone.inventory.conf.cloud_service_conf import ASSET_URL
 
 current_dir = os.path.abspath(os.path.dirname(__file__))
 
@@ -38,13 +38,6 @@ cst_sql_workspace.tags = {
 cst_sql_workspace._metadata = CloudServiceTypeMeta.set_meta(
     fields=[
         TextDyField.data_source("Location", "data.location"),
-        TextDyField.data_source(
-            "Default Partition Expires(Minutes)",
-            "data.default_partition_expiration_ms_display",
-        ),
-        TextDyField.data_source(
-            "Default Table Expires(Minutes)", "data.default_table_expiration_ms_display"
-        ),
         DateTimeDyField.data_source("Creation Time", "data.creation_time"),
         DateTimeDyField.data_source("Last Modified Time", "data.last_modified_time"),
     ],

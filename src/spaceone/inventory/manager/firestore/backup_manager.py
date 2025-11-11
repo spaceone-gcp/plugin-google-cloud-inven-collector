@@ -72,6 +72,9 @@ class FirestoreBackupManager(GoogleCloudManager):
                             "full_name": backup_name,
                             "database_id": backup_database_id,
                             "project": project_id,
+                            "google_cloud_logging": self.set_google_cloud_logging(
+                                "Firestore", "Backup", project_id, backup_id
+                            ),
                         }
                     )
                     backup_data = Backup(backup, strict=False)

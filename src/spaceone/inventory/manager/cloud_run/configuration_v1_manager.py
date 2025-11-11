@@ -87,6 +87,10 @@ class CloudRunConfigurationV1Manager(GoogleCloudManager):
                 ##################################
                 # 2. Make Base Data
                 ##################################
+                # Convert metadata labels to tags format
+                metadata_labels = configuration.get("metadata", {}).get("labels", {}) or {}
+                tags = self.convert_labels_format(metadata_labels)
+
                 configuration.update(
                     {
                         "name": configuration_name,
@@ -111,6 +115,7 @@ class CloudRunConfigurationV1Manager(GoogleCloudManager):
                         "name": configuration_name,
                         "account": project_id,
                         "region_code": location_id,
+                        "tags": tags,
                         "data": configuration_data,
                         "reference": ReferenceModel(
                             {

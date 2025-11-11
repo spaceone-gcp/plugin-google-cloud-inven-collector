@@ -1,4 +1,3 @@
-import json
 import logging
 from typing import Any, Dict, List, Tuple
 
@@ -634,18 +633,17 @@ class GKEClusterV1BetaManager(GoogleCloudManager):
                         ),
                     }
 
-                # 애드온 추가 - 모든 애드온을 JSON 문자열로 저장하여 스키마 호환성 유지
+                # 애드온 추가 - 모든 애드온을 구조 그대로 유지
                 if "addonsConfig" in cluster:
                     addons_config = cluster["addonsConfig"]
                     
-                    # 모든 애드온을 동적으로 처리하여 JSON 문자열로 변환
+                    # 모든 애드온을 동적으로 처리하여 구조 보존
                     processed_addons = {}
                     for addon_key, addon_value in addons_config.items():
+                        # 딕셔너리는 구조 그대로 유지, 다른 타입은 문자열로 변환
                         if isinstance(addon_value, dict):
-                            # 딕셔너리는 JSON 문자열로 변환 (구조 보존)
-                            processed_addons[addon_key] = json.dumps(addon_value)
+                            processed_addons[addon_key] = addon_value
                         else:
-                            # 다른 타입은 문자열로 변환
                             processed_addons[addon_key] = str(addon_value)
                     
                     cluster_data["addonsConfig"] = processed_addons

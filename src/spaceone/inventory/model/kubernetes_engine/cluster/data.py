@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Dict
 
 from schematics import Model
-from schematics.types import BooleanType, DictType, IntType, ListType, StringType
+from schematics.types import BooleanType, DictType, IntType, ListType, StringType, UnionType
 
 from spaceone.inventory.libs.schema.cloud_service import BaseResource
 
@@ -305,7 +305,9 @@ class GKECluster(BaseResource):
         deserialize_from="currentNodeCount", serialize_when_none=False
     )
     # Total cluster resources (calculated from node pools)
-    machine_type = StringType(deserialize_from="machine_type", serialize_when_none=False)
+    machine_type = StringType(
+        deserialize_from="machine_type", serialize_when_none=False
+    )
     create_time = StringType(deserialize_from="createTime", serialize_when_none=False)
     resource_labels = DictType(
         StringType, deserialize_from="resourceLabels", serialize_when_none=False
@@ -347,7 +349,9 @@ class GKECluster(BaseResource):
         StringType, deserialize_from="monitoringConfig", serialize_when_none=False
     )
     addons_config = DictType(
-        StringType, deserialize_from="addonsConfig", serialize_when_none=False
+        UnionType([DictType(StringType), StringType]), 
+        deserialize_from="addonsConfig", 
+        serialize_when_none=False
     )
 
     # v1beta1 specific

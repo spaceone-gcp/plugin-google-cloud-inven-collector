@@ -118,11 +118,20 @@ class InstanceTemplate(BaseResource):
     network_interfaces = ListType(ModelType(NetworkInterface), default=[])
     service_account = ModelType(ServiceAccount, serialize_when_none=False)
     labels = ListType(ModelType(Labels), default=[])
+    ext_region = StringType(default="")
     kind = StringType()
     creation_timestamp = DateTimeType(deserialize_from="creationTimestamp")
 
     def reference(self):
+        # If ext_region is empty, None, or "", use template without regions path
+        if not self.ext_region:
+            return {
+                "resource_id": self.self_link,
+                "external_link": f"https://console.cloud.google.com/compute/instanceTemplates/details/{self.name}?project={self.project}",
+            }
+
+        # If ext_region exists, use the full path with regions
         return {
             "resource_id": self.self_link,
-            "external_link": f"https://console.cloud.google.com/compute/instanceTemplates/details/{self.name}?project={self.project}",
+            "external_link": f"https://console.cloud.google.com/compute/instanceTemplates/details/regions/{self.ext_region}/{self.name}?project={self.project}",
         }

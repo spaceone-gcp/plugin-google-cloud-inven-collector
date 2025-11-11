@@ -102,7 +102,7 @@ it_meta_disk = TableDynamicLayout.set_fields(
         SizeField.data_source("Size", "size"),
         EnumDyField.data_source(
             "Disk Type",
-            "device_type",
+            "tags.disk_type",
             default_outline_badge=["local-ssd", "pd-balanced", "pd-ssd", "pd-standard"],
         ),
         EnumDyField.data_source(
@@ -149,11 +149,11 @@ it_meta_network = TableDynamicLayout.set_fields(
         TextDyField.data_source("Primary internal IP", "primary_ip_address"),
         ListDyField.data_source(
             "Alias IP range",
-            "alias_ip_ranges",
+            "alias_ip_ranges.ipCidrRange",
             default_badge={"type": "outline", "delimiter": "<br>"},
         ),
         TextDyField.data_source("Public IP", "public_ip_address"),
-        ListDyField.data_source("Access Configs", "access_configs"),
+        ListDyField.data_source("Access Configs", "access_configs.type"),
         ListDyField.data_source("Network Tier", "network_tier_display"),
         ListDyField.data_source("IP forwarding", "ip_forward"),
     ],

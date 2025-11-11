@@ -8,6 +8,7 @@ from schematics.types import (
     DictType,
     IntType,
     ListType,
+    ModelType,
     StringType,
     UnionType,
 )
@@ -54,19 +55,54 @@ def parse_cluster_data(
         },
     }
 
-    # 네트워크 설정 - 기본 정보만 추출
+    # 네트워크 설정 - 기본 필드와 주요 필드는 항상 추가
     if "networkConfig" in cluster_data:
         network_config = cluster_data["networkConfig"]
-        parsed_data["networkConfig"] = {
+        default_snat_status = network_config.get("defaultSnatStatus", {})
+        dns_config = network_config.get("dnsConfig", {})
+        service_external_ips_config = network_config.get("serviceExternalIpsConfig", {})
+
+        processed_network_config = {
             "network": str(network_config.get("network", "")),
             "subnetwork": str(network_config.get("subnetwork", "")),
-            "enableIntraNodeVisibility": str(
-                network_config.get("enableIntraNodeVisibility", "")
+            # 항상 포함되는 필드들
+            "defaultSnatStatus": (
+                default_snat_status
+                if isinstance(default_snat_status, dict)
+                else str(default_snat_status)
             ),
-            "enableL4ilbSubsetting": str(
-                network_config.get("enableL4ilbSubsetting", "")
+            "datapathProvider": str(network_config.get("datapathProvider", "")),
+            "dnsConfig": (
+                dns_config if isinstance(dns_config, dict) else str(dns_config)
+            ),
+            "serviceExternalIpsConfig": (
+                service_external_ips_config
+                if isinstance(service_external_ips_config, dict)
+                else str(service_external_ips_config)
+            ),
+            "enableFqdnNetworkPolicy": str(
+                network_config.get("enableFqdnNetworkPolicy", "")
+            ),
+            "defaultEnablePrivateNodes": str(
+                network_config.get("defaultEnablePrivateNodes", "")
+            ),
+            "disableL4LbFirewallReconciliation": str(
+                network_config.get("disableL4LbFirewallReconciliation", "")
             ),
         }
+
+        # 레거시 필드들 (API 응답에 있을 때만 추가)
+        if "enableIntraNodeVisibility" in network_config:
+            processed_network_config["enableIntraNodeVisibility"] = str(
+                network_config.get("enableIntraNodeVisibility", "")
+            )
+
+        if "enableL4ilbSubsetting" in network_config:
+            processed_network_config["enableL4ilbSubsetting"] = str(
+                network_config.get("enableL4ilbSubsetting", "")
+            )
+
+        parsed_data["networkConfig"] = processed_network_config
         parsed_data["network"] = str(network_config.get("network", ""))
         parsed_data["subnetwork"] = str(network_config.get("subnetwork", ""))
 
@@ -162,14 +198,37 @@ class Labels(Model):
 class NetworkConfig(Model):
     network = StringType(serialize_when_none=False)
     subnetwork = StringType(serialize_when_none=False)
+    # 실제 API 응답에 있는 필드들
+    default_snat_status = DictType(
+        StringType, deserialize_from="defaultSnatStatus", serialize_when_none=False
+    )
+    datapath_provider = StringType(
+        deserialize_from="datapathProvider", serialize_when_none=False
+    )
+    dns_config = DictType(
+        StringType, deserialize_from="dnsConfig", serialize_when_none=False
+    )
+    service_external_ips_config = DictType(
+        StringType,
+        deserialize_from="serviceExternalIpsConfig",
+        serialize_when_none=False,
+    )
+    enable_fqdn_network_policy = BooleanType(
+        deserialize_from="enableFqdnNetworkPolicy", serialize_when_none=False
+    )
+    default_enable_private_nodes = BooleanType(
+        deserialize_from="defaultEnablePrivateNodes", serialize_when_none=False
+    )
+    disable_l4_lb_firewall_reconciliation = BooleanType(
+        deserialize_from="disableL4LbFirewallReconciliation",
+        serialize_when_none=False,
+    )
+    # 레거시 필드들 (API 응답에 있을 때만 포함)
     enable_intra_node_visibility = BooleanType(
         deserialize_from="enableIntraNodeVisibility", serialize_when_none=False
     )
     enable_l4ilb_subsetting = BooleanType(
         deserialize_from="enableL4ilbSubsetting", serialize_when_none=False
-    )
-    default_snat_status = DictType(
-        StringType, deserialize_from="defaultSnatStatus", serialize_when_none=False
     )
     network_performance_config = DictType(
         StringType,
@@ -329,8 +388,8 @@ class GKECluster(BaseResource):
     services_ipv4_cidr = StringType(
         deserialize_from="servicesIpv4Cidr", serialize_when_none=False
     )
-    network_config = DictType(
-        StringType, deserialize_from="networkConfig", serialize_when_none=False
+    network_config = ModelType(
+        NetworkConfig, deserialize_from="networkConfig", serialize_when_none=False
     )
 
     # NodePool 정보는 별도의 NodePool 서비스에서 관리

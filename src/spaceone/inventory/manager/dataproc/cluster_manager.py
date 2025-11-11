@@ -450,6 +450,7 @@ class DataprocClusterManager(GoogleCloudManager):
                         "data": dataproc_cluster_data,
                         "region_code": location,
                         "account": project_id,
+                        "tags": cluster_data.get("labels", []),
                         "reference": ReferenceModel(dataproc_cluster_data.reference()),
                     }
                 )

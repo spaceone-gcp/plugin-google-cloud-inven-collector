@@ -394,7 +394,7 @@ class DataprocClusterConnector(GoogleCloudConnector):
 
         # 병렬 처리 시작 로깅
         logger.info(
-            f"🚀 Starting parallel cluster collection: "
+            f"Starting parallel cluster collection: "
             f"regions={len(regions)}, max_workers={max_workers}, "
             f"global_timeout=90s, individual_timeout=60s (MAX_WORKERS={MAX_WORKERS})"
         )

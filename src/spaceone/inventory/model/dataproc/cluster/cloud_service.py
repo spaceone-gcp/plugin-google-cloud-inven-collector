@@ -20,7 +20,6 @@ from spaceone.inventory.libs.schema.metadata.dynamic_field import (
 from spaceone.inventory.libs.schema.metadata.dynamic_layout import (
     ItemDynamicLayout,
     ListDynamicLayout,
-    TableDynamicLayout,
 )
 from spaceone.inventory.model.dataproc.cluster.data import DataprocCluster
 
@@ -146,14 +145,6 @@ cluster_worker_config_meta = ItemDynamicLayout.set_fields(
     ],
 )
 
-cluster_labels_meta = TableDynamicLayout.set_fields(
-    "Labels",
-    root_path="data.labels",
-    fields=[
-        TextDyField.data_source("Key", "key"),
-        TextDyField.data_source("Value", "value"),
-    ],
-)
 
 cluster_meta = CloudServiceMeta.set_layouts(
     [
@@ -161,7 +152,6 @@ cluster_meta = CloudServiceMeta.set_layouts(
         cluster_config_meta,
         cluster_master_config_meta,
         cluster_worker_config_meta,
-        cluster_labels_meta,
     ]
 )
 

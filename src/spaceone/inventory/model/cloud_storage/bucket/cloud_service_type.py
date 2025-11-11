@@ -41,7 +41,6 @@ cst_bucket.tags = {
 cst_bucket._metadata = CloudServiceTypeMeta.set_meta(
     fields=[
         TextDyField.data_source("Location Type", "data.location.location_type"),
-        TextDyField.data_source("Location", "data.location.location_display"),
         EnumDyField.data_source(
             "Default Storage Class",
             "data.default_storage_class",
@@ -67,7 +66,6 @@ cst_bucket._metadata = CloudServiceTypeMeta.set_meta(
             "data.requester_pays",
             default_badge={"indigo.500": ["OFF"], "coral.600": ["ON"]},
         ),
-        TextDyField.data_source("Retention Policy", "data.retention_policy_display"),
         TextDyField.data_source("Encryption", "data.encryption"),
         DateTimeDyField.data_source("Creation Time", "data.creation_timestamp"),
         # is_optional - Default
@@ -76,11 +74,6 @@ cst_bucket._metadata = CloudServiceTypeMeta.set_meta(
         ),
         TextDyField.data_source(
             "Link for gsutil", "data.links.gsutil_link", options={"is_optional": True}
-        ),
-        TextDyField.data_source(
-            "Retention Period",
-            "data.retention_policy_display",
-            options={"is_optional": True},
         ),
     ],
     search=[

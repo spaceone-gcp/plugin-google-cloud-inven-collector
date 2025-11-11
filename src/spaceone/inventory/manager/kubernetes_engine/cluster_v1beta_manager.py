@@ -232,12 +232,6 @@ class GKEClusterV1BetaManager(GoogleCloudManager):
                 "n1-highcpu-32": {"cpu": 32, "memory_gb": 28.8},
                 "n1-highcpu-64": {"cpu": 64, "memory_gb": 57.6},
                 "n1-highcpu-96": {"cpu": 96, "memory_gb": 86.4},
-                # E2 machine types
-                "e2-standard-2": {"cpu": 2, "memory_gb": 8},
-                "e2-standard-4": {"cpu": 4, "memory_gb": 16},
-                "e2-standard-8": {"cpu": 8, "memory_gb": 32},
-                "e2-standard-16": {"cpu": 16, "memory_gb": 64},
-                "e2-standard-32": {"cpu": 32, "memory_gb": 128},
                 # N2 machine types
                 "n2-standard-2": {"cpu": 2, "memory_gb": 8},
                 "n2-standard-4": {"cpu": 4, "memory_gb": 16},
@@ -408,7 +402,7 @@ class GKEClusterV1BetaManager(GoogleCloudManager):
                 first_node_pool = node_pools[0]
                 node_config = first_node_pool.get("config", {})
                 first_machine_type = node_config.get("machineType", "Unknown")
-            
+
             result = {
                 "total_nodes": total_nodes,
                 "machine_type": first_machine_type,
@@ -639,23 +633,25 @@ class GKEClusterV1BetaManager(GoogleCloudManager):
                         ),
                     }
 
-                # 애드온 추가
+                # 애드온 추가 - 모든 애드온을 구조 그대로 유지
                 if "addonsConfig" in cluster:
                     addons_config = cluster["addonsConfig"]
-                    cluster_data["addonsConfig"] = {
-                        "httpLoadBalancing": str(
-                            addons_config.get("httpLoadBalancing", {})
-                        ),
-                        "horizontalPodAutoscaling": str(
-                            addons_config.get("horizontalPodAutoscaling", {})
-                        ),
-                        "kubernetesDashboard": str(
-                            addons_config.get("kubernetesDashboard", {})
-                        ),
-                        "networkPolicyConfig": str(
-                            addons_config.get("networkPolicyConfig", {})
-                        ),
-                    }
+
+                    # 모든 애드온을 동적으로 처리하여 구조 보존
+                    processed_addons = {}
+                    for addon_key, addon_value in addons_config.items():
+                        if isinstance(addon_value, dict):
+                            # 딕셔너리는 구조 그대로 유지
+                            processed_addons[addon_key] = addon_value
+                        else:
+                            # 다른 타입은 문자열로 변환
+                            processed_addons[addon_key] = str(addon_value)
+
+                    cluster_data["addonsConfig"] = processed_addons
+
+                    _LOGGER.info(
+                        f"Processed {len(processed_addons)} addons for cluster {cluster_data.get('name')}: {list(processed_addons.keys())}"
+                    )
 
                 # NodePool 정보는 별도의 NodePoolManager에서 처리
 

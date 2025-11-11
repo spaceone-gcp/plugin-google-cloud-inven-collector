@@ -1,6 +1,9 @@
-from schematics.types import StringType, DictType
+from schematics.types import DictType, ModelType, StringType
 
 from spaceone.inventory.libs.schema.cloud_service import BaseResource
+from spaceone.inventory.libs.schema.google_cloud_monitoring import (
+    GoogleCloudMonitoringModel,
+)
 
 
 class Snapshot(BaseResource):
@@ -9,6 +12,10 @@ class Snapshot(BaseResource):
     topic = StringType(serialize_when_none=False)
     expire_time = StringType(serialize_when_none=False, deserialize_from="expireTime")
     labels = DictType(StringType, serialize_when_none=False)
+    # Monitoring data
+    google_cloud_monitoring = ModelType(
+        GoogleCloudMonitoringModel, serialize_when_none=False
+    )
 
     def reference(self):
         return {

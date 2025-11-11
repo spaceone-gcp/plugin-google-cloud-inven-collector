@@ -23,7 +23,9 @@ def load_secret_data():
     secret_file = project_root / "conf" / "google_client_secret.json"
     if not secret_file.exists():
         _LOGGER.error(f"Secret file not found: {secret_file}")
-        _LOGGER.info("Please create conf/google_client_secret.json with your GCP credentials")
+        _LOGGER.info(
+            "Please create conf/google_client_secret.json with your GCP credentials"
+        )
         return None
 
     with open(secret_file, "r") as f:
@@ -135,7 +137,9 @@ def test_nodepool_labels():
 
                 if "resourceLabels" in config:
                     resource_labels = config["resourceLabels"]
-                    _LOGGER.info("\n✅ config.resourceLabels 필드가 API 응답에 있습니다!")
+                    _LOGGER.info(
+                        "\n✅ config.resourceLabels 필드가 API 응답에 있습니다!"
+                    )
                     _LOGGER.info(
                         f"config.resourceLabels: {json.dumps(resource_labels, indent=2)}"
                     )
@@ -144,7 +148,9 @@ def test_nodepool_labels():
                         f"Count: {len(resource_labels) if isinstance(resource_labels, dict) else 0}"
                     )
                 else:
-                    _LOGGER.warning("\n❌ config.resourceLabels 필드가 API 응답에 없습니다.")
+                    _LOGGER.warning(
+                        "\n❌ config.resourceLabels 필드가 API 응답에 없습니다."
+                    )
             else:
                 _LOGGER.warning("\n❌ config 필드가 NodePool API 응답에 없습니다.")
 
@@ -176,10 +182,14 @@ def test_nodepool_labels():
                 _LOGGER.info(f"Added config.labels: {len(config_labels)} labels")
 
             # config.resourceLabels가 있는 경우 병합 (GKE NodePool에서 주로 사용)
-            config_resource_labels = node_pool.get("config", {}).get("resourceLabels", {})
+            config_resource_labels = node_pool.get("config", {}).get(
+                "resourceLabels", {}
+            )
             if config_resource_labels:
                 all_labels.update(config_resource_labels)
-                _LOGGER.info(f"Added config.resourceLabels: {len(config_resource_labels)} labels")
+                _LOGGER.info(
+                    f"Added config.resourceLabels: {len(config_resource_labels)} labels"
+                )
 
             _LOGGER.info(f"\nTotal labels collected: {len(all_labels)}")
             if all_labels:

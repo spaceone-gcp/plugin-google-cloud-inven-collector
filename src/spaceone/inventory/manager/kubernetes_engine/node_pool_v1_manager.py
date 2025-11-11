@@ -915,7 +915,9 @@ class GKENodePoolV1Manager(GoogleCloudManager):
                         all_labels.update(config_labels)
 
                     # config.resourceLabels가 있는 경우 병합 (GKE NodePool에서 주로 사용)
-                    config_resource_labels = node_group.get("config", {}).get("resourceLabels", {})
+                    config_resource_labels = node_group.get("config", {}).get(
+                        "resourceLabels", {}
+                    )
                     if config_resource_labels:
                         all_labels.update(config_resource_labels)
 

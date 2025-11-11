@@ -24,7 +24,8 @@ service_overview = ItemDynamicLayout.set_fields(
     "Service Overview",
     fields=[
         TextDyField.data_source("ID", "data.uid"),
-        TextDyField.data_source("Name", "data.full_name"),
+        TextDyField.data_source("Name", "data.name"),
+        TextDyField.data_source("Full Name", "data.full_name"),
         TextDyField.data_source("Generation", "data.generation"),
         TextDyField.data_source("URI", "data.uri"),
         ListDyField.data_source("URLs", "data.urls"),

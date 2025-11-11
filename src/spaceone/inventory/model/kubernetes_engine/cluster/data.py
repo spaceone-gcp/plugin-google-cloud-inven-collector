@@ -3,7 +3,14 @@ from datetime import datetime
 from typing import Dict
 
 from schematics import Model
-from schematics.types import BooleanType, DictType, IntType, ListType, StringType, UnionType
+from schematics.types import (
+    BooleanType,
+    DictType,
+    IntType,
+    ListType,
+    StringType,
+    UnionType,
+)
 
 from spaceone.inventory.libs.schema.cloud_service import BaseResource
 
@@ -349,9 +356,9 @@ class GKECluster(BaseResource):
         StringType, deserialize_from="monitoringConfig", serialize_when_none=False
     )
     addons_config = DictType(
-        UnionType([DictType(StringType), StringType]), 
-        deserialize_from="addonsConfig", 
-        serialize_when_none=False
+        UnionType([DictType(StringType), StringType]),
+        deserialize_from="addonsConfig",
+        serialize_when_none=False,
     )
 
     # v1beta1 specific
@@ -359,6 +366,14 @@ class GKECluster(BaseResource):
     membership_info = DictType(StringType, serialize_when_none=False)
 
     # Resource Limits
+    resource_limits = ListType(DictType(StringType), serialize_when_none=False)
+
+    def reference(self):
+        return {
+            "resource_id": self.self_link,
+            "external_link": f"https://console.cloud.google.com/kubernetes/clusters/details/{self.location}/{self.name}?project={self.project_id}",
+        }
+
     resource_limits = ListType(DictType(StringType), serialize_when_none=False)
 
     def reference(self):

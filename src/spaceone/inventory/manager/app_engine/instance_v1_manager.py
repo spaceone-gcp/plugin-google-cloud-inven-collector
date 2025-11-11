@@ -63,6 +63,68 @@ class AppEngineInstanceV1Manager(GoogleCloudManager):
 
         return memory_mb
 
+    def _extract_request_count(self, instance: Dict[str, Any], instance_id: str) -> int:
+        """인스턴스에서 request count를 추출하고 로깅"""
+
+        # 다양한 가능한 필드명들을 시도
+        possible_fields = [
+            "requests",
+            "requestCount",
+            "request_count",
+            "totalRequests",
+            "total_requests",
+            "requestsCount",
+            "numRequests",
+            "num_requests",
+        ]
+
+        request_count = 0
+        found_field = None
+
+        for field_name in possible_fields:
+            if field_name in instance:
+                value = instance[field_name]
+                if value is not None:
+                    try:
+                        request_count = int(value)
+                        found_field = field_name
+                        break
+                    except (ValueError, TypeError):
+                        _LOGGER.warning(
+                            f"[REQUEST_DEBUG] Instance {instance_id} - Could not convert {field_name}={value} to int"
+                        )
+                        continue
+
+        # 디버깅 로그
+        _LOGGER.info(
+            f"[REQUEST_DEBUG] Instance {instance_id} - Found request count: {request_count} from field: {found_field}"
+        )
+
+        if found_field is None:
+            _LOGGER.info(
+                f"[REQUEST_DEBUG] Instance {instance_id} - No request count field found. Available fields: {list(instance.keys())}"
+            )
+
+            # metrics에서도 확인
+            if "metrics" in instance:
+                metrics = instance["metrics"]
+                if isinstance(metrics, dict):
+                    for field_name in possible_fields:
+                        if field_name in metrics:
+                            value = metrics[field_name]
+                            if value is not None:
+                                try:
+                                    request_count = int(value)
+                                    found_field = f"metrics.{field_name}"
+                                    _LOGGER.info(
+                                        f"[REQUEST_DEBUG] Instance {instance_id} - Found request count in metrics: {request_count} from field: {found_field}"
+                                    )
+                                    break
+                                except (ValueError, TypeError):
+                                    continue
+
+        return request_count
+
     def _set_simple_google_cloud_monitoring(
         self,
         project_id: str,
@@ -122,7 +184,7 @@ class AppEngineInstanceV1Manager(GoogleCloudManager):
     def list_instances(
         self, service_id: str, version_id: str, params: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
-        """AppEngine 인스턴스 목록을 조회합니다 (v1 API).
+        """AppEngine 인스턴스 목록을 조회합니다 (v1beta API).
 
         Args:
             service_id: 서비스 ID.
@@ -142,19 +204,19 @@ class AppEngineInstanceV1Manager(GoogleCloudManager):
         try:
             instances = instance_connector.list_instances(service_id, version_id)
             _LOGGER.info(
-                f"Found {len(instances)} instances for version {version_id} (v1)"
+                f"Found {len(instances)} instances for version {version_id} (v1beta)"
             )
             return instances
         except Exception as e:
             _LOGGER.error(
-                f"Failed to list instances for version {version_id} (v1): {e}"
+                f"Failed to list instances for version {version_id} (v1beta): {e}"
             )
             return []
 
     def get_instance(
         self, service_id: str, version_id: str, instance_id: str, params: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """특정 AppEngine 인스턴스 정보를 조회합니다 (v1 API).
+        """특정 AppEngine 인스턴스 정보를 조회합니다 (v1beta API).
 
         Args:
             service_id: 서비스 ID.
@@ -281,7 +343,7 @@ class AppEngineInstanceV1Manager(GoogleCloudManager):
         Raises:
             Exception: 데이터 수집 중 오류 발생 시.
         """
-        _LOGGER.debug("** AppEngine Instance V1 START **")
+        _LOGGER.debug("** AppEngine Instance V1Beta START **")
 
         # 상태 카운터 초기화
         reset_state_counters()
@@ -397,8 +459,34 @@ class AppEngineInstanceV1Manager(GoogleCloudManager):
                                     _LOGGER.info(
                                         f"[API_MEMORY_DEBUG] Instance {instance_id} - All memory-related fields: {[k for k in instance.keys() if 'memory' in k.lower()]}"
                                     )
+
+                                    # API 응답에서 request count 관련 필드들 로깅
                                     _LOGGER.info(
-                                        f"[API_MEMORY_DEBUG] Instance {instance_id} - Full instance keys: {sorted(list(instance.keys()))}"
+                                        f"[API_REQUEST_DEBUG] Instance {instance_id} - requests: {instance.get('requests')} (type: {type(instance.get('requests'))})"
+                                    )
+                                    _LOGGER.info(
+                                        f"[API_REQUEST_DEBUG] Instance {instance_id} - requestCount: {instance.get('requestCount')} (type: {type(instance.get('requestCount'))})"
+                                    )
+                                    _LOGGER.info(
+                                        f"[API_REQUEST_DEBUG] Instance {instance_id} - All request-related fields: {[k for k in instance.keys() if 'request' in k.lower()]}"
+                                    )
+                                    _LOGGER.info(
+                                        f"[API_REQUEST_DEBUG] Instance {instance_id} - qps: {instance.get('qps')} (type: {type(instance.get('qps'))})"
+                                    )
+                                    _LOGGER.info(
+                                        f"[API_V1BETA_DEBUG] Instance {instance_id} - Full API response keys: {sorted(list(instance.keys()))}"
+                                    )
+                                    _LOGGER.info(
+                                        f"[API_V1BETA_DEBUG] Instance {instance_id} - API response sample: {dict(list(instance.items())[:10])}"
+                                    )
+                                    _LOGGER.info(
+                                        f"[API_REQUEST_DEBUG] Instance {instance_id} - averageLatency: {instance.get('averageLatency')} (type: {type(instance.get('averageLatency'))})"
+                                    )
+                                    _LOGGER.info(
+                                        f"[API_REQUEST_DEBUG] Instance {instance_id} - errors: {instance.get('errors')} (type: {type(instance.get('errors'))})"
+                                    )
+                                    _LOGGER.info(
+                                        f"[API_REQUEST_DEBUG] Instance {instance_id} - Full instance keys: {sorted(list(instance.keys()))}"
                                     )
 
                                     # 기본 인스턴스 데이터 준비 - API 응답 구조와 정확히 일치하도록 수정
@@ -437,12 +525,8 @@ class AppEngineInstanceV1Manager(GoogleCloudManager):
                                             )
                                         ),
                                         # 사용량 정보
-                                        "request_count": int(
-                                            instance.get(
-                                                "requests",
-                                                instance.get("requestCount", 0),
-                                            )
-                                            or 0
+                                        "request_count": self._extract_request_count(
+                                            instance, instance_id
                                         ),
                                         "memory_usage": self._convert_memory_usage(
                                             instance, instance_id
@@ -769,7 +853,7 @@ class AppEngineInstanceV1Manager(GoogleCloudManager):
         # 수집 결과 요약 로깅
         log_state_summary()
 
-        _LOGGER.debug("** AppEngine Instance V1 END **")
+        _LOGGER.debug("** AppEngine Instance V1Beta END **")
         _LOGGER.info(
             f"Collected {len(collected_cloud_services)} App Engine instances, {len(error_responses)} errors"
         )

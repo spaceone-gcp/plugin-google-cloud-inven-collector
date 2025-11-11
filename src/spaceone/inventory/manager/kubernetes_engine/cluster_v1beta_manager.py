@@ -636,7 +636,7 @@ class GKEClusterV1BetaManager(GoogleCloudManager):
                 # 애드온 추가 - 모든 애드온을 구조 그대로 유지
                 if "addonsConfig" in cluster:
                     addons_config = cluster["addonsConfig"]
-                    
+
                     # 모든 애드온을 동적으로 처리하여 구조 보존
                     processed_addons = {}
                     for addon_key, addon_value in addons_config.items():
@@ -645,9 +645,9 @@ class GKEClusterV1BetaManager(GoogleCloudManager):
                             processed_addons[addon_key] = addon_value
                         else:
                             processed_addons[addon_key] = str(addon_value)
-                    
+
                     cluster_data["addonsConfig"] = processed_addons
-                    
+
                     _LOGGER.info(
                         f"Processed {len(processed_addons)} addons for cluster {cluster_data.get('name')}: {list(processed_addons.keys())}"
                     )

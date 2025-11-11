@@ -153,7 +153,7 @@ it_meta_network = TableDynamicLayout.set_fields(
             default_badge={"type": "outline", "delimiter": "<br>"},
         ),
         TextDyField.data_source("Public IP", "public_ip_address"),
-        ListDyField.data_source("Access Configs", "configs"),
+        ListDyField.data_source("Access Configs", "access_configs"),
         ListDyField.data_source("Network Tier", "network_tier_display"),
         ListDyField.data_source("IP forwarding", "ip_forward"),
     ],

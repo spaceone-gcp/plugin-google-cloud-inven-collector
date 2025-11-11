@@ -26,7 +26,6 @@ lb_forwarding_rule = TableDynamicLayout.set_fields(
     fields=[
         TextDyField.data_source("Id", "id"),
         TextDyField.data_source("Name", "name"),
-        TextDyField.data_source("Description", "description"),
         TextDyField.data_source("IP Address", "ip_address"),
         EnumDyField.data_source(
             "Protocol",
@@ -65,13 +64,13 @@ lb_target_proxy = ItemDynamicLayout.set_fields(
 )
 
 
-lb_urlmap = ItemDynamicLayout.set_fields(
-    "URL Map",
-    root_path="data.urlmap",
+lb_routing_table = TableDynamicLayout.set_fields(
+    "Routing Rules",
+    root_path="data.urlmap.routing_table",
     fields=[
-        TextDyField.data_source("ID", "id"),
-        ListDyField.data_source("Host Rules", "host_rule"),
-        DateTimeDyField.data_source("Created At", "creation_timestamp"),
+        TextDyField.data_source("Host", "host"),
+        TextDyField.data_source("Path", "path"),
+        TextDyField.data_source("Backend", "backend"),
     ],
 )
 
@@ -230,7 +229,7 @@ load_balancing_meta = CloudServiceMeta.set_layouts(
     [
         lb_forwarding_rule,
         lb_target_proxy,
-        lb_urlmap,
+        lb_routing_table,
         lb_backend_service,
         lb_backend_buckets,
         lb_target_pools,

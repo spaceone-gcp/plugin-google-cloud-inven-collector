@@ -389,6 +389,13 @@ class HostRule(Model):
     path_matcher = StringType(deserialize_from="pathMatcher", serialize_when_none=False)
 
 
+class RoutingRule(Model):
+    """라우팅 테이블의 개별 규칙을 나타내는 모델"""
+    host = StringType(serialize_when_none=False)
+    path = StringType(serialize_when_none=False)
+    backend = StringType(serialize_when_none=False)
+
+
 class UrlMap(Model):
     id = StringType(serialize_when_none=False)
     name = StringType
@@ -396,6 +403,9 @@ class UrlMap(Model):
     self_link = StringType(deserialize_from="selfLink", serialize_when_none=False)
     host_rule = ListType(
         ModelType(HostRule), deserialize_from="hostRules", serialize_when_none=False
+    )
+    routing_table = ListType(
+        ModelType(RoutingRule), serialize_when_none=False, default=[]
     )
     creation_timestamp = DateTimeType(deserialize_from="creationTimestamp")
 

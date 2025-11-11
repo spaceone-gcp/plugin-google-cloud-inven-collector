@@ -16,12 +16,15 @@ class InstanceTemplateConnector(GoogleCloudConnector):
     def list_instance_templates(self, **query):
         instance_template_list = []
         query.update({"project": self.project_id})
-        request = self.client.instanceTemplates().list(**query)
+        request = self.client.instanceTemplates().aggregatedList(**query)
         while request is not None:
             response = request.execute()
-            for template in response.get("items", []):
-                instance_template_list.append(template)
-            request = self.client.instanceTemplates().list_next(
+            for key, _instance_template_list in response["items"].items():
+                if "instanceTemplates" in _instance_template_list:
+                    instance_template_list.extend(
+                        _instance_template_list.get("instanceTemplates")
+                    )
+            request = self.client.instanceTemplates().aggregatedList_next(
                 previous_request=request, previous_response=response
             )
 

@@ -79,7 +79,7 @@ meta_available_policy = ItemDynamicLayout.set_fields(
         ),
         EnumDyField.data_source(
             "Host Maintenance",
-            "data.on_host_maintenance",
+            "data.scheduling.on_host_maintenance",
             default_badge={"primary": ["MIGRATE"], "coral.600": ["TERMINATE"]},
         ),
     ],
@@ -102,7 +102,7 @@ it_meta_disk = TableDynamicLayout.set_fields(
         SizeField.data_source("Size", "size"),
         EnumDyField.data_source(
             "Disk Type",
-            "tags.disk_type",
+            "device_type",
             default_outline_badge=["local-ssd", "pd-balanced", "pd-ssd", "pd-standard"],
         ),
         EnumDyField.data_source(

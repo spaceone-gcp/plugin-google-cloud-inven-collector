@@ -24,14 +24,12 @@ class StorageManager(GoogleCloudManager):
 
     @staticmethod
     def _safe_get(data, key, default=None):
-
         if isinstance(data, dict) and key in data:
             return data[key]
         return default
-    
+
     @staticmethod
     def _safe_get_nested(data, keys, default=None):
-
         current = data
         for key in keys:
             if isinstance(current, dict) and key in current:
@@ -39,8 +37,6 @@ class StorageManager(GoogleCloudManager):
             else:
                 return default
         return current
-
-
 
     def collect_cloud_service(self, params):
         _LOGGER.debug("** Storage START **")
@@ -149,6 +145,11 @@ class StorageManager(GoogleCloudManager):
                     self._safe_get(bucket, "labels", {})
                 )
 
+                # Google Cloud Monitoring 필터 설정
+                google_cloud_monitoring_filters = [
+                    {"key": "resource.labels.bucket_name", "value": bucket_name},
+                ]
+
                 ##################################
                 # 2. Make Base Data
                 ##################################
@@ -183,6 +184,17 @@ class StorageManager(GoogleCloudManager):
 
                 bucket.update(
                     {
+                        # Monitoring data
+                        "google_cloud_monitoring": self._set_multiple_google_cloud_monitoring(
+                            project_id,
+                            [
+                                "logging.googleapis.com/byte_count",
+                                "logging.googleapis.com/log_entry_count",
+                            ],
+                            bucket_name,
+                            google_cloud_monitoring_filters,
+                        ),
+                        # Logging data
                         "google_cloud_logging": self.set_google_cloud_logging(
                             "CloudStorage", "Bucket", project_id, bucket_name
                         ),
@@ -538,6 +550,32 @@ class StorageManager(GoogleCloudManager):
                     )
 
         return iam_policy_binding
+
+    @staticmethod
+    def _set_multiple_google_cloud_monitoring(
+        project_id, metric_types, resource_id, filters
+    ):
+        """
+        Set multiple Google Cloud Monitoring metric types for CloudStorage Bucket.
+
+        Args:
+            project_id (str): GCP project ID
+            metric_types (list): List of metric types
+            resource_id (str): Resource ID
+            filters (list): Filters to apply to all metric types
+
+        Returns:
+            dict: Google Cloud Monitoring configuration with multiple metric types
+        """
+        monitoring_filters = []
+        for metric_type in metric_types:
+            monitoring_filters.append({"metric_type": metric_type, "labels": filters})
+
+        return {
+            "name": f"projects/{project_id}",
+            "resource_id": resource_id,
+            "filters": monitoring_filters,
+        }
 
     @staticmethod
     def _get_retention_policy_display(bucket):

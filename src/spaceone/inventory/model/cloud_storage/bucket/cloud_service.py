@@ -1,23 +1,23 @@
 from schematics.types import PolyModelType
 
-from spaceone.inventory.model.cloud_storage.bucket.data import *
+from spaceone.inventory.libs.schema.cloud_service import (
+    CloudServiceMeta,
+    CloudServiceResource,
+    CloudServiceResponse,
+)
 from spaceone.inventory.libs.schema.metadata.dynamic_field import (
-    TextDyField,
     DateTimeDyField,
     EnumDyField,
     SizeField,
+    TextDyField,
 )
 from spaceone.inventory.libs.schema.metadata.dynamic_layout import (
     ItemDynamicLayout,
-    TableDynamicLayout,
     ListDynamicLayout,
     SimpleTableDynamicLayout,
+    TableDynamicLayout,
 )
-from spaceone.inventory.libs.schema.cloud_service import (
-    CloudServiceResource,
-    CloudServiceResponse,
-    CloudServiceMeta,
-)
+from spaceone.inventory.model.cloud_storage.bucket.data import *
 
 """
 Bucket
@@ -83,26 +83,6 @@ bucket_permission_meta = ListDynamicLayout.set_layouts(
 )
 
 
-bucket_retention_meta = ItemDynamicLayout.set_fields(
-    "Retention",
-    fields=[
-        TextDyField.data_source("Retention Period", "data.retention_policy_display"),
-        EnumDyField.data_source(
-            "Lock Status",
-            "data.retention_policy.is_locked",
-            default_badge={"indigo.500": ["true"], "coral.600": ["false"]},
-        ),
-        DateTimeDyField.data_source(
-            "Effective Date", "data.retention_policy.effective_time"
-        ),
-        EnumDyField.data_source(
-            "Default Event-Based Hold Option",
-            "data.default_event_based_hold",
-            default_badge={"indigo.500": ["Enabled"], "coral.600": ["Disabled"]},
-        ),
-    ],
-)
-
 bucket_life_cycle_meta = TableDynamicLayout.set_fields(
     "Lifecycle",
     root_path="data.lifecycle_rule.rule",
@@ -125,7 +105,6 @@ instance_template_meta = CloudServiceMeta.set_layouts(
     [
         bucket_configuration_meta,
         bucket_permission_meta,
-        bucket_retention_meta,
         bucket_life_cycle_meta,
         bucket_labels_meta,
     ]

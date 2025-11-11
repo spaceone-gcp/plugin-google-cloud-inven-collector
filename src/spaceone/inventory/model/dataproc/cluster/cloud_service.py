@@ -14,6 +14,7 @@ from spaceone.inventory.libs.schema.metadata.dynamic_field import (
     EnumDyField,
     ListDyField,
     SizeField,
+    SizeFieldOptions,
     TextDyField,
 )
 from spaceone.inventory.libs.schema.metadata.dynamic_layout import (
@@ -97,7 +98,9 @@ cluster_master_config_meta = ItemDynamicLayout.set_fields(
             "Boot Disk Type", "data.config.master_config.disk_config.boot_disk_type"
         ),
         SizeField.data_source(
-            "Boot Disk Size", "data.config.master_config.disk_config.boot_disk_size_gb"
+            "Boot Disk Size", 
+            "data.config.master_config.disk_config.boot_disk_size_gb",
+            options=SizeFieldOptions({"source_unit": "GB", "display_unit": "GB"})
         ),
         TextDyField.data_source(
             "Min CPU Platform", "data.config.master_config.min_cpu_platform"
@@ -125,7 +128,9 @@ cluster_worker_config_meta = ItemDynamicLayout.set_fields(
             "Boot Disk Type", "data.config.worker_config.disk_config.boot_disk_type"
         ),
         SizeField.data_source(
-            "Boot Disk Size", "data.config.worker_config.disk_config.boot_disk_size_gb"
+            "Boot Disk Size", 
+            "data.config.worker_config.disk_config.boot_disk_size_gb",
+            options=SizeFieldOptions({"source_unit": "GB", "display_unit": "GB"})
         ),
         TextDyField.data_source(
             "Min CPU Platform", "data.config.worker_config.min_cpu_platform"

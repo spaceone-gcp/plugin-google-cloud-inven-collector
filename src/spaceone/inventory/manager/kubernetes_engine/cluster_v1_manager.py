@@ -481,46 +481,118 @@ class GKEClusterV1Manager(GoogleCloudManager):
 
                 # 네트워크 설정 추가
                 if "networkConfig" in cluster:
-                    network_config = cluster["networkConfig"]
-                    # 모든 필드를 항상 추가하여 UI 일관성 유지 (값이 없어도 필드는 표시)
-                    processed_network_config = {
-                        "network": str(network_config.get("network", "")),
-                        "subnetwork": str(network_config.get("subnetwork", "")),
-                        "enableIntraNodeVisibility": str(
-                            network_config.get("enableIntraNodeVisibility", "")
-                        ),
-                        "enableL4ilbSubsetting": str(
-                            network_config.get("enableL4ilbSubsetting", "")
-                        ),
-                        # 새로 추가된 필드들도 항상 포함
-                        "podRange": str(network_config.get("podRange", "")),
-                        "podIpv4CidrBlock": str(
-                            network_config.get("podIpv4CidrBlock", "")
-                        ),
-                        "enablePrivateNodes": str(
-                            network_config.get("enablePrivateNodes", "")
-                        ),
-                    }
-
-                    # networkTierConfig는 딕셔너리이므로 구조 유지
-                    network_tier_config = network_config.get("networkTierConfig", {})
-                    if network_tier_config:
-                        if isinstance(network_tier_config, dict):
-                            processed_network_config["networkTierConfig"] = (
-                                network_tier_config
+                    try:
+                        network_config = cluster["networkConfig"]
+                        if not isinstance(network_config, dict):
+                            _LOGGER.warning(
+                                f"[CLUSTER_NETWORK_CONFIG] Cluster {cluster_name}: "
+                                f"networkConfig is not a dict, type: {type(network_config)}"
                             )
-                        else:
-                            processed_network_config["networkTierConfig"] = str(
-                                network_tier_config
-                            )
+                            network_config = {}
 
-                    cluster_data.update(
-                        {
-                            "networkConfig": processed_network_config,
-                            "network": str(network_config.get("network", "")),
-                            "subnetwork": str(network_config.get("subnetwork", "")),
+                        _LOGGER.info(
+                            f"[CLUSTER_NETWORK_CONFIG] Cluster {cluster_name}: "
+                            f"Original networkConfig keys: {list(network_config.keys()) if isinstance(network_config, dict) else 'N/A'}"
+                        )
+                        _LOGGER.debug(
+                            f"[CLUSTER_NETWORK_CONFIG] Cluster {cluster_name}: "
+                            f"Original networkConfig: {network_config}"
+                        )
+
+                        # 기본 필드들은 항상 추가 (API 응답에 항상 존재)
+                        default_snat_status = network_config.get(
+                            "defaultSnatStatus", {}
+                        )
+                        dns_config = network_config.get("dnsConfig", {})
+                        service_external_ips_config = network_config.get(
+                            "serviceExternalIpsConfig", {}
+                        )
+
+                        processed_network_config = {
+                            "network": str(network_config.get("network", "") or ""),
+                            "subnetwork": str(
+                                network_config.get("subnetwork", "") or ""
+                            ),
+                            # 항상 포함되는 필드들
+                            # 딕셔너리 타입 필드들은 그대로 전달 (모델에서 DictType으로 정의됨)
+                            "defaultSnatStatus": (
+                                default_snat_status
+                                if isinstance(default_snat_status, dict)
+                                else {}
+                            ),
+                            "datapathProvider": str(
+                                network_config.get("datapathProvider", "") or ""
+                            ),
+                            "dnsConfig": (
+                                dns_config if isinstance(dns_config, dict) else {}
+                            ),
+                            "serviceExternalIpsConfig": (
+                                service_external_ips_config
+                                if isinstance(service_external_ips_config, dict)
+                                else {}
+                            ),
+                            # 불린 타입 필드들은 그대로 유지 (모델에서 BooleanType으로 정의됨)
+                            "enableFqdnNetworkPolicy": bool(
+                                network_config.get("enableFqdnNetworkPolicy", False)
+                            ),
+                            "defaultEnablePrivateNodes": bool(
+                                network_config.get("defaultEnablePrivateNodes", False)
+                            ),
+                            "disableL4LbFirewallReconciliation": bool(
+                                network_config.get(
+                                    "disableL4LbFirewallReconciliation", False
+                                )
+                            ),
                         }
-                    )
+
+                        # 레거시 필드들 (API 응답에 있을 때만 추가)
+                        # 불린 타입 필드들은 그대로 유지 (모델에서 BooleanType으로 정의됨)
+                        if "enableIntraNodeVisibility" in network_config:
+                            processed_network_config["enableIntraNodeVisibility"] = (
+                                bool(
+                                    network_config.get(
+                                        "enableIntraNodeVisibility", False
+                                    )
+                                )
+                            )
+
+                        if "enableL4ilbSubsetting" in network_config:
+                            processed_network_config["enableL4ilbSubsetting"] = bool(
+                                network_config.get("enableL4ilbSubsetting", False)
+                            )
+
+                        _LOGGER.info(
+                            f"[CLUSTER_NETWORK_CONFIG] Cluster {cluster_name}: "
+                            f"Processed networkConfig keys: {list(processed_network_config.keys())}"
+                        )
+                        _LOGGER.debug(
+                            f"[CLUSTER_NETWORK_CONFIG] Cluster {cluster_name}: "
+                            f"Processed networkConfig: {processed_network_config}"
+                        )
+
+                        cluster_data.update(
+                            {
+                                "networkConfig": processed_network_config,
+                                "network": str(network_config.get("network", "") or ""),
+                                "subnetwork": str(
+                                    network_config.get("subnetwork", "") or ""
+                                ),
+                            }
+                        )
+                    except Exception as e:
+                        _LOGGER.error(
+                            f"[CLUSTER_NETWORK_CONFIG] Cluster {cluster_name}: "
+                            f"Failed to process networkConfig: {e}",
+                            exc_info=True,
+                        )
+                        # 에러 발생 시 기본값으로 설정
+                        cluster_data.update(
+                            {
+                                "networkConfig": {},
+                                "network": str(cluster.get("network", "") or ""),
+                                "subnetwork": str(cluster.get("subnetwork", "") or ""),
+                            }
+                        )
 
                 # 클러스터 IP 설정 추가
                 if "clusterIpv4Cidr" in cluster:

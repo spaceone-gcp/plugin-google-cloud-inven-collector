@@ -105,11 +105,6 @@ network_configuration = ItemDynamicLayout.set_fields(
             "Pod IPv4 CIDR Block", "data.network_config.pod_ipv4_cidr_block"
         ),
         EnumDyField.data_source(
-            "Create Pod Range",
-            "data.network_config.create_pod_range",
-            default_badge={"indigo.500": ["true"], "coral.600": ["false"]},
-        ),
-        EnumDyField.data_source(
             "Enable Private Nodes",
             "data.network_config.enable_private_nodes",
             default_badge={"indigo.500": ["true"], "coral.600": ["false"]},

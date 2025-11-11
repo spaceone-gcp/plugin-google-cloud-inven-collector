@@ -777,6 +777,75 @@ class GKENodePoolV1Manager(GoogleCloudManager):
                             "upgrade_options": management.get("upgradeOptions", {}),
                         }
 
+                    # networkConfig 정보 추가
+                    if "networkConfig" in node_group:
+                        try:
+                            network_config = node_group["networkConfig"]
+                            if not isinstance(network_config, dict):
+                                _LOGGER.warning(
+                                    f"[NODEPOOL_NETWORK_CONFIG] NodePool {node_pool_name}: "
+                                    f"networkConfig is not a dict, type: {type(network_config)}"
+                                )
+                                network_config = {}
+
+                            _LOGGER.info(
+                                f"[NODEPOOL_NETWORK_CONFIG] NodePool {node_pool_name}: "
+                                f"Original networkConfig keys: {list(network_config.keys()) if isinstance(network_config, dict) else 'N/A'}"
+                            )
+                            _LOGGER.debug(
+                                f"[NODEPOOL_NETWORK_CONFIG] NodePool {node_pool_name}: "
+                                f"Original networkConfig: {network_config}"
+                            )
+
+                            # 모든 필드를 항상 추가하여 UI 일관성 유지 (값이 없어도 필드는 표시)
+                            # 불린 타입 필드는 그대로 유지 (모델에서 BooleanType으로 정의됨)
+                            processed_network_config = {
+                                "podRange": str(
+                                    network_config.get("podRange", "") or ""
+                                ),
+                                "podIpv4CidrBlock": str(
+                                    network_config.get("podIpv4CidrBlock", "") or ""
+                                ),
+                                # enablePrivateNodes는 BooleanType이므로 불린 값 유지
+                                "enablePrivateNodes": bool(
+                                    network_config.get("enablePrivateNodes", False)
+                                ),
+                                # subnetwork는 API 응답에 있을 수 있음
+                                "subnetwork": str(
+                                    network_config.get("subnetwork", "") or ""
+                                ),
+                                # networkTierConfig는 딕셔너리 타입
+                                "networkTierConfig": (
+                                    network_config.get("networkTierConfig", {})
+                                    if isinstance(
+                                        network_config.get("networkTierConfig"), dict
+                                    )
+                                    else {}
+                                ),
+                            }
+                            _LOGGER.info(
+                                f"[NODEPOOL_NETWORK_CONFIG] NodePool {node_pool_name}: "
+                                f"Processed networkConfig keys: {list(processed_network_config.keys())}"
+                            )
+                            _LOGGER.debug(
+                                f"[NODEPOOL_NETWORK_CONFIG] NodePool {node_pool_name}: "
+                                f"Processed networkConfig: {processed_network_config}"
+                            )
+                            node_pool_data["networkConfig"] = processed_network_config
+                        except Exception as e:
+                            _LOGGER.error(
+                                f"[NODEPOOL_NETWORK_CONFIG] NodePool {node_pool_name}: "
+                                f"Failed to process networkConfig: {e}",
+                                exc_info=True,
+                            )
+                            # 에러 발생 시 기본값으로 설정
+                            node_pool_data["networkConfig"] = {}
+                    else:
+                        _LOGGER.warning(
+                            f"[NODEPOOL_NETWORK_CONFIG] NodePool {node_pool_name}: "
+                            "networkConfig not found in node_group"
+                        )
+
                     # 메트릭 정보 추가
                     if metrics:
                         node_pool_data["metrics"] = metrics

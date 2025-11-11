@@ -8,7 +8,7 @@ _LOGGER = logging.getLogger(__name__)
 
 class MachineImageConnector(GoogleCloudConnector):
     google_client_service = "compute"
-    version = "beta"
+    version = "v1"
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

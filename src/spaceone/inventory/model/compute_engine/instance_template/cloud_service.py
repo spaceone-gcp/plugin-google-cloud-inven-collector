@@ -97,7 +97,7 @@ it_meta_network = TableDynamicLayout.set_fields(
     "Network Interface",
     root_path="data.network_interfaces",
     fields=[
-        TextDyField.data_source("Name", "idx_name"),
+        TextDyField.data_source("Name", "name"),
         TextDyField.data_source("Network", "network_display"),
         ListDyField.data_source("Access Configs", "configs"),
         ListDyField.data_source("Network Tier", "network_tier"),

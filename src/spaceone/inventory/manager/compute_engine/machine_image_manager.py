@@ -72,7 +72,7 @@ class MachineImageManager(GoogleCloudManager):
                 ##################################
                 _name = machine_image.get("name", "")
                 machine_image_id = machine_image.get("id")
-                properties = machine_image.get("instanceProperties", {})
+                properties = machine_image.get("sourceInstanceProperties", {})
                 tags = properties.get("tags", {})
                 boot_image = self.get_boot_image_data(properties)
                 disks = self.get_disks(properties, boot_image)
@@ -178,6 +178,7 @@ class MachineImageManager(GoogleCloudManager):
                 "device": disk.get("deviceName"),
                 "device_type": disk.get("type", ""),
                 "device_mode": disk.get("mode", ""),
+                "disk_type": disk.get("diskType", ""),
                 "size": float(size),
                 "tags": self.get_tags_info(disk),
             }
@@ -198,7 +199,7 @@ class MachineImageManager(GoogleCloudManager):
 
     def get_tags_info(self, disk):
         disk_size = float(disk.get("diskSizeGb", 0.0))
-        disk_type = disk.get("Type")
+        disk_type = disk.get("diskType")
         return {
             "disk_type": disk_type,
             "auto_delete": disk.get("autoDelete"),

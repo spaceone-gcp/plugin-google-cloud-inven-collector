@@ -41,9 +41,8 @@ configuration_v1_meta = CloudServiceMeta.set_layouts(
             ],
         ),
         ItemDynamicLayout.set_fields(
-            "Labels & Annotations",
+            "Annotations",
             fields=[
-                DictDyField.data_source("Labels", "data.metadata.labels"),
                 DictDyField.data_source("Annotations", "data.metadata.annotations"),
             ],
         ),

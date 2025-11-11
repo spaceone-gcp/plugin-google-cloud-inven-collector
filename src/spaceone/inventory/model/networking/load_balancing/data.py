@@ -523,12 +523,12 @@ class LoadBalancing(BaseResource):
     )
     self_link = StringType(default="")
     forwarding_rules = ListType(ModelType(ForwardingRule), serialize_when_none=False)
-    target_proxy = (ModelType(TargetProxy, serialize_when_none=False),)
+    target_proxy = ModelType(TargetProxy, serialize_when_none=False)
     urlmap = ModelType(UrlMap, serialize_when_none=False)
     certificates = ListType(ModelType(Certificates), serialize_when_none=False)
     backend_services = ListType(ModelType(BackendService), serialize_when_none=False)
     backend_buckets = ListType(ModelType(BackEndBucket), serialize_when_none=False)
-    heath_checks = ListType(ModelType(HealthCheck), serialize_when_none=False)
+    health_checks = ListType(ModelType(HealthCheck), serialize_when_none=False)
     legacy_health_checks = ListType(
         ModelType(LegacyHealthCheck), serialize_when_none=False
     )

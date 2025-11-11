@@ -262,9 +262,13 @@ class LoadBalancingManager(GoogleCloudManager):
         2. forwarding rule(target pool based)
         Extract target proxy info from self_link if not available directly
         """
-        if load_balancer.get("kind", "") == "compute#forwardingRule":
+        # LoadBalancer의 self_link가 Target Proxy를 가리키는 경우
+        self_link = load_balancer.get("self_link", "")
+        
+        if "targetHttpProxies" in self_link or "targetHttpsProxies" in self_link or "targetTcpProxies" in self_link or "targetSslProxies" in self_link or "targetGrpcProxies" in self_link:
+            target_proxy = self._extract_target_proxy_from_link(self_link)
+        elif load_balancer.get("kind", "") == "compute#forwardingRule":
             # Forwarding Rule 기반인 경우 self_link에서 Target Proxy 정보 추출
-            self_link = load_balancer.get("selfLink", "")
             target_proxy = self._extract_target_proxy_from_link(self_link)
         else:
             target_proxy = {

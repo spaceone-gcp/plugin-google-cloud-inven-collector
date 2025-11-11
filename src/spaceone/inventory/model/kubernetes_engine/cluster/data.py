@@ -356,7 +356,7 @@ class GKECluster(BaseResource):
         StringType, deserialize_from="monitoringConfig", serialize_when_none=False
     )
     addons_config = DictType(
-        UnionType([DictType(StringType), StringType]),
+        UnionType([DictType(UnionType([StringType, BooleanType])), StringType]),
         deserialize_from="addonsConfig",
         serialize_when_none=False,
     )
@@ -366,14 +366,6 @@ class GKECluster(BaseResource):
     membership_info = DictType(StringType, serialize_when_none=False)
 
     # Resource Limits
-    resource_limits = ListType(DictType(StringType), serialize_when_none=False)
-
-    def reference(self):
-        return {
-            "resource_id": self.self_link,
-            "external_link": f"https://console.cloud.google.com/kubernetes/clusters/details/{self.location}/{self.name}?project={self.project_id}",
-        }
-
     resource_limits = ListType(DictType(StringType), serialize_when_none=False)
 
     def reference(self):

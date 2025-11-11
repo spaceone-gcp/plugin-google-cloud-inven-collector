@@ -8,6 +8,10 @@ from schematics.types import (
     BooleanType,
 )
 from spaceone.inventory.libs.schema.cloud_service import BaseResource
+from spaceone.inventory.libs.schema.google_cloud_monitoring import (
+    GoogleCloudMonitoringModel,
+)
+from spaceone.inventory.libs.schema.google_cloud_logging import GoogleCloudLoggingModel
 
 
 class Labels(Model):
@@ -74,6 +78,18 @@ class LogConfigSubnet(Model):
     filter_expr = StringType(deserialize_from="filterExpr", serialize_when_none=False)
 
 
+
+
+class Subnet(Model):
+    id = StringType()
+    name = StringType()
+    region = StringType()
+    ip_cidr_range = StringType()
+    gateway_address = StringType()
+    google_access = StringType()
+    flow_log = StringType()
+    creation_timestamp = DateTimeType()
+    self_link = StringType()
 
 
 class Route(Model):
@@ -220,9 +236,14 @@ class VPCNetwork(BaseResource):
     global_dynamic_route = StringType(choices=("On", "Off"))
     dynamic_routing_mode = StringType(choices=("Regional", "Global"))
     ip_address_data = ListType(ModelType(IPAddress), default=[])
+    subnets = ListType(ModelType(Subnet), default=[])
     firewall_data = ModelType(FirewallConfig, default=[])
     route_data = ModelType(RouteConfig, default=[])
     creation_timestamp = DateTimeType(deserialize_from="creationTimestamp")
+    google_cloud_monitoring = ModelType(
+        GoogleCloudMonitoringModel, serialize_when_none=False
+    )
+    google_cloud_logging = ModelType(GoogleCloudLoggingModel, serialize_when_none=False)
 
     def reference(self):
         return {

@@ -109,3 +109,28 @@ class VPCNetworkConnector(GoogleCloudConnector):
             )
 
         return firewall_list
+
+    def list_subnetworks(self, **query):
+        subnetwork_list = []
+        query.update(
+            {"project": self.project_id, "includeAllScopes": False, "maxResults": 500}
+        )
+
+        request = self.client.subnetworks().aggregatedList(**query)
+        while request is not None:
+            response = request.execute()
+            for name, subnetworks_scoped_list in response["items"].items():
+                if "subnetworks" in subnetworks_scoped_list:
+                    subnetwork_list.extend(
+                        subnetworks_scoped_list.get("subnetworks")
+                    )
+            request = self.client.subnetworks().aggregatedList_next(
+                previous_request=request, previous_response=response
+            )
+
+        return subnetwork_list
+
+    def _log_api_response(self, api_name, response):
+        """API 응답을 로깅합니다."""
+        import json
+        _LOGGER.info(f"✅ VPCNetwork/{api_name} : {json.dumps(response, indent=2, ensure_ascii=False)}")

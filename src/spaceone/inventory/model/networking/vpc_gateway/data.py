@@ -10,6 +10,10 @@ from schematics.types import (
 from schematics.models import Model
 
 from spaceone.inventory.libs.schema.cloud_service import BaseResource
+from spaceone.inventory.libs.schema.google_cloud_monitoring import (
+    GoogleCloudMonitoringModel,
+)
+from spaceone.inventory.libs.schema.google_cloud_logging import GoogleCloudLoggingModel
 
 """
 NAT Gateway Data Model
@@ -128,6 +132,10 @@ class VPCGateway(BaseResource):
     creation_timestamp = DateTimeType(deserialize_from="creationTimestamp")
     self_link = StringType()
     type = StringType()
+    google_cloud_monitoring = ModelType(
+        GoogleCloudMonitoringModel, serialize_when_none=False
+    )
+    google_cloud_logging = ModelType(GoogleCloudLoggingModel, serialize_when_none=False)
 
     def reference(self):
         if self.gateway_type == "NAT_GATEWAY":

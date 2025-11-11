@@ -91,6 +91,16 @@ class RouteManager(GoogleCloudManager):
                 # 2. Make Base Data
                 ##################################
                 # No Labels
+                route.update({
+                    "google_cloud_monitoring": self.set_google_cloud_monitoring(
+                        project_id, "route", route.get("id", ""), [
+                            {"key": "resource.labels.route_id", "value": route.get("id", "")}
+                        ]
+                    ),
+                    "google_cloud_logging": self.set_google_cloud_logging(
+                        "Networking", "Route", project_id, route.get("id", "")
+                    ),
+                })
                 route_data = Route(route, strict=False)
                 _name = route_data.get("name", "")
                 route_id = route.get("id")
@@ -141,8 +151,18 @@ class RouteManager(GoogleCloudManager):
             for network_interface in network_interfaces:
                 if self._check_instance_is_matched(route, instance):
                     instance_name = instance.get("name")
-                    url_subnetwork = instance.get("subnetwork", "")
-                    instance = {
+                    # subnetwork은 networkInterface에서 가져옴
+                    url_subnetwork = network_interface.get("subnetwork", "")
+                    
+                    # tags 처리 개선 - tags.items 또는 직접 배열 모두 지원
+                    tags = []
+                    if "tags" in instance:
+                        if isinstance(instance["tags"], dict) and "items" in instance["tags"]:
+                            tags = instance["tags"]["items"]
+                        elif isinstance(instance["tags"], list):
+                            tags = instance["tags"]
+                    
+                    instance_data = {
                         "id": instance.get("id"),
                         "name": instance_name,
                         "zone": zone,
@@ -162,9 +182,9 @@ class RouteManager(GoogleCloudManager):
                         "labels_display": self._get_label_display(
                             instance.get("labels", {})
                         ),
-                        "tags": instance.get("tags", {}).get("items", []),
+                        "tags": tags,
                     }
-                    matched_instances.append(ComputeVM(instance, strict=False))
+                    matched_instances.append(ComputeVM(instance_data, strict=False))
         return matched_instances
 
     def _get_next_hop(self, route):

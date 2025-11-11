@@ -8,6 +8,10 @@ from schematics.types import (
     BooleanType,
 )
 from spaceone.inventory.libs.schema.cloud_service import BaseResource
+from spaceone.inventory.libs.schema.google_cloud_monitoring import (
+    GoogleCloudMonitoringModel,
+)
+from spaceone.inventory.libs.schema.google_cloud_logging import GoogleCloudLoggingModel
 
 
 class Labels(Model):
@@ -88,6 +92,10 @@ class Firewall(BaseResource):
     )
     creation_timestamp = DateTimeType(deserialize_from="creationTimestamp")
     display = ModelType(FirewallDisplay, serialize_when_none=False)
+    google_cloud_monitoring = ModelType(
+        GoogleCloudMonitoringModel, serialize_when_none=False
+    )
+    google_cloud_logging = ModelType(GoogleCloudLoggingModel, serialize_when_none=False)
 
     def reference(self):
         return {

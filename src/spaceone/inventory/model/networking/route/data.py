@@ -1,6 +1,10 @@
 from schematics import Model
 from schematics.types import ModelType, ListType, StringType, IntType, DateTimeType
 from spaceone.inventory.libs.schema.cloud_service import BaseResource
+from spaceone.inventory.libs.schema.google_cloud_monitoring import (
+    GoogleCloudMonitoringModel,
+)
+from spaceone.inventory.libs.schema.google_cloud_logging import GoogleCloudLoggingModel
 
 
 class Labels(Model):
@@ -53,6 +57,10 @@ class Route(BaseResource):
     nextHopIlb = StringType(deserialize_from="nextHopIlb", serialize_when_none=False)
     display = ModelType(RouteDisplay)
     creation_timestamp = DateTimeType(deserialize_from="creationTimestamp")
+    google_cloud_monitoring = ModelType(
+        GoogleCloudMonitoringModel, serialize_when_none=False
+    )
+    google_cloud_logging = ModelType(GoogleCloudLoggingModel, serialize_when_none=False)
 
     def reference(self):
         return {

@@ -95,6 +95,16 @@ class VPCSubnetManager(GoogleCloudManager):
                 ##################################
                 # 2. Make Base Data
                 ##################################
+                subnet.update({
+                    "google_cloud_monitoring": self.set_google_cloud_monitoring(
+                        project_id, "vpc_subnet", subnet_id, [
+                            {"key": "resource.labels.subnetwork_id", "value": subnet_id}
+                        ]
+                    ),
+                    "google_cloud_logging": self.set_google_cloud_logging(
+                        "Networking", "VPCSubnet", project_id, subnet_id
+                    ),
+                })
                 subnet_data = VPCSubnet(subnet, strict=False)
 
                 ##################################

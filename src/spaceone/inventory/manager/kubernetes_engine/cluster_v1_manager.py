@@ -1,4 +1,5 @@
 import logging
+import re
 from typing import Any, Dict, List, Tuple
 
 from spaceone.inventory.connector.kubernetes_engine.cluster_v1 import (
@@ -646,23 +647,32 @@ class GKEClusterV1Manager(GoogleCloudManager):
                         ),
                     }
 
-                # 애드온 추가
+                # 애드온 추가 - 모든 애드온을 구조 그대로 유지
                 if "addonsConfig" in cluster:
                     addons_config = cluster["addonsConfig"]
-                    cluster_data["addonsConfig"] = {
-                        "httpLoadBalancing": str(
-                            addons_config.get("httpLoadBalancing", {})
-                        ),
-                        "horizontalPodAutoscaling": str(
-                            addons_config.get("horizontalPodAutoscaling", {})
-                        ),
-                        "kubernetesDashboard": str(
-                            addons_config.get("kubernetesDashboard", {})
-                        ),
-                        "networkPolicyConfig": str(
-                            addons_config.get("networkPolicyConfig", {})
-                        ),
-                    }
+
+                    # camelCase를 snake_case로 변환하는 헬퍼 함수
+                    def camel_to_snake(name):
+                        """Convert camelCase to snake_case"""
+                        s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
+                        return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
+
+                    # 모든 애드온을 동적으로 처리하여 구조 보존
+                    processed_addons = {}
+                    for addon_key, addon_value in addons_config.items():
+                        # addon 키를 snake_case로 변환
+                        snake_key = camel_to_snake(addon_key)
+                        # 딕셔너리는 구조 그대로 유지 (Boolean 값 포함)
+                        if isinstance(addon_value, dict):
+                            processed_addons[snake_key] = addon_value
+                        else:
+                            processed_addons[snake_key] = str(addon_value)
+
+                    cluster_data["addonsConfig"] = processed_addons
+
+                    _LOGGER.info(
+                        f"Processed {len(processed_addons)} addons for cluster {cluster_data.get('name')}: {list(processed_addons.keys())}"
+                    )
 
                 # NodePool 정보는 별도의 NodePoolManager에서 처리
 

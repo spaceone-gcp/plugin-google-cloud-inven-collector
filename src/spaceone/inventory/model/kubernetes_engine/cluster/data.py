@@ -54,10 +54,10 @@ def parse_cluster_data(
         },
     }
 
-    # 네트워크 설정 - 기본 정보만 추출
+    # 네트워크 설정 - 모든 필드를 항상 추가하여 UI 일관성 유지
     if "networkConfig" in cluster_data:
         network_config = cluster_data["networkConfig"]
-        parsed_data["networkConfig"] = {
+        processed_network_config = {
             "network": str(network_config.get("network", "")),
             "subnetwork": str(network_config.get("subnetwork", "")),
             "enableIntraNodeVisibility": str(
@@ -66,7 +66,21 @@ def parse_cluster_data(
             "enableL4ilbSubsetting": str(
                 network_config.get("enableL4ilbSubsetting", "")
             ),
+            # 새로 추가된 필드들도 항상 포함
+            "podRange": str(network_config.get("podRange", "")),
+            "podIpv4CidrBlock": str(network_config.get("podIpv4CidrBlock", "")),
+            "enablePrivateNodes": str(network_config.get("enablePrivateNodes", "")),
         }
+
+        # networkTierConfig는 딕셔너리이므로 구조 유지
+        network_tier_config = network_config.get("networkTierConfig", {})
+        if network_tier_config:
+            if isinstance(network_tier_config, dict):
+                processed_network_config["networkTierConfig"] = network_tier_config
+            else:
+                processed_network_config["networkTierConfig"] = str(network_tier_config)
+
+        parsed_data["networkConfig"] = processed_network_config
         parsed_data["network"] = str(network_config.get("network", ""))
         parsed_data["subnetwork"] = str(network_config.get("subnetwork", ""))
 
@@ -167,6 +181,16 @@ class NetworkConfig(Model):
     )
     enable_l4ilb_subsetting = BooleanType(
         deserialize_from="enableL4ilbSubsetting", serialize_when_none=False
+    )
+    pod_range = StringType(deserialize_from="podRange", serialize_when_none=False)
+    pod_ipv4_cidr_block = StringType(
+        deserialize_from="podIpv4CidrBlock", serialize_when_none=False
+    )
+    enable_private_nodes = BooleanType(
+        deserialize_from="enablePrivateNodes", serialize_when_none=False
+    )
+    network_tier_config = DictType(
+        StringType, deserialize_from="networkTierConfig", serialize_when_none=False
     )
     default_snat_status = DictType(
         StringType, deserialize_from="defaultSnatStatus", serialize_when_none=False

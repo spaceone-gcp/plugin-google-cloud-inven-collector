@@ -482,18 +482,41 @@ class GKEClusterV1Manager(GoogleCloudManager):
                 # 네트워크 설정 추가
                 if "networkConfig" in cluster:
                     network_config = cluster["networkConfig"]
+                    # 모든 필드를 항상 추가하여 UI 일관성 유지 (값이 없어도 필드는 표시)
+                    processed_network_config = {
+                        "network": str(network_config.get("network", "")),
+                        "subnetwork": str(network_config.get("subnetwork", "")),
+                        "enableIntraNodeVisibility": str(
+                            network_config.get("enableIntraNodeVisibility", "")
+                        ),
+                        "enableL4ilbSubsetting": str(
+                            network_config.get("enableL4ilbSubsetting", "")
+                        ),
+                        # 새로 추가된 필드들도 항상 포함
+                        "podRange": str(network_config.get("podRange", "")),
+                        "podIpv4CidrBlock": str(
+                            network_config.get("podIpv4CidrBlock", "")
+                        ),
+                        "enablePrivateNodes": str(
+                            network_config.get("enablePrivateNodes", "")
+                        ),
+                    }
+
+                    # networkTierConfig는 딕셔너리이므로 구조 유지
+                    network_tier_config = network_config.get("networkTierConfig", {})
+                    if network_tier_config:
+                        if isinstance(network_tier_config, dict):
+                            processed_network_config["networkTierConfig"] = (
+                                network_tier_config
+                            )
+                        else:
+                            processed_network_config["networkTierConfig"] = str(
+                                network_tier_config
+                            )
+
                     cluster_data.update(
                         {
-                            "networkConfig": {
-                                "network": str(network_config.get("network", "")),
-                                "subnetwork": str(network_config.get("subnetwork", "")),
-                                "enableIntraNodeVisibility": str(
-                                    network_config.get("enableIntraNodeVisibility", "")
-                                ),
-                                "enableL4ilbSubsetting": str(
-                                    network_config.get("enableL4ilbSubsetting", "")
-                                ),
-                            },
+                            "networkConfig": processed_network_config,
                             "network": str(network_config.get("network", "")),
                             "subnetwork": str(network_config.get("subnetwork", "")),
                         }

@@ -66,11 +66,11 @@ service_config = ItemDynamicLayout.set_fields(
         TextDyField.data_source("Ingress", "data.ingress"),
         TextDyField.data_source("Launch Stage", "data.launch_stage"),
         ListDyField.data_source(
-            "Traffic",
+            "Traffic Type",
             "data.traffic",
             default_badge={
                 "type": "outline",
-                "sub_key": "revision",
+                "sub_key": "type",
                 "delimiter": "<br>",
             },
         ),

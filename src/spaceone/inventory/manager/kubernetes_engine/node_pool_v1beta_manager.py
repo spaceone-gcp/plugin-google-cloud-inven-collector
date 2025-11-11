@@ -1036,9 +1036,20 @@ class GKENodePoolV1BetaManager(GoogleCloudManager):
                     # NodePool 모델 생성
                     node_pool_data_model = NodePool(node_pool_data, strict=False)
 
-                    # NodePool config의 labels를 tags 형식으로 변환
+                    # NodePool labels를 tags 형식으로 변환
+                    # node_group의 직접 labels와 config.labels를 모두 확인
+                    all_labels = {}
+
+                    # node_group에 직접 labels가 있는 경우
+                    if "labels" in node_group:
+                        all_labels.update(node_group.get("labels", {}))
+
+                    # config.labels가 있는 경우 병합
                     config_labels = node_group.get("config", {}).get("labels", {})
-                    tags = self.convert_labels_format(config_labels)
+                    if config_labels:
+                        all_labels.update(config_labels)
+
+                    tags = self.convert_labels_format(all_labels)
 
                     # NodePoolResource 생성
                     node_pool_resource = NodePoolResource(

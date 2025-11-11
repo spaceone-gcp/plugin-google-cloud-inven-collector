@@ -74,8 +74,8 @@ cluster_network_config_meta = ItemDynamicLayout.set_fields(
         TextDyField.data_source(
             "Internal IP Only", "data.config.gce_cluster_config.internal_ip_only"
         ),
-        TextDyField.data_source(
-            "Service Account", "data.config.gce_cluster_config.service_account"
+        ListDyField.data_source(
+            "Service Account Scopes", "data.config.gce_cluster_config.service_account_scopes"
         ),
     ],
 )

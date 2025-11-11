@@ -161,6 +161,10 @@ CLOUD_LOGGING_RESOURCE_TYPE_MAP = {
             "resource_type": "pubsub_snapshot",
             "labels_key": "resource.labels.snapshot_id",
         },
+        "Schema": {
+            "resource_type": "pubsub_schema",
+            "labels_key": "resource.labels.schema_id",
+        },
     },
     "CloudFunctions": {
         "Function": {

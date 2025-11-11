@@ -32,7 +32,7 @@ class SchemaManager(GoogleCloudManager):
         Response:
             CloudServiceResponse/ErrorResourceResponse
         """
-        _LOGGER.debug(f"** PubSub Schema START **")
+        _LOGGER.debug("** PubSub Schema START **")
 
         start_time = time.time()
         collected_cloud_services = []
@@ -75,6 +75,10 @@ class SchemaManager(GoogleCloudManager):
                         "project": project_id,
                         "schema_type": schema.get("type"),
                         "display": display,
+                        # Logging data
+                        "google_cloud_logging": self.set_google_cloud_logging(
+                            "PubSub", "Schema", project_id, schema_id
+                        ),
                     }
                 )
                 schema_data = Schema(schema, strict=False)

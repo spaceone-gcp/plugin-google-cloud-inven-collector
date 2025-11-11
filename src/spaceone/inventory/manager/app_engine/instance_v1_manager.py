@@ -653,10 +653,10 @@ class AppEngineInstanceV1Manager(GoogleCloudManager):
                                     # Google Cloud Monitoring 설정
                                     instance_data["google_cloud_monitoring"] = {
                                         "name": f"projects/{project_id}",
-                                        "resource_id": instance_id,
+                                        "resource_id": project_id,
                                         "filters": [
                                             {
-                                                "metric_type": "appengine.googleapis.com/http/server/response_count",
+                                                "metric_type": "appengine.googleapis.com/http",
                                                 "labels": [
                                                     {
                                                         "key": "resource.labels.project_id",

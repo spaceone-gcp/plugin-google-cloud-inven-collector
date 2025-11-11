@@ -814,15 +814,20 @@ class GKENodePoolV1Manager(GoogleCloudManager):
                                 "subnetwork": str(
                                     network_config.get("subnetwork", "") or ""
                                 ),
-                                # networkTierConfig는 딕셔너리 타입
-                                "networkTierConfig": (
-                                    network_config.get("networkTierConfig", {})
-                                    if isinstance(
-                                        network_config.get("networkTierConfig"), dict
-                                    )
-                                    else {}
-                                ),
                             }
+                            # networkTierConfig는 딕셔너리 타입
+                            # 값이 있을 때만 포함 (빈 딕셔너리는 제외)
+                            network_tier_config = network_config.get(
+                                "networkTierConfig"
+                            )
+                            if (
+                                network_tier_config
+                                and isinstance(network_tier_config, dict)
+                                and len(network_tier_config) > 0
+                            ):
+                                processed_network_config["networkTierConfig"] = (
+                                    network_tier_config
+                                )
                             _LOGGER.info(
                                 f"[NODEPOOL_NETWORK_CONFIG] NodePool {node_pool_name}: "
                                 f"Processed networkConfig keys: {list(processed_network_config.keys())}"
@@ -896,9 +901,27 @@ class GKENodePoolV1Manager(GoogleCloudManager):
                     )
                     node_pool_data_model = NodePool(node_pool_data, strict=False)
                     # _LOGGER.debug(f"NodePool model created - name attribute: '{node_pool_data_model.name}'")
-                    # NodePool config의 labels를 tags 형식으로 변환
+                    # NodePool labels를 tags 형식으로 변환
+                    # node_group의 직접 labels, config.labels, config.resourceLabels를 모두 확인
+                    all_labels = {}
+
+                    # node_group에 직접 labels가 있는 경우
+                    if "labels" in node_group:
+                        all_labels.update(node_group.get("labels", {}))
+
+                    # config.labels가 있는 경우 병합
                     config_labels = node_group.get("config", {}).get("labels", {})
-                    tags = self.convert_labels_format(config_labels)
+                    if config_labels:
+                        all_labels.update(config_labels)
+
+                    # config.resourceLabels가 있는 경우 병합 (GKE NodePool에서 주로 사용)
+                    config_resource_labels = node_group.get("config", {}).get(
+                        "resourceLabels", {}
+                    )
+                    if config_resource_labels:
+                        all_labels.update(config_resource_labels)
+
+                    tags = self.convert_labels_format(all_labels)
 
                     # NodePoolResource 생성
                     node_pool_resource = NodePoolResource(

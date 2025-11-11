@@ -56,7 +56,7 @@ class NetworkConfig(Model):
     )
     subnetwork = StringType(serialize_when_none=False)
     network_tier_config = DictType(
-        StringType, deserialize_from="networkTierConfig", serialize_when_none=False
+        StringType, deserialize_from="networkTierConfig", serialize_when_none=True
     )
 
 

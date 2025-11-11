@@ -906,15 +906,18 @@ class GKENodePoolV1BetaManager(GoogleCloudManager):
                                 "subnetwork": str(
                                     network_config.get("subnetwork", "") or ""
                                 ),
-                                # networkTierConfig는 딕셔너리 타입
-                                "networkTierConfig": (
-                                    network_config.get("networkTierConfig", {})
-                                    if isinstance(
-                                        network_config.get("networkTierConfig"), dict
-                                    )
-                                    else {}
-                                ),
                             }
+                            # networkTierConfig는 딕셔너리 타입
+                            # 값이 있을 때만 포함 (빈 딕셔너리는 제외)
+                            network_tier_config = network_config.get("networkTierConfig")
+                            if (
+                                network_tier_config
+                                and isinstance(network_tier_config, dict)
+                                and len(network_tier_config) > 0
+                            ):
+                                processed_network_config["networkTierConfig"] = (
+                                    network_tier_config
+                                )
                             _LOGGER.info(
                                 f"[NODEPOOL_NETWORK_CONFIG] NodePool {node_pool_name}: "
                                 f"Processed networkConfig keys: {list(processed_network_config.keys())}"

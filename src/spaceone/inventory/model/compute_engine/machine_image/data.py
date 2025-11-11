@@ -32,9 +32,9 @@ class AccessConfig(Model):
     kind = StringType()
 
 
-class AliasIPRanges(Model):
-    ip_cidr_range = StringType()
-    subnetwork_range_name = StringType()
+class AliasIpRanges(Model):
+    ip_cidr_range = StringType(deserialize_from="ipCidrRange")
+    subnetwork_range_name = StringType(deserialize_from="subnetworkRangeName")
 
 
 class NetworkInterface(Model):
@@ -48,7 +48,7 @@ class NetworkInterface(Model):
     subnetwork = StringType()
     primary_ip_address = StringType()
     public_ip_address = StringType()
-    alias_ip_ranges = ListType(ModelType(AliasIPRanges), default=[])
+    alias_ip_ranges = ListType(ModelType(AliasIpRanges), default=[])
     access_configs = ListType(ModelType(AccessConfig), default=[])
     kind = StringType()
 

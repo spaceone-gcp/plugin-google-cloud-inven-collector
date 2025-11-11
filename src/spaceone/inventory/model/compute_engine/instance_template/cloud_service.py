@@ -68,7 +68,7 @@ meta_available_policy = ItemDynamicLayout.set_fields(
         ),
         EnumDyField.data_source(
             "Host Maintenance",
-            "data.on_host_maintenance",
+            "data.scheduling.on_host_maintenance",
             default_badge={"primary": ["MIGRATE"], "coral.600": ["TERMINATE"]},
         ),
     ],
@@ -97,11 +97,11 @@ it_meta_network = TableDynamicLayout.set_fields(
     "Network Interface",
     root_path="data.network_interfaces",
     fields=[
-        TextDyField.data_source("Name", "name"),
+        TextDyField.data_source("Name", "idx_name"),
         TextDyField.data_source("Network", "network_display"),
         ListDyField.data_source("Access Configs", "configs"),
         ListDyField.data_source("Network Tier", "network_tier"),
-        TextDyField.data_source("Kind", "network"),
+        TextDyField.data_source("Kind", "kind"),
     ],
 )
 

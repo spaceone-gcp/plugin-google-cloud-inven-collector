@@ -198,7 +198,7 @@ class MachineImageManager(GoogleCloudManager):
 
     def get_tags_info(self, disk):
         disk_size = float(disk.get("diskSizeGb", 0.0))
-        disk_type = disk.get("diskType")
+        disk_type = disk.get("Type")
         return {
             "disk_type": disk_type,
             "auto_delete": disk.get("autoDelete"),
@@ -212,7 +212,7 @@ class MachineImageManager(GoogleCloudManager):
         network_interface_info = []
         for idx, network_interface in enumerate(instance.get("networkInterfaces", [])):
             access_configs = network_interface.get("accessConfigs", [])
-            alias_ip_ranges = network_interface.get("AliasIPRanges", [])
+            alias_ip_ranges = network_interface.get("aliasIpRanges", [])
             network_interface_vo = {
                 "name": network_interface.get("name", ""),
                 "network": network_interface.get("network", ""),

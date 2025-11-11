@@ -194,7 +194,7 @@ class StorageTransferOperationManager(GoogleCloudManager):
                 minutes, seconds = divmod(remainder, 60)
 
                 if days > 0:
-                    return f"{days}일 {hours}시간"
+                    return f"{days}d {hours}h"
                 elif hours > 0:
                     return f"{hours}h {minutes}m {seconds}s"
                 elif minutes > 0:
@@ -211,7 +211,7 @@ class StorageTransferOperationManager(GoogleCloudManager):
                 minutes, seconds = divmod(remainder, 60)
 
                 if days > 0:
-                    return f"{days}일 {hours}시간"
+                    return f"{days}d {hours}h"
                 elif hours > 0:
                     return f"{hours}h {minutes}m"
                 elif minutes > 0:

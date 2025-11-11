@@ -14,12 +14,12 @@ from spaceone.inventory.libs.schema.metadata.dynamic_field import (
     EnumDyField,
     ListDyField,
     SizeField,
+    SizeFieldOptions,
     TextDyField,
 )
 from spaceone.inventory.libs.schema.metadata.dynamic_layout import (
     ItemDynamicLayout,
     ListDynamicLayout,
-    TableDynamicLayout,
 )
 from spaceone.inventory.model.dataproc.cluster.data import DataprocCluster
 
@@ -74,8 +74,8 @@ cluster_network_config_meta = ItemDynamicLayout.set_fields(
         TextDyField.data_source(
             "Internal IP Only", "data.config.gce_cluster_config.internal_ip_only"
         ),
-        TextDyField.data_source(
-            "Service Account", "data.config.gce_cluster_config.service_account"
+        ListDyField.data_source(
+            "Service Account Scopes", "data.config.gce_cluster_config.service_account_scopes"
         ),
     ],
 )
@@ -97,7 +97,9 @@ cluster_master_config_meta = ItemDynamicLayout.set_fields(
             "Boot Disk Type", "data.config.master_config.disk_config.boot_disk_type"
         ),
         SizeField.data_source(
-            "Boot Disk Size", "data.config.master_config.disk_config.boot_disk_size_gb"
+            "Boot Disk Size", 
+            "data.config.master_config.disk_config.boot_disk_size_gb",
+            options=SizeFieldOptions({"source_unit": "GB", "display_unit": "GB"})
         ),
         TextDyField.data_source(
             "Min CPU Platform", "data.config.master_config.min_cpu_platform"
@@ -125,7 +127,9 @@ cluster_worker_config_meta = ItemDynamicLayout.set_fields(
             "Boot Disk Type", "data.config.worker_config.disk_config.boot_disk_type"
         ),
         SizeField.data_source(
-            "Boot Disk Size", "data.config.worker_config.disk_config.boot_disk_size_gb"
+            "Boot Disk Size", 
+            "data.config.worker_config.disk_config.boot_disk_size_gb",
+            options=SizeFieldOptions({"source_unit": "GB", "display_unit": "GB"})
         ),
         TextDyField.data_source(
             "Min CPU Platform", "data.config.worker_config.min_cpu_platform"
@@ -141,14 +145,6 @@ cluster_worker_config_meta = ItemDynamicLayout.set_fields(
     ],
 )
 
-cluster_labels_meta = TableDynamicLayout.set_fields(
-    "Labels",
-    root_path="data.labels",
-    fields=[
-        TextDyField.data_source("Key", "key"),
-        TextDyField.data_source("Value", "value"),
-    ],
-)
 
 cluster_meta = CloudServiceMeta.set_layouts(
     [
@@ -156,7 +152,6 @@ cluster_meta = CloudServiceMeta.set_layouts(
         cluster_config_meta,
         cluster_master_config_meta,
         cluster_worker_config_meta,
-        cluster_labels_meta,
     ]
 )
 

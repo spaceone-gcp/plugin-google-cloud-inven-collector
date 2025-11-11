@@ -156,12 +156,20 @@ class LoadBalancingManager(GoogleCloudManager):
                         "certificates": lb_certificates,
                         "backend_services": lb_backend_services,
                         "backend_buckets": lb_bucket_services,
-                        "heath_checks": lb_health_checks,
+                        "health_checks": lb_health_checks,
                         "legacy_health_checks": lb_legacy_health_checks,
                         "target_pools": lb_target_pools,
                         "tags": [],
-                        "creation_timestamp": self._get_creation_timestamp(
-                            load_balancer, lb_forwarding_rules, lb_backend_services, lb_urlmap
+                        "creation_timestamp": self._get_forwarding_rule_creation_timestamp(
+                            lb_forwarding_rules
+                        ),
+                        "google_cloud_monitoring": self.set_google_cloud_monitoring(
+                            project_id, "loadbalancer", load_balancer.get("id", ""), [
+                                {"key": "resource.labels.load_balancer_id", "value": load_balancer.get("id", "")}
+                            ]
+                        ),
+                        "google_cloud_logging": self.set_google_cloud_logging(
+                            "Networking", "LoadBalancing", project_id, load_balancer.get("id", "")
                         ),
                     },
                     strict=False,
@@ -252,10 +260,12 @@ class LoadBalancingManager(GoogleCloudManager):
         Loadbalancer type is two case
         1. proxy type(grpc, http, https, tcp, udp)
         2. forwarding rule(target pool based)
-        Remove forwarding rule case
+        Extract target proxy info from self_link if not available directly
         """
         if load_balancer.get("kind", "") == "compute#forwardingRule":
-            target_proxy = {}
+            # Forwarding Rule 기반인 경우 self_link에서 Target Proxy 정보 추출
+            self_link = load_balancer.get("selfLink", "")
+            target_proxy = self._extract_target_proxy_from_link(self_link)
         else:
             target_proxy = {
                 "name": load_balancer.get("name", ""),
@@ -268,6 +278,41 @@ class LoadBalancingManager(GoogleCloudManager):
             )
 
         return target_proxy
+
+    def _extract_target_proxy_from_link(self, self_link: str) -> dict:
+        """
+        self_link에서 Target Proxy 정보를 추출합니다.
+        예: https://www.googleapis.com/compute/v1/projects/mkkang-project/regions/us-central1/targetHttpProxies/test-load-balancer-target-proxy
+        """
+        if not self_link:
+            return {}
+        
+        try:
+            # URL에서 proxy 타입과 이름 추출
+            if "targetHttpProxies" in self_link:
+                proxy_type = "HTTP"
+            elif "targetHttpsProxies" in self_link:
+                proxy_type = "HTTPS"
+            elif "targetTcpProxies" in self_link:
+                proxy_type = "TCP"
+            elif "targetSslProxies" in self_link:
+                proxy_type = "SSL"
+            elif "targetGrpcProxies" in self_link:
+                proxy_type = "GRPC"
+            else:
+                proxy_type = "UNKNOWN"
+            
+            # URL에서 proxy 이름 추출 (마지막 부분)
+            proxy_name = self_link.split("/")[-1] if "/" in self_link else ""
+            
+            return {
+                "name": proxy_name,
+                "type": proxy_type,
+                "description": f"{proxy_type} Target Proxy for Load Balancer",
+            }
+        except Exception as e:
+            _LOGGER.warning(f"Failed to extract target proxy info from {self_link}: {e}")
+            return {}
 
     @staticmethod
     def _get_target_proxy_type(kind, target_proxy) -> dict:
@@ -445,39 +490,19 @@ class LoadBalancingManager(GoogleCloudManager):
         return lb_protocol
 
     @staticmethod
-    def _get_creation_timestamp(load_balancer, forwarding_rules, backend_services, urlmap):
+    def _get_forwarding_rule_creation_timestamp(forwarding_rules):
         """
-        LoadBalancer의 creation_timestamp를 결정합니다.
-        우선순위: 1) load_balancer 자체 2) urlmap 3) forwarding_rules 4) backend_services
+        Forwarding Rules에서 creation_timestamp를 가져옵니다.
+        여러 개가 있으면 가장 이른 시간을 반환합니다.
         """
-        # 1. Load Balancer 자체에 creation_timestamp가 있으면 사용
-        lb_timestamp = load_balancer.get("creationTimestamp") or load_balancer.get("creation_timestamp")
-        if lb_timestamp:
-            return lb_timestamp
+        if not forwarding_rules:
+            return None
         
-        # 2. UrlMap의 creation_timestamp 사용
-        if urlmap and urlmap.get("creation_timestamp"):
-            return urlmap.get("creation_timestamp")
+        timestamps = []
+        for rule in forwarding_rules:
+            timestamp = rule.get("creation_timestamp")
+            if timestamp:
+                timestamps.append(timestamp)
         
-        # 3. Forwarding Rules 중 가장 이른 timestamp 사용
-        if forwarding_rules:
-            timestamps = []
-            for rule in forwarding_rules:
-                timestamp = rule.get("creation_timestamp")
-                if timestamp:
-                    timestamps.append(timestamp)
-            if timestamps:
-                return min(timestamps)  # 가장 이른 시간 반환
-        
-        # 4. Backend Services 중 가장 이른 timestamp 사용
-        if backend_services:
-            timestamps = []
-            for service in backend_services:
-                timestamp = service.get("creation_timestamp")
-                if timestamp:
-                    timestamps.append(timestamp)
-            if timestamps:
-                return min(timestamps)  # 가장 이른 시간 반환
-        
-        # 모든 구성 요소에 timestamp가 없으면 None 반환
-        return None
+        # 가장 이른 시간 반환, 없으면 None
+        return min(timestamps) if timestamps else None

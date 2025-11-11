@@ -91,6 +91,16 @@ class RouteManager(GoogleCloudManager):
                 # 2. Make Base Data
                 ##################################
                 # No Labels
+                route.update({
+                    "google_cloud_monitoring": self.set_google_cloud_monitoring(
+                        project_id, "route", route.get("id", ""), [
+                            {"key": "resource.labels.route_id", "value": route.get("id", "")}
+                        ]
+                    ),
+                    "google_cloud_logging": self.set_google_cloud_logging(
+                        "Networking", "Route", project_id, route.get("id", "")
+                    ),
+                })
                 route_data = Route(route, strict=False)
                 _name = route_data.get("name", "")
                 route_id = route.get("id")

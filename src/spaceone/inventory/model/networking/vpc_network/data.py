@@ -80,6 +80,18 @@ class LogConfigSubnet(Model):
 
 
 
+class Subnet(Model):
+    id = StringType()
+    name = StringType()
+    region = StringType()
+    ip_cidr_range = StringType()
+    gateway_address = StringType()
+    google_access = StringType()
+    flow_log = StringType()
+    creation_timestamp = DateTimeType()
+    self_link = StringType()
+
+
 class Route(Model):
     id = StringType()
     name = StringType()
@@ -224,6 +236,7 @@ class VPCNetwork(BaseResource):
     global_dynamic_route = StringType(choices=("On", "Off"))
     dynamic_routing_mode = StringType(choices=("Regional", "Global"))
     ip_address_data = ListType(ModelType(IPAddress), default=[])
+    subnets = ListType(ModelType(Subnet), default=[])
     firewall_data = ModelType(FirewallConfig, default=[])
     route_data = ModelType(RouteConfig, default=[])
     creation_timestamp = DateTimeType(deserialize_from="creationTimestamp")

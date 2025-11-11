@@ -24,7 +24,7 @@ Route
 route_detail_meta = ItemDynamicLayout.set_fields(
     "Route Details",
     fields=[
-        TextDyField.data_source("Name", "data.id"),
+        # TextDyField.data_source("ID", "data.id"),
         TextDyField.data_source("Name", "data.name"),
         TextDyField.data_source("Description", "data.description"),
         TextDyField.data_source("Network", "data.display.network_display"),

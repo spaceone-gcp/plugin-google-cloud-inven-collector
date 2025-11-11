@@ -24,7 +24,8 @@ worker_pool_meta = ItemDynamicLayout.set_fields(
     "Worker Pool Overview",
     fields=[
         TextDyField.data_source("ID", "data.uid"),
-        TextDyField.data_source("Name", "data.full_name"),
+        TextDyField.data_source("Name", "data.name"),
+        TextDyField.data_source("Full Name", "data.full_name"),
         TextDyField.data_source("Generation", "data.generation"),
         DateTimeDyField.data_source("Create Time", "data.create_time"),
         DateTimeDyField.data_source("Update Time", "data.update_time"),

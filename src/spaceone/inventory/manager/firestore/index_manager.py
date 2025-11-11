@@ -126,12 +126,9 @@ class FirestoreIndexManager(GoogleCloudManager):
 
                     # Exclude fields that start with __
                     original_fields = index.get("fields", [])
-                    filtered_fields = FirestoreIndex.filter_internal_fields(
-                        original_fields
-                    )
 
                     # If no fields after filtering, exclude the index
-                    if not filtered_fields:
+                    if not original_fields:
                         continue
 
                     # Extract collection group
@@ -143,7 +140,7 @@ class FirestoreIndexManager(GoogleCloudManager):
 
                     # Convert fields to string summary
                     field_strings = []
-                    for field in filtered_fields:
+                    for field in original_fields:
                         field_path = field.get("fieldPath", "")
                         order = field.get("order", "")
                         if field_path:

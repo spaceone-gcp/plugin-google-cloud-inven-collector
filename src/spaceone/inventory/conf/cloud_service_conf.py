@@ -286,7 +286,15 @@ CLOUD_LOGGING_RESOURCE_TYPE_MAP = {
         "Database": {
             "resource_type": "firestore_database",
             "labels_key": "resource.labels.database_id",
-        }
+        },
+        "BackupSchedule": {
+            "resource_type": "firestore_backup_schedule",
+            "labels_key": "resource.labels.backup_schedule_id",
+        },
+        "Backup": {
+            "resource_type": "firestore_backup",
+            "labels_key": "resource.labels.backup_id",
+        },
     },
     "KMS": {
         "KeyRing": {

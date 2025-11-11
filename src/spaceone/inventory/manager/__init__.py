@@ -27,7 +27,9 @@ from .compute_engine.disk_manager import DiskManager
 from .compute_engine.instance_group_manager import InstanceGroupManager
 from .compute_engine.instance_template_manager import InstanceTemplateManager
 from .compute_engine.machine_image_manager import MachineImageManager
-from .compute_engine.snapshot_manager import SnapshotManager
+from .compute_engine.snapshot_manager import (
+    SnapshotManager as ComputeEngineSnapshotManager,
+)
 from .compute_engine.vm_instance_manager import VMInstanceManager
 from .dataproc.cluster_manager import DataprocClusterManager
 from .datastore.database_manager import DatastoreDatabaseManager
@@ -52,9 +54,9 @@ from .networking.external_ip_address_manager import ExternalIPAddressManager
 from .networking.firewall_manager import FirewallManager
 from .networking.load_balancing_manager import LoadBalancingManager
 from .networking.route_manager import RouteManager
+from .networking.vpc_gateway_manager import VPCGatewayManager
 from .networking.vpc_network_manager import VPCNetworkManager
 from .networking.vpc_subnet_manager import VPCSubnetManager
-from .networking.vpc_gateway_manager import VPCGatewayManager
 from .pub_sub.schema_manager import SchemaManager
 from .pub_sub.snapshot_manager import SnapshotManager
 from .pub_sub.subscription_manager import SubscriptionManager

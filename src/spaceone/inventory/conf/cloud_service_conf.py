@@ -10,7 +10,7 @@ FILTER_FORMAT = []
 CLOUD_SERVICE_GROUP_MAP = {
     "ComputeEngine": [
         "VMInstanceManager",
-        "SnapshotManager",
+        "ComputeEngineSnapshotManager",
         "MachineImageManager",
         "InstanceTemplateManager",
         "InstanceGroupManager",

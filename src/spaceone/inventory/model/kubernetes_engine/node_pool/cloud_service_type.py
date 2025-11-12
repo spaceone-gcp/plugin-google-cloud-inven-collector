@@ -46,7 +46,6 @@ cst_gke_node_pool._metadata = CloudServiceTypeMeta.set_meta(
     fields=[
         TextDyField.data_source("Cluster Name", "data.cluster_name"),
         TextDyField.data_source("Location", "data.location"),
-        TextDyField.data_source("Project", "data.project_id"),
         EnumDyField.data_source(
             "Status",
             "data.status",
@@ -75,7 +74,6 @@ cst_gke_node_pool._metadata = CloudServiceTypeMeta.set_meta(
         SearchField.set(name="Status", key="data.status"),
         SearchField.set(name="Machine Type", key="data.config.machine_type"),
         SearchField.set(name="Image Type", key="data.config.image_type"),
-        SearchField.set(name="Project ID", key="data.project_id"),
         SearchField.set(name="Preemptible", key="data.config.preemptible"),
     ],
     widget=[

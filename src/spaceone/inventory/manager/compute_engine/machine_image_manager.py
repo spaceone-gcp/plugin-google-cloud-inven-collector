@@ -232,8 +232,7 @@ class MachineImageManager(GoogleCloudManager):
                 "primary_ip_address": network_interface.get("networkIP", ""),
                 "public_ip_address": self._get_public_ip(access_configs),
                 "access_configs": access_configs,
-                "ip_ranges": self._get_alias_ip_range(alias_ip_ranges),
-                "alias_ip_ranges": alias_ip_ranges,
+                "alias_ip_ranges": self._get_alias_ip_range(alias_ip_ranges),
                 "kind": network_interface.get("kind", ""),
             }
             if idx == 0:
@@ -357,7 +356,10 @@ class MachineImageManager(GoogleCloudManager):
 
     @staticmethod
     def _get_alias_ip_range(alias_ip_ranges):
-        ip_range = []
-        for ip in alias_ip_ranges:
-            ip_range.append(ip.get("ipCidrRange", ""))
-        return ip_range
+        return [
+            {
+                "ip_cidr_range": ip_range.get("ipCidrRange", ""),
+                "subnetwork_range_name": ip_range.get("subnetworkRangeName", ""),
+            }
+            for ip_range in alias_ip_ranges
+        ]

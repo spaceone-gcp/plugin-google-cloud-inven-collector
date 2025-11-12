@@ -109,6 +109,11 @@ network_configuration = ItemDynamicLayout.set_fields(
             "data.network_config.enable_private_nodes",
             default_badge={"indigo.500": ["true"], "coral.600": ["false"]},
         ),
+        TextDyField.data_source("Subnetwork", "data.network_config.subnetwork"),
+        TextDyField.data_source(
+            "Network Tier",
+            "data.network_config.network_tier_config.networkTier",
+        ),
         TextDyField.data_source("Pod IPv4 CIDR Size", "data.pod_ipv4_cidr_size"),
     ],
 )

@@ -62,7 +62,6 @@ cst_function._metadata = CloudServiceTypeMeta.set_meta(
         TextDyField.data_source("ID", "data.display.function_id"),
         TextDyField.data_source("Last deployed", "data.display.last_deployed"),
         TextDyField.data_source("Trigger", "data.display.trigger"),
-        TextDyField.data_source("Event type", "data.event_trigger.event_type"),
         TextDyField.data_source("Runtime", "data.runtime"),
         TextDyField.data_source("Memory allocated", "data.display.memory_allocated"),
         TextDyField.data_source("Timeout", "data.display.timeout"),

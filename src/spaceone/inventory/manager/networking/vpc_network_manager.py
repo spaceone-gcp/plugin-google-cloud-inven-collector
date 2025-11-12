@@ -56,6 +56,7 @@ class VPCNetworkManager(GoogleCloudManager):
         firewalls = vpc_conn.list_firewall()
         routes = vpc_conn.list_routes()
         regional_address = vpc_conn.list_regional_addresses()
+        subnetworks = vpc_conn.list_subnetworks()
 
         for network in networks:
             try:
@@ -68,6 +69,7 @@ class VPCNetworkManager(GoogleCloudManager):
                     network_identifier, firewalls
                 )
                 matched_route = self.get_matched_route(network_identifier, routes)
+                matched_subnets = self.get_matched_subnets(network_identifier, subnetworks)
                 region = self.match_region_info("global")
                 peerings = self.get_peering(network)
 
@@ -89,6 +91,7 @@ class VPCNetworkManager(GoogleCloudManager):
                         "ip_address_data": self.get_internal_ip_address_in_use(
                             network, regional_address
                         ),
+                        "subnets": matched_subnets,
                         "peerings": peerings,
                         "route_data": {
                             "total_number": len(matched_route),
@@ -107,6 +110,16 @@ class VPCNetworkManager(GoogleCloudManager):
                 ##################################
                 # 2. Make Base Data
                 ##################################
+                network.update({
+                    "google_cloud_monitoring": self.set_google_cloud_monitoring(
+                        project_id, "vpc_network", network_id, [
+                            {"key": "resource.labels.network_id", "value": network_id}
+                        ]
+                    ),
+                    "google_cloud_logging": self.set_google_cloud_logging(
+                        "Networking", "VPCNetwork", project_id, network_id
+                    ),
+                })
                 vpc_data = VPCNetwork(network, strict=False)
 
                 ##################################
@@ -252,6 +265,29 @@ class VPCNetworkManager(GoogleCloudManager):
                 route_vos.append(route)
         return route_vos
 
+    def get_matched_subnets(self, network, subnetworks):
+        subnet_vos = []
+
+        for subnet in subnetworks:
+            subnet_network = subnet.get("network", "")
+            
+            if network == subnet_network:
+                url_region = subnet.get("region", "")
+                region = self.get_param_in_url(url_region, "regions") if url_region else "global"
+                
+                subnet_data = {
+                    "name": subnet.get("name", ""),
+                    "region": region,
+                    "ip_cidr_range": subnet.get("ipCidrRange", ""),
+                    "gateway_address": subnet.get("gatewayAddress", ""),
+                    "google_access": "On" if subnet.get("privateIpGoogleAccess") else "Off",
+                    "flow_log": "On" if subnet.get("enableFlowLogs") else "Off",
+                    "creation_timestamp": subnet.get("creationTimestamp"),
+                    "id": subnet.get("id"),
+                    "self_link": subnet.get("selfLink"),
+                }
+                subnet_vos.append(subnet_data)
+        return subnet_vos
 
     @staticmethod
     def _get_matched_firewalls(network, firewalls):
@@ -267,9 +303,16 @@ class VPCNetworkManager(GoogleCloudManager):
                 flag = "allowed" if "allowed" in firewall else "denied"
                 for allowed in firewall.get(flag, []):
                     ip_protocol = allowed.get("IPProtocol", "")
+                    ports = allowed.get("ports", [])
 
-                    for port in allowed.get("ports", []):
-                        protocol_port.append(f"{ip_protocol}: {port}")
+                    if not ports:  # ports가 None이거나 빈 배열인 경우
+                        if ip_protocol == "all":
+                            protocol_port.append("All")
+                        else:
+                            protocol_port.append(f"{ip_protocol}: All")
+                    else:
+                        for port in ports:
+                            protocol_port.append(f"{ip_protocol}: {port}")
 
                 display = {
                     "type_display": (
@@ -301,10 +344,11 @@ class VPCNetworkManager(GoogleCloudManager):
     @staticmethod
     def _get_global_dynamic_route(network, flag):
         routing_config = network.get("routingConfig", {})
+        routing_mode = routing_config.get("routingMode", "REGIONAL")
         if flag == "mode":
-            return "Regional" if routing_config == "REGIONAL" else "Global"
+            return "Regional" if routing_mode == "REGIONAL" else "Global"
         else:
-            return "Off" if routing_config == "REGIONAL" else "On"
+            return "Off" if routing_mode == "REGIONAL" else "On"
 
     def _get_parse_users(self, users):
         parsed_used_by = []

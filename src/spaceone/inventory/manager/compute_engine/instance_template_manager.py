@@ -102,6 +102,10 @@ class InstanceTemplateManager(GoogleCloudManager):
                     )
                 _name = inst_template.get("name", "")
 
+                # Extract region from URL or empty string
+                region_url = inst_template.get("region", "")
+                ext_region = self._extract_region_from_url(region_url)
+
                 ##################################
                 # 2. Make Base Data
                 ##################################
@@ -112,13 +116,14 @@ class InstanceTemplateManager(GoogleCloudManager):
                             "InstanceTemplate",
                             project_id,
                             inst_template_id,
-                        )
+                        ),
+                        "ext_region": ext_region,
                     }
                 )
 
                 instance_template_data = InstanceTemplate(inst_template, strict=False)
                 # labels -> tags
-                default_region = "global"
+                default_region = ext_region if ext_region else "global"
 
                 ##################################
                 # 3. Make Return Resource
@@ -208,7 +213,7 @@ class InstanceTemplateManager(GoogleCloudManager):
             )
             network_interface_info.append(
                 {
-                    "idx_name": network_interface.get("name", ""),
+                    "name": network_interface.get("name", ""),
                     "network": network_interface.get("network", ""),
                     "network_display": self.get_param_in_url(
                         network_interface.get("network", ""), "networks"
@@ -335,3 +340,23 @@ class InstanceTemplateManager(GoogleCloudManager):
             constant = 0.48
 
         return constant
+
+    @staticmethod
+    def _extract_region_from_url(region_url):
+        """
+        Extract region name from GCP API URL
+        Input: 'https://www.googleapis.com/compute/v1/projects/mkkang-project/regions/asia-northeast3'
+        Output: 'asia-northeast3'
+        If region_url is empty, None, or doesn't contain '/regions/', return empty string
+        """
+        if not region_url:
+            return ""
+
+        if "/regions/" in region_url:
+            # Split by '/regions/' and get the last part
+            region = region_url.split("/regions/")[-1]
+            # Remove any trailing slashes or query parameters
+            region = region.split("/")[0].split("?")[0]
+            return region
+
+        return ""

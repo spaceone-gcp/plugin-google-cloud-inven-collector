@@ -10,7 +10,7 @@ FILTER_FORMAT = []
 CLOUD_SERVICE_GROUP_MAP = {
     "ComputeEngine": [
         "VMInstanceManager",
-        "SnapshotManager",
+        "ComputeEngineSnapshotManager",
         "MachineImageManager",
         "InstanceTemplateManager",
         "InstanceGroupManager",
@@ -312,6 +312,36 @@ CLOUD_LOGGING_RESOURCE_TYPE_MAP = {
         }
     },
     "Recommender": {},
+    "Networking": {
+        "LoadBalancing": {
+            "resource_type": "gce_load_balancer",
+            "labels_key": "resource.labels.load_balancer_id",
+        },
+        "ExternalIPAddress": {
+            "resource_type": "gce_external_ip",
+            "labels_key": "resource.labels.external_ip_id",
+        },
+        "Firewall": {
+            "resource_type": "gce_firewall",
+            "labels_key": "resource.labels.firewall_id",
+        },
+        "Route": {
+            "resource_type": "gce_route",
+            "labels_key": "resource.labels.route_id",
+        },
+        "VPCGateway": {
+            "resource_type": "gce_vpc_gateway",
+            "labels_key": "resource.labels.gateway_id",
+        },
+        "VPCNetwork": {
+            "resource_type": "gce_network",
+            "labels_key": "resource.labels.network_id",
+        },
+        "VPCSubnet": {
+            "resource_type": "gce_subnetwork",
+            "labels_key": "resource.labels.subnetwork_id",
+        },
+    },
 }
 
 ASSET_URL = "https://spaceone-custom-assets.s3.ap-northeast-2.amazonaws.com/console-assets/icons/cloud-services/google_cloud"

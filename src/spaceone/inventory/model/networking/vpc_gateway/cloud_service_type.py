@@ -1,28 +1,29 @@
 import os
 
+from spaceone.inventory.conf.cloud_service_conf import *
 from spaceone.inventory.libs.common_parser import *
+from spaceone.inventory.libs.schema.cloud_service import CloudServiceMeta
+from spaceone.inventory.libs.schema.cloud_service_type import (
+    CloudServiceTypeMeta,
+    CloudServiceTypeResource,
+    CloudServiceTypeResponse,
+)
+from spaceone.inventory.libs.schema.metadata.dynamic_field import (
+    DateTimeDyField,
+    EnumDyField,
+    ListDyField,
+    SearchField,
+    TextDyField,
+)
+from spaceone.inventory.libs.schema.metadata.dynamic_layout import (
+    ItemDynamicLayout,
+    ListDynamicLayout,
+    TableDynamicLayout,
+)
 from spaceone.inventory.libs.schema.metadata.dynamic_widget import (
     CardWidget,
     ChartWidget,
 )
-from spaceone.inventory.libs.schema.metadata.dynamic_field import (
-    TextDyField,
-    EnumDyField,
-    ListDyField,
-    DateTimeDyField,
-    SearchField,
-)
-from spaceone.inventory.libs.schema.metadata.dynamic_layout import (
-    ItemDynamicLayout,
-    TableDynamicLayout,
-    ListDynamicLayout,
-)
-from spaceone.inventory.libs.schema.cloud_service_type import (
-    CloudServiceTypeResource,
-    CloudServiceTypeResponse,
-    CloudServiceTypeMeta,
-)
-from spaceone.inventory.conf.cloud_service_conf import *
 
 current_dir = os.path.abspath(os.path.dirname(__file__))
 
@@ -46,7 +47,6 @@ vpc_gateway_meta = ItemDynamicLayout.set_fields(
                 "green.500": ["TARGET_VPN_GATEWAY"],
             },
         ),
-        TextDyField.data_source("Region", "data.region"),
         TextDyField.data_source("Network", "data.network"),
         TextDyField.data_source("Status", "data.status"),
         TextDyField.data_source("Router Name", "data.router_name"),
@@ -59,10 +59,15 @@ vpc_gateway_nat_info = ItemDynamicLayout.set_fields(
     "NAT Configuration",
     fields=[
         TextDyField.data_source("NAT IP Allocation", "data.nat_ip_allocate_option"),
-        TextDyField.data_source("Source Subnet IP Ranges", "data.source_subnetwork_ip_ranges_to_nat"),
+        TextDyField.data_source(
+            "Source Subnet IP Ranges", "data.source_subnetwork_ip_ranges_to_nat"
+        ),
         ListDyField.data_source("NAT IPs", "data.nat_ips"),
         TextDyField.data_source("Min Ports per VM", "data.min_ports_per_vm"),
-        TextDyField.data_source("Enable Endpoint Independent Mapping", "data.enable_endpoint_independent_mapping"),
+        TextDyField.data_source(
+            "Enable Endpoint Independent Mapping",
+            "data.enable_endpoint_independent_mapping",
+        ),
     ],
 )
 
@@ -78,10 +83,19 @@ vpc_gateway_vpn_info = ItemDynamicLayout.set_fields(
 vpc_gateway_timeout_settings = ItemDynamicLayout.set_fields(
     "Timeout Settings",
     fields=[
-        TextDyField.data_source("ICMP Idle Timeout (sec)", "data.icmp_idle_timeout_sec"),
-        TextDyField.data_source("TCP Established Idle Timeout (sec)", "data.tcp_established_idle_timeout_sec"),
-        TextDyField.data_source("TCP Transitory Idle Timeout (sec)", "data.tcp_transitory_idle_timeout_sec"),
-        TextDyField.data_source("TCP Time Wait Timeout (sec)", "data.tcp_time_wait_timeout_sec"),
+        TextDyField.data_source(
+            "ICMP Idle Timeout (sec)", "data.icmp_idle_timeout_sec"
+        ),
+        TextDyField.data_source(
+            "TCP Established Idle Timeout (sec)",
+            "data.tcp_established_idle_timeout_sec",
+        ),
+        TextDyField.data_source(
+            "TCP Transitory Idle Timeout (sec)", "data.tcp_transitory_idle_timeout_sec"
+        ),
+        TextDyField.data_source(
+            "TCP Time Wait Timeout (sec)", "data.tcp_time_wait_timeout_sec"
+        ),
         TextDyField.data_source("UDP Idle Timeout (sec)", "data.udp_idle_timeout_sec"),
     ],
 )
@@ -107,7 +121,7 @@ vpc_gateway_vpn_interfaces = TableDynamicLayout.set_fields(
 )
 
 vpc_gateway_meta_layouts = ListDynamicLayout.set_layouts(
-    "Gateway Details", 
+    "Gateway Details",
     layouts=[
         vpc_gateway_meta,
         vpc_gateway_nat_info,
@@ -115,7 +129,11 @@ vpc_gateway_meta_layouts = ListDynamicLayout.set_layouts(
         vpc_gateway_timeout_settings,
         vpc_gateway_subnetworks,
         vpc_gateway_vpn_interfaces,
-    ]
+    ],
+)
+
+vpc_gateway_cloud_service_meta = CloudServiceMeta.set_layouts(
+    [vpc_gateway_meta_layouts]
 )
 
 cst_gateway = CloudServiceTypeResource()
@@ -142,7 +160,6 @@ cst_gateway._metadata = CloudServiceTypeMeta.set_meta(
                 "green.500": ["TARGET_VPN_GATEWAY"],
             },
         ),
-        TextDyField.data_source("Region", "data.region"),
         TextDyField.data_source("Network", "data.network"),
         TextDyField.data_source("Status", "data.status"),
         # is_optional - Default
@@ -157,7 +174,6 @@ cst_gateway._metadata = CloudServiceTypeMeta.set_meta(
     search=[
         SearchField.set(name="Name", key="data.name"),
         SearchField.set(name="Gateway Type", key="data.gateway_type"),
-        SearchField.set(name="Region", key="data.region"),
         SearchField.set(name="Network", key="data.network"),
         SearchField.set(name="Status", key="data.status"),
         SearchField.set(name="Description", key="data.description"),

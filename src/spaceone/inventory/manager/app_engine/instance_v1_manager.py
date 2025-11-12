@@ -125,62 +125,6 @@ class AppEngineInstanceV1Manager(GoogleCloudManager):
 
         return request_count
 
-    def _set_simple_google_cloud_monitoring(
-        self,
-        project_id: str,
-        service_id: str,
-        version_id: str,
-        instance_id: str,
-    ) -> Dict[str, Any]:
-        """
-        App Engine Instance에 대한 단순화된 모니터링 설정을 생성합니다.
-        SpaceONE 표준 구조에 맞게 filters 배열을 반환합니다.
-
-        Args:
-            project_id: GCP 프로젝트 ID
-            service_id: App Engine 서비스 ID
-            version_id: App Engine 버전 ID
-            instance_id: App Engine 인스턴스 ID
-
-        Returns:
-            SpaceONE 표준 Google Cloud Monitoring 설정 딕셔너리
-        """
-        # 핵심 메트릭만 포함
-        core_metrics = [
-            "appengine.googleapis.com/http/server/response_count",
-            "appengine.googleapis.com/system/cpu/usage",
-            "appengine.googleapis.com/system/memory/usage",
-        ]
-
-        # SpaceONE 표준 필터 구조 생성
-        filters = []
-
-        for metric_type in core_metrics:
-            # HTTP 메트릭은 gae_app, 시스템 메트릭은 gae_instance 리소스 타입 사용
-            if "http/server" in metric_type:
-                # gae_app 리소스 타입 (instance_id 제외)
-                labels = [
-                    {"key": "resource.labels.project_id", "value": project_id},
-                    {"key": "resource.labels.module_id", "value": service_id},
-                    {"key": "resource.labels.version_id", "value": version_id},
-                ]
-            else:
-                # gae_instance 리소스 타입 (instance_id 포함)
-                labels = [
-                    {"key": "resource.labels.project_id", "value": project_id},
-                    {"key": "resource.labels.module_id", "value": service_id},
-                    {"key": "resource.labels.version_id", "value": version_id},
-                    {"key": "resource.labels.instance_id", "value": instance_id},
-                ]
-
-            filters.append({"metric_type": metric_type, "labels": labels})
-
-        return {
-            "name": f"projects/{project_id}",
-            "resource_id": instance_id,
-            "filters": filters,
-        }
-
     def list_instances(
         self, service_id: str, version_id: str, params: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
@@ -706,19 +650,23 @@ class AppEngineInstanceV1Manager(GoogleCloudManager):
                                         )
                                         instance_id = "unknown"
 
-                                    # 단순화된 모니터링 설정 적용
-                                    _LOGGER.debug(
-                                        f"Setting up simplified monitoring for instance {instance_id}"
-                                    )
-
-                                    instance_data["google_cloud_monitoring"] = (
-                                        self._set_simple_google_cloud_monitoring(
-                                            project_id,
-                                            service_id,
-                                            version_id,
-                                            instance_id,
-                                        )
-                                    )
+                                    # Google Cloud Monitoring 설정
+                                    instance_data["google_cloud_monitoring"] = {
+                                        "name": f"projects/{project_id}",
+                                        "resource_id": instance_id,
+                                        "filters": [
+                                            {
+                                                "metric_type": "appengine.googleapis.com/http/server/response_count",
+                                                "labels": [
+                                                    {
+                                                        "key": "resource.labels.version_id",
+                                                        "value": version_id,
+                                                    },
+                                                ],
+                                            }
+                                        ],
+                                    }
+                                    
                                     instance_data["google_cloud_logging"] = (
                                         self.set_google_cloud_logging(
                                             "AppEngine",

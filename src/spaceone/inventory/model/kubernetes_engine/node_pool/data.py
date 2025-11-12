@@ -47,10 +47,17 @@ class MaxPodsConstraint(Model):
 
 
 class NetworkConfig(Model):
-    pod_range = StringType(deserialize_from="podRange")
-    pod_ipv4_cidr_block = StringType(deserialize_from="podIpv4CidrBlock")
-    create_pod_range = BooleanType(deserialize_from="createPodRange")
-    enable_private_nodes = BooleanType(deserialize_from="enablePrivateNodes")
+    pod_range = StringType(deserialize_from="podRange", serialize_when_none=False)
+    pod_ipv4_cidr_block = StringType(
+        deserialize_from="podIpv4CidrBlock", serialize_when_none=False
+    )
+    enable_private_nodes = BooleanType(
+        deserialize_from="enablePrivateNodes", serialize_when_none=False
+    )
+    subnetwork = StringType(serialize_when_none=False)
+    network_tier_config = DictType(
+        StringType, deserialize_from="networkTierConfig", serialize_when_none=True
+    )
 
 
 class NodeInfo(Model):

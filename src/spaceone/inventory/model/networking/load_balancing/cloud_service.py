@@ -26,7 +26,6 @@ lb_forwarding_rule = TableDynamicLayout.set_fields(
     fields=[
         TextDyField.data_source("Id", "id"),
         TextDyField.data_source("Name", "name"),
-        TextDyField.data_source("Description", "description"),
         TextDyField.data_source("IP Address", "ip_address"),
         EnumDyField.data_source(
             "Protocol",
@@ -42,7 +41,6 @@ lb_forwarding_rule = TableDynamicLayout.set_fields(
             ],
         ),
         TextDyField.data_source("Port Range", "port_range"),
-        ListDyField.data_source("Ports", "ports"),
         TextDyField.data_source("Target", "target"),
         TextDyField.data_source("Subnetwork", "subnetwork"),
         TextDyField.data_source("Network", "network"),
@@ -65,6 +63,16 @@ lb_target_proxy = ItemDynamicLayout.set_fields(
     ],
 )
 
+
+lb_routing_table = TableDynamicLayout.set_fields(
+    "Routing Rules",
+    root_path="data.urlmap.routing_table",
+    fields=[
+        TextDyField.data_source("Host", "host"),
+        TextDyField.data_source("Path", "path"),
+        TextDyField.data_source("Backend", "backend"),
+    ],
+)
 
 lb_certificate = TableDynamicLayout.set_fields(
     "Certificate",
@@ -182,7 +190,7 @@ lb_target_pools = TableDynamicLayout.set_fields(
 
 lb_health_checks = TableDynamicLayout.set_fields(
     "Health Check",
-    root_path="data.heath_checks",
+    root_path="data.health_checks",
     fields=[
         TextDyField.data_source("Id", "id"),
         TextDyField.data_source("Name", "name"),
@@ -221,6 +229,7 @@ load_balancing_meta = CloudServiceMeta.set_layouts(
     [
         lb_forwarding_rule,
         lb_target_proxy,
+        lb_routing_table,
         lb_backend_service,
         lb_backend_buckets,
         lb_target_pools,

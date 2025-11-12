@@ -9,6 +9,10 @@ from schematics.types import (
     FloatType,
 )
 from spaceone.inventory.libs.schema.cloud_service import BaseResource
+from spaceone.inventory.libs.schema.google_cloud_monitoring import (
+    GoogleCloudMonitoringModel,
+)
+from spaceone.inventory.libs.schema.google_cloud_logging import GoogleCloudLoggingModel
 
 
 class Labels(Model):
@@ -385,6 +389,13 @@ class HostRule(Model):
     path_matcher = StringType(deserialize_from="pathMatcher", serialize_when_none=False)
 
 
+class RoutingRule(Model):
+    """라우팅 테이블의 개별 규칙을 나타내는 모델"""
+    host = StringType(serialize_when_none=False)
+    path = StringType(serialize_when_none=False)
+    backend = StringType(serialize_when_none=False)
+
+
 class UrlMap(Model):
     id = StringType(serialize_when_none=False)
     name = StringType
@@ -392,6 +403,9 @@ class UrlMap(Model):
     self_link = StringType(deserialize_from="selfLink", serialize_when_none=False)
     host_rule = ListType(
         ModelType(HostRule), deserialize_from="hostRules", serialize_when_none=False
+    )
+    routing_table = ListType(
+        ModelType(RoutingRule), serialize_when_none=False, default=[]
     )
     creation_timestamp = DateTimeType(deserialize_from="creationTimestamp")
 
@@ -519,12 +533,12 @@ class LoadBalancing(BaseResource):
     )
     self_link = StringType(default="")
     forwarding_rules = ListType(ModelType(ForwardingRule), serialize_when_none=False)
-    target_proxy = (ModelType(TargetProxy, serialize_when_none=False),)
+    target_proxy = ModelType(TargetProxy, serialize_when_none=False)
     urlmap = ModelType(UrlMap, serialize_when_none=False)
     certificates = ListType(ModelType(Certificates), serialize_when_none=False)
     backend_services = ListType(ModelType(BackendService), serialize_when_none=False)
     backend_buckets = ListType(ModelType(BackEndBucket), serialize_when_none=False)
-    heath_checks = ListType(ModelType(HealthCheck), serialize_when_none=False)
+    health_checks = ListType(ModelType(HealthCheck), serialize_when_none=False)
     legacy_health_checks = ListType(
         ModelType(LegacyHealthCheck), serialize_when_none=False
     )
@@ -532,6 +546,10 @@ class LoadBalancing(BaseResource):
     tags = ListType(ModelType(Labels), serialize_when_none=False)
     creation_timestamp = DateTimeType(deserialize_from="creationTimestamp")
     affected_instance_count = IntType(serialize_when_none=False, default=0)
+    google_cloud_monitoring = ModelType(
+        GoogleCloudMonitoringModel, serialize_when_none=False
+    )
+    google_cloud_logging = ModelType(GoogleCloudLoggingModel, serialize_when_none=False)
 
     def reference(self):
         return {"resource_id": self.self_link, "external_link": self._get_console_url()}

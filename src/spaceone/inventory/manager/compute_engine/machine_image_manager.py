@@ -72,7 +72,7 @@ class MachineImageManager(GoogleCloudManager):
                 ##################################
                 _name = machine_image.get("name", "")
                 machine_image_id = machine_image.get("id")
-                properties = machine_image.get("instanceProperties", {})
+                properties = machine_image.get("sourceInstanceProperties", {})
                 tags = properties.get("tags", {})
                 boot_image = self.get_boot_image_data(properties)
                 disks = self.get_disks(properties, boot_image)
@@ -178,6 +178,7 @@ class MachineImageManager(GoogleCloudManager):
                 "device": disk.get("deviceName"),
                 "device_type": disk.get("type", ""),
                 "device_mode": disk.get("mode", ""),
+                "disk_type": disk.get("diskType", ""),
                 "size": float(size),
                 "tags": self.get_tags_info(disk),
             }
@@ -198,7 +199,7 @@ class MachineImageManager(GoogleCloudManager):
 
     def get_tags_info(self, disk):
         disk_size = float(disk.get("diskSizeGb", 0.0))
-        disk_type = disk.get("Type")
+        disk_type = disk.get("diskType")
         return {
             "disk_type": disk_type,
             "auto_delete": disk.get("autoDelete"),
@@ -231,8 +232,7 @@ class MachineImageManager(GoogleCloudManager):
                 "primary_ip_address": network_interface.get("networkIP", ""),
                 "public_ip_address": self._get_public_ip(access_configs),
                 "access_configs": access_configs,
-                "ip_ranges": self._get_alias_ip_range(alias_ip_ranges),
-                "alias_ip_ranges": alias_ip_ranges,
+                "alias_ip_ranges": self._get_alias_ip_range(alias_ip_ranges),
                 "kind": network_interface.get("kind", ""),
             }
             if idx == 0:
@@ -356,7 +356,10 @@ class MachineImageManager(GoogleCloudManager):
 
     @staticmethod
     def _get_alias_ip_range(alias_ip_ranges):
-        ip_range = []
-        for ip in alias_ip_ranges:
-            ip_range.append(ip.get("ipCidrRange", ""))
-        return ip_range
+        return [
+            {
+                "ip_cidr_range": ip_range.get("ipCidrRange", ""),
+                "subnetwork_range_name": ip_range.get("subnetworkRangeName", ""),
+            }
+            for ip_range in alias_ip_ranges
+        ]

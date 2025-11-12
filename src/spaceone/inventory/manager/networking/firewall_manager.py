@@ -132,6 +132,24 @@ class FirewallManager(GoogleCloudManager):
 
                 # No Labels on API
                 _name = firewall.get("name", firewall_id)
+                firewall.update(
+                    {
+                        "google_cloud_monitoring": self.set_google_cloud_monitoring(
+                            project_id,
+                            "firewall",
+                            firewall_id,
+                            [
+                                {
+                                    "key": "resource.labels.firewall_id",
+                                    "value": firewall_id,
+                                }
+                            ],
+                        ),
+                        "google_cloud_logging": self.set_google_cloud_logging(
+                            "Networking", "Firewall", project_id, firewall_id
+                        ),
+                    }
+                )
                 firewall_data = Firewall(firewall, strict=False)
 
                 ##################################

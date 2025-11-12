@@ -869,6 +869,80 @@ class GKENodePoolV1BetaManager(GoogleCloudManager):
                             "upgrade_options": management.get("upgradeOptions", {}),
                         }
 
+                    # networkConfig 정보 추가
+                    if "networkConfig" in node_group:
+                        try:
+                            network_config = node_group["networkConfig"]
+                            if not isinstance(network_config, dict):
+                                _LOGGER.warning(
+                                    f"[NODEPOOL_NETWORK_CONFIG] NodePool {node_pool_name}: "
+                                    f"networkConfig is not a dict, type: {type(network_config)}"
+                                )
+                                network_config = {}
+
+                            _LOGGER.info(
+                                f"[NODEPOOL_NETWORK_CONFIG] NodePool {node_pool_name}: "
+                                f"Original networkConfig keys: {list(network_config.keys()) if isinstance(network_config, dict) else 'N/A'}"
+                            )
+                            _LOGGER.debug(
+                                f"[NODEPOOL_NETWORK_CONFIG] NodePool {node_pool_name}: "
+                                f"Original networkConfig: {network_config}"
+                            )
+
+                            # 모든 필드를 항상 추가하여 UI 일관성 유지 (값이 없어도 필드는 표시)
+                            # 불린 타입 필드는 그대로 유지 (모델에서 BooleanType으로 정의됨)
+                            processed_network_config = {
+                                "podRange": str(
+                                    network_config.get("podRange", "") or ""
+                                ),
+                                "podIpv4CidrBlock": str(
+                                    network_config.get("podIpv4CidrBlock", "") or ""
+                                ),
+                                # enablePrivateNodes는 BooleanType이므로 불린 값 유지
+                                "enablePrivateNodes": bool(
+                                    network_config.get("enablePrivateNodes", False)
+                                ),
+                                # subnetwork는 API 응답에 있을 수 있음
+                                "subnetwork": str(
+                                    network_config.get("subnetwork", "") or ""
+                                ),
+                            }
+                            # networkTierConfig는 딕셔너리 타입
+                            # 값이 있을 때만 포함 (빈 딕셔너리는 제외)
+                            network_tier_config = network_config.get(
+                                "networkTierConfig"
+                            )
+                            if (
+                                network_tier_config
+                                and isinstance(network_tier_config, dict)
+                                and len(network_tier_config) > 0
+                            ):
+                                processed_network_config["networkTierConfig"] = (
+                                    network_tier_config
+                                )
+                            _LOGGER.info(
+                                f"[NODEPOOL_NETWORK_CONFIG] NodePool {node_pool_name}: "
+                                f"Processed networkConfig keys: {list(processed_network_config.keys())}"
+                            )
+                            _LOGGER.debug(
+                                f"[NODEPOOL_NETWORK_CONFIG] NodePool {node_pool_name}: "
+                                f"Processed networkConfig: {processed_network_config}"
+                            )
+                            node_pool_data["networkConfig"] = processed_network_config
+                        except Exception as e:
+                            _LOGGER.error(
+                                f"[NODEPOOL_NETWORK_CONFIG] NodePool {node_pool_name}: "
+                                f"Failed to process networkConfig: {e}",
+                                exc_info=True,
+                            )
+                            # 에러 발생 시 기본값으로 설정
+                            node_pool_data["networkConfig"] = {}
+                    else:
+                        _LOGGER.warning(
+                            f"[NODEPOOL_NETWORK_CONFIG] NodePool {node_pool_name}: "
+                            "networkConfig not found in node_group"
+                        )
+
                     # 메트릭 정보 추가
                     if metrics:
                         node_pool_data["metrics"] = metrics
@@ -967,9 +1041,27 @@ class GKENodePoolV1BetaManager(GoogleCloudManager):
                     # NodePool 모델 생성
                     node_pool_data_model = NodePool(node_pool_data, strict=False)
 
-                    # NodePool config의 labels를 tags 형식으로 변환
+                    # NodePool labels를 tags 형식으로 변환
+                    # node_group의 직접 labels, config.labels, config.resourceLabels를 모두 확인
+                    all_labels = {}
+
+                    # node_group에 직접 labels가 있는 경우
+                    if "labels" in node_group:
+                        all_labels.update(node_group.get("labels", {}))
+
+                    # config.labels가 있는 경우 병합
                     config_labels = node_group.get("config", {}).get("labels", {})
-                    tags = self.convert_labels_format(config_labels)
+                    if config_labels:
+                        all_labels.update(config_labels)
+
+                    # config.resourceLabels가 있는 경우 병합 (GKE NodePool에서 주로 사용)
+                    config_resource_labels = node_group.get("config", {}).get(
+                        "resourceLabels", {}
+                    )
+                    if config_resource_labels:
+                        all_labels.update(config_resource_labels)
+
+                    tags = self.convert_labels_format(all_labels)
 
                     # NodePoolResource 생성
                     node_pool_resource = NodePoolResource(

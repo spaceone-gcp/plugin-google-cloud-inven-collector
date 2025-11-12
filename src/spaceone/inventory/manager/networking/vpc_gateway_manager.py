@@ -95,6 +95,24 @@ class VPCGatewayManager(GoogleCloudManager):
                 ##################################
                 # 2. Make Base Data
                 ##################################
+                nat_gateway.update(
+                    {
+                        "google_cloud_monitoring": self.set_google_cloud_monitoring(
+                            project_id,
+                            "router.googleapis.com/nat",
+                            gateway_id,
+                            [
+                                {
+                                    "key": "resource.labels.gateway_name",
+                                    "value": _name,
+                                }
+                            ],
+                        ),
+                        "google_cloud_logging": self.set_google_cloud_logging(
+                            "Networking", "VPCGateway", project_id, gateway_id
+                        ),
+                    }
+                )
                 vpc_gateway_data = VPCGateway(nat_gateway, strict=False)
 
                 ##################################
@@ -163,6 +181,24 @@ class VPCGatewayManager(GoogleCloudManager):
                 ##################################
                 # 2. Make Base Data
                 ##################################
+                vpn_gateway.update(
+                    {
+                        "google_cloud_monitoring": self.set_google_cloud_monitoring(
+                            project_id,
+                            "vpn_gateway",
+                            gateway_id,
+                            [
+                                {
+                                    "key": "resource.labels.gateway_id",
+                                    "value": gateway_id,
+                                }
+                            ],
+                        ),
+                        "google_cloud_logging": self.set_google_cloud_logging(
+                            "Networking", "VPCGateway", project_id, gateway_id
+                        ),
+                    }
+                )
                 vpc_gateway_data = VPCGateway(vpn_gateway, strict=False)
 
                 ##################################

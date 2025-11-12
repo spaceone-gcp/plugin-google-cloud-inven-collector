@@ -145,19 +145,25 @@ class SubscriptionManager(GoogleCloudManager):
                     }
                 )
 
+                # Google Cloud Monitoring 필터 설정
+                google_cloud_monitoring_filters = [
+                    {
+                        "key": "resource.labels.subscription_id",
+                        "value": subscription_id,
+                    },
+                ]
+
                 subscription.update(
                     {
                         # Monitoring data
-                        "google_cloud_monitoring": self.set_google_cloud_monitoring(
+                        "google_cloud_monitoring": self._set_multiple_google_cloud_monitoring(
                             project_id,
-                            "pubsub.googleapis.com",
-                            subscription_id,
                             [
-                                {
-                                    "key": "resource.labels.subscription_id",
-                                    "value": subscription_id,
-                                }
+                                "pubsub.googleapis.com/subscription/num_undelivered_messages",
+                                "pubsub.googleapis.com/subscription/ack_message_count",
                             ],
+                            subscription_id,
+                            google_cloud_monitoring_filters,
                         ),
                         # Logging data
                         "google_cloud_logging": self.set_google_cloud_logging(
@@ -269,3 +275,29 @@ class SubscriptionManager(GoogleCloudManager):
     @staticmethod
     def _make_expiration_description(ttl):
         return f"Subscription expires in {ttl} if there is no activity"
+
+    @staticmethod
+    def _set_multiple_google_cloud_monitoring(
+        project_id, metric_types, resource_id, filters
+    ):
+        """
+        Set multiple Google Cloud Monitoring metric types for PubSub Subscription.
+
+        Args:
+            project_id (str): GCP project ID
+            metric_types (list): List of metric types
+            resource_id (str): Resource ID
+            filters (list): Filters to apply to all metric types
+
+        Returns:
+            dict: Google Cloud Monitoring configuration with multiple metric types
+        """
+        monitoring_filters = []
+        for metric_type in metric_types:
+            monitoring_filters.append({"metric_type": metric_type, "labels": filters})
+
+        return {
+            "name": f"projects/{project_id}",
+            "resource_id": resource_id,
+            "filters": monitoring_filters,
+        }

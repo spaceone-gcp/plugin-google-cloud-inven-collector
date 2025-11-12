@@ -118,7 +118,12 @@ CLOUD_LOGGING_RESOURCE_TYPE_MAP = {
             "labels_key": "resource.labels.database_id",
         }
     },
-    "BigQuery": {},
+    "BigQuery": {
+        "SQLWorkspace": {
+            "resource_type": "bigquery_dataset",
+            "labels_key": "resource.labels.dataset_id",
+        },
+    },
     "CloudBuild": {
         "Build": {
             "resource_type": "cloud_build",

@@ -32,7 +32,7 @@ class CloudBuildV2Connector(GoogleCloudConnector):
             try:
                 response = request.execute()
                 raw_locations = response.get("locations", [])
-                # global 위치는 제외
+                # Exclude global location
                 filtered_locations = [
                     loc for loc in raw_locations if loc.get("locationId") != "global"
                 ]

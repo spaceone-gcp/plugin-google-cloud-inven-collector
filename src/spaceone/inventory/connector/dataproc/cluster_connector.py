@@ -25,22 +25,22 @@ class DataprocClusterConnector(GoogleCloudConnector):
         self._cache_ttl = 300  # 5 minutes cache TTL
         self._regions_cache = None
         self._cache_timestamp = 0
-        self._client_lock = threading.Lock()  # 스레드 안전성을 위한 락
-        self._thread_local = threading.local()  # 스레드별 독립적인 클라이언트
+        self._client_lock = threading.Lock()  # Lock for thread safety
+        self._thread_local = threading.local()  # Thread-specific independent client
 
     def verify(self, options: Dict[str, Any], secret_data: Dict[str, Any]) -> str:
         """
-        연결 상태를 검증합니다.
+        Verify connection status.
 
         Args:
-            options: 검증 옵션
-            secret_data: Google Cloud 인증 정보
+            options: Verification options
+            secret_data: Google Cloud authentication information
 
         Returns:
-            str: 연결 상태 ("ACTIVE" 또는 "INACTIVE")
+            str: Connection status ("ACTIVE" or "INACTIVE")
 
         Raises:
-            Exception: 연결 실패 시
+            Exception: When connection fails
         """
         try:
             self.get_connect(secret_data)
@@ -51,16 +51,16 @@ class DataprocClusterConnector(GoogleCloudConnector):
 
     def get_connect(self, secret_data: Dict[str, Any]) -> None:
         """
-        Google Cloud Dataproc에 연결을 초기화합니다.
+        Initialize connection to Google Cloud Dataproc.
 
         Args:
-            secret_data: Google Cloud 인증을 위한 크리덴셜
-                - project_id: Google Cloud 프로젝트 ID
-                - 기타 service account 인증에 필요한 정보
+            secret_data: Credentials for Google Cloud authentication
+                - project_id: Google Cloud project ID
+                - Other information required for service account authentication
 
         Raises:
-            ValueError: project_id가 누락된 경우
-            Exception: 인증 실패 시
+            ValueError: When project_id is missing
+            Exception: When authentication fails
         """
         if not secret_data.get("project_id"):
             raise ValueError("project_id is required in secret_data")
@@ -88,16 +88,16 @@ class DataprocClusterConnector(GoogleCloudConnector):
 
     def _get_thread_safe_client(self):
         """
-        스레드별로 독립적인 클라이언트 인스턴스를 반환합니다.
+        Return thread-specific independent client instance.
 
         Returns:
-            스레드별 독립적인 Google API 클라이언트
+            Thread-specific independent Google API client
         """
         if (
             not hasattr(self._thread_local, "client")
             or self._thread_local.client is None
         ):
-            # 각 스레드마다 독립적인 클라이언트 생성
+            # Create independent client for each thread
             try:
                 if hasattr(self, "credentials") and self.credentials:
                     self._thread_local.client = googleapiclient.discovery.build(
@@ -107,9 +107,9 @@ class DataprocClusterConnector(GoogleCloudConnector):
                         cache_discovery=False,
                     )
                 else:
-                    # 메인 클라이언트가 있는 경우 크리덴셜을 추출하여 새 클라이언트 생성
+                    # If main client exists, extract credentials to create new client
                     if hasattr(self, "client") and self.client:
-                        # 기본 클라이언트에서 크리덴셜 가져오기
+                        # Get credentials from default client
                         credentials = getattr(self.client, "_credentials", None)
                         if credentials:
                             self._thread_local.client = googleapiclient.discovery.build(
@@ -135,18 +135,18 @@ class DataprocClusterConnector(GoogleCloudConnector):
         self, region: Optional[str] = None, **query: Any
     ) -> List[Dict[str, Any]]:
         """
-        Dataproc 클러스터 목록을 조회합니다.
+        Retrieve list of Dataproc clusters.
 
         Args:
-            region: 클러스터를 필터링할 리전. None일 경우 모든 리전에서 검색
-            **query: API에 전달할 추가 쿼리 파라미터
+            region: Region to filter clusters. If None, search all regions
+            **query: Additional query parameters to pass to API
 
         Returns:
-            클러스터 리소스의 리스트
+            List of cluster resources
 
         Raises:
-            ValueError: 필수 파라미터가 누락된 경우
-            HttpError: Google Cloud API 에러
+            ValueError: When required parameters are missing
+            HttpError: Google Cloud API error
         """
         if not hasattr(self, "client") or not self.client:
             raise ValueError("Client not initialized. Call get_connect() first.")
@@ -154,7 +154,7 @@ class DataprocClusterConnector(GoogleCloudConnector):
         cluster_list = []
 
         if region:
-            # 특정 리전의 클러스터 조회
+            # Retrieve clusters from specific region
             try:
                 request = (
                     self.client.projects()
@@ -177,7 +177,7 @@ class DataprocClusterConnector(GoogleCloudConnector):
                 logger.error(f"Failed to list Dataproc clusters in region: {e}")
                 raise
         else:
-            # 모든 리전의 클러스터 조회 (병렬 처리)
+            # Retrieve clusters from all regions (parallel processing)
             cluster_list = self._list_clusters_parallel(**query)
 
         logger.info(f"Total clusters found: {len(cluster_list)}")
@@ -187,18 +187,18 @@ class DataprocClusterConnector(GoogleCloudConnector):
 
     def get_cluster(self, cluster_name: str, region: str) -> Optional[Dict[str, Any]]:
         """
-        특정 Dataproc 클러스터 정보를 조회합니다.
+        Retrieve specific Dataproc cluster information.
 
         Args:
-            cluster_name: 클러스터의 이름
-            region: 클러스터가 위치한 리전
+            cluster_name: Name of the cluster
+            region: Region where the cluster is located
 
         Returns:
-            발견된 경우 클러스터 리소스, 그렇지 않으면 None
+            Cluster resource if found, otherwise None
 
         Raises:
-            ValueError: 필수 파라미터가 누락된 경우
-            HttpError: Google Cloud API 에러 (404 제외)
+            ValueError: When required parameters are missing
+            HttpError: Google Cloud API error (except 404)
         """
         if not cluster_name or not region:
             raise ValueError("cluster_name and region are required")
@@ -229,19 +229,19 @@ class DataprocClusterConnector(GoogleCloudConnector):
 
     def list_jobs(self, region=None, cluster_name=None, **query):
         """
-        Dataproc 작업 목록을 조회합니다.
+        Retrieve list of Dataproc jobs.
 
         Args:
-            region (str, optional): 작업을 필터링할 리전. None일 경우 모든 리전에서 검색합니다.
-            cluster_name (str, optional): 작업을 필터링할 클러스터의 이름.
-            **query: API에 전달할 추가 쿼리 파라미터.
+            region (str, optional): Region to filter jobs. If None, search all regions.
+            cluster_name (str, optional): Name of cluster to filter jobs.
+            **query: Additional query parameters to pass to API.
 
         Returns:
-            list: 작업 리소스의 리스트.
+            list: List of job resources.
         """
         job_list = []
 
-        # 클러스터 필터링
+        # Cluster filtering
         if cluster_name:
             query["clusterName"] = cluster_name
 
@@ -259,26 +259,26 @@ class DataprocClusterConnector(GoogleCloudConnector):
             except Exception as e:
                 logger.error(f"Failed to list Dataproc jobs in region: {e}")
         else:
-            # 모든 리전의 작업 조회 (병렬 처리)
+            # Retrieve jobs from all regions (parallel processing)
             job_list = self._list_jobs_parallel(**query)
 
         return job_list
 
     def list_workflow_templates(self, region=None, **query):
         """
-        Dataproc 워크플로 템플릿 목록을 조회합니다.
+        Retrieve list of Dataproc workflow templates.
 
         Args:
-            region (str, optional): 템플릿을 필터링할 리전. None일 경우 모든 리전에서 검색합니다.
-            **query: API에 전달할 추가 쿼리 파라미터.
+            region (str, optional): Region to filter templates. If None, search all regions.
+            **query: Additional query parameters to pass to API.
 
         Returns:
-            list: 워크플로 템플릿 리소스의 리스트.
+            list: List of workflow template resources.
         """
         template_list = []
 
         if region:
-            # 특정 리전의 워크플로 템플릿 조회
+            # Retrieve workflow templates from specific region
             try:
                 request = (
                     self.client.projects()
@@ -296,7 +296,7 @@ class DataprocClusterConnector(GoogleCloudConnector):
                     f"Failed to list Dataproc workflow templates in region: {e}"
                 )
         else:
-            # 모든 리전의 워크플로 템플릿 조회
+            # Retrieve workflow templates from all regions
             regions = self._get_available_regions()
             for region_name in regions:
                 try:
@@ -320,19 +320,19 @@ class DataprocClusterConnector(GoogleCloudConnector):
 
     def list_autoscaling_policies(self, region=None, **query):
         """
-        Dataproc 오토스케일링 정책 목록을 조회합니다.
+        Retrieve list of Dataproc autoscaling policies.
 
         Args:
-            region (str, optional): 정책을 필터링할 리전. None일 경우 모든 리전에서 검색합니다.
-            **query: API에 전달할 추가 쿼리 파라미터.
+            region (str, optional): Region to filter policies. If None, search all regions.
+            **query: Additional query parameters to pass to API.
 
         Returns:
-            list: 오토스케일링 정책 리소스의 리스트.
+            list: List of autoscaling policy resources.
         """
         policy_list = []
 
         if region:
-            # 특정 리전의 오토스케일링 정책 조회
+            # Retrieve autoscaling policies from specific region
             try:
                 request = (
                     self.client.projects()
@@ -350,7 +350,7 @@ class DataprocClusterConnector(GoogleCloudConnector):
                     f"Failed to list Dataproc autoscaling policies in region: {e}"
                 )
         else:
-            # 모든 리전의 오토스케일링 정책 조회
+            # Retrieve autoscaling policies from all regions
             regions = self._get_available_regions()
             for region_name in regions:
                 try:
@@ -374,25 +374,25 @@ class DataprocClusterConnector(GoogleCloudConnector):
 
     def _list_clusters_parallel(self, **query) -> List[Dict[str, Any]]:
         """
-        병렬 처리를 통해 모든 리전의 클러스터를 조회합니다.
+        Retrieve clusters from all regions through parallel processing.
 
         Args:
-            **query: API에 전달할 추가 쿼리 파라미터
+            **query: Additional query parameters to pass to API
 
         Returns:
-            모든 리전에서 발견된 클러스터 리스트
+            List of clusters found in all regions
         """
         start_time = time.time()
         regions = self._get_optimized_regions()
         cluster_list = []
 
-        # ThreadPoolExecutor를 사용한 병렬 처리 (메모리 제약 환경 최적화)
+        # Parallel processing using ThreadPoolExecutor (memory-constrained environment optimization)
         MAX_WORKERS = (
-            2  # 메모리 제약 환경에서 안정적 성능을 위한 최적 설정 (실측 테스트 검증)
+            2  # Optimal setting for stable performance in memory-constrained environments (verified by actual testing)
         )
         max_workers = min(MAX_WORKERS, len(regions))
 
-        # 병렬 처리 시작 로깅
+        # Log parallel processing start
         logger.info(
             f"Starting parallel cluster collection: "
             f"regions={len(regions)}, max_workers={max_workers}, "
@@ -400,20 +400,20 @@ class DataprocClusterConnector(GoogleCloudConnector):
         )
 
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            # 각 리전에 대해 비동기 작업 생성
+            # Create asynchronous tasks for each region
             future_to_region = {
                 executor.submit(self._list_clusters_in_region, region, **query): region
                 for region in regions
             }
 
-            # 완료된 작업 결과 수집 (더 긴 타임아웃)
+            # Collect completed task results (longer timeout)
             try:
                 for future in as_completed(
                     future_to_region, timeout=90
-                ):  # 90초 타임아웃
+                ):  # 90 second timeout
                     region = future_to_region[future]
                     try:
-                        clusters = future.result(timeout=60)  # 개별 작업 60초 타임아웃
+                        clusters = future.result(timeout=60)  # Individual task 60 second timeout
                         if clusters:
                             cluster_list.extend(clusters)
                             logger.debug(
@@ -425,10 +425,10 @@ class DataprocClusterConnector(GoogleCloudConnector):
             except Exception as e:
                 logger.warning(f"Timeout waiting for region processing: {e}")
 
-        # 병렬 처리 완료 로깅
+        # Log parallel processing completion
         execution_time = time.time() - start_time
         logger.info(
-            f"✅ Parallel cluster collection completed: "
+            f"Parallel cluster collection completed: "
             f"total_clusters={len(cluster_list)}, "
             f"processed_regions={len(regions)}, "
             f"execution_time={execution_time:.2f}s, "
@@ -440,27 +440,27 @@ class DataprocClusterConnector(GoogleCloudConnector):
 
     def _list_jobs_parallel(self, **query) -> List[Dict[str, Any]]:
         """
-        병렬 처리를 통해 모든 리전의 작업을 조회합니다.
+        Retrieve jobs from all regions through parallel processing.
 
         Args:
-            **query: API에 전달할 추가 쿼리 파라미터
+            **query: Additional query parameters to pass to API
 
         Returns:
-            모든 리전에서 발견된 작업 리스트
+            List of jobs found in all regions
         """
         start_time = time.time()
         regions = self._get_optimized_regions()
         job_list = []
 
-        # 작업 수집은 클러스터보다 덜 중요하므로 더 적은 워커 사용 (메모리 제약 환경 최적화)
+        # Job collection is less important than clusters, so use fewer workers (memory-constrained environment optimization)
         MAX_JOB_WORKERS = (
-            1  # 메모리 제약 환경에서 안정적 성능을 위한 최적 설정 (실측 테스트 검증)
+            1  # Optimal setting for stable performance in memory-constrained environments (verified by actual testing)
         )
         max_workers = min(MAX_JOB_WORKERS, len(regions))
 
-        # 병렬 처리 시작 로깅
+        # Log parallel processing start
         logger.info(
-            f"⚡ Starting parallel job collection: "
+            f"Starting parallel job collection: "
             f"regions={len(regions)}, max_workers={max_workers}, "
             f"individual_timeout=15s (MAX_JOB_WORKERS={MAX_JOB_WORKERS})"
         )
@@ -476,7 +476,7 @@ class DataprocClusterConnector(GoogleCloudConnector):
                 try:
                     jobs = future.result(
                         timeout=15
-                    )  # 15초 타임아웃 (클러스터보다 짧게)
+                    )  # 15 second timeout (shorter than clusters)
                     if jobs:
                         job_list.extend(jobs)
                 except Exception as e:
@@ -486,7 +486,7 @@ class DataprocClusterConnector(GoogleCloudConnector):
         # 병렬 처리 완료 로깅
         execution_time = time.time() - start_time
         logger.info(
-            f"⚡ Parallel job collection completed: "
+            f"Parallel job collection completed: "
             f"total_jobs={len(job_list)}, "
             f"processed_regions={len(regions)}, "
             f"execution_time={execution_time:.2f}s, "
@@ -497,22 +497,22 @@ class DataprocClusterConnector(GoogleCloudConnector):
 
     def _list_jobs_in_region(self, region: str, **query) -> List[Dict[str, Any]]:
         """
-        특정 리전의 작업을 조회합니다 (강화된 에러 처리 포함).
+        Retrieve jobs from specific region (with enhanced error handling).
 
         Args:
-            region: 조회할 리전명
-            **query: API에 전달할 추가 쿼리 파라미터
+            region: Region name to query
+            **query: Additional query parameters to pass to API
 
         Returns:
-            해당 리전의 작업 리스트
+            List of jobs in the region
         """
-        max_retries = 2  # Job은 클러스터보다 덜 중요하므로 재시도 횟수 축소
+        max_retries = 2  # Jobs are less important than clusters, so reduce retry count
         retry_delay = 1
 
         for attempt in range(max_retries):
             client = None
             try:
-                # 스레드별 독립적인 클라이언트 사용
+                # Use thread-specific independent client
                 client = self._get_thread_safe_client()
                 if not client:
                     logger.warning(f"No client available for jobs in region {region}")
@@ -558,14 +558,14 @@ class DataprocClusterConnector(GoogleCloudConnector):
 
     def _list_clusters_in_region(self, region: str, **query) -> List[Dict[str, Any]]:
         """
-        특정 리전의 클러스터를 조회합니다 (강화된 에러 처리 및 스레드 안전성 포함).
+        Retrieve clusters from specific region (with enhanced error handling and thread safety).
 
         Args:
-            region: 조회할 리전명
-            **query: API에 전달할 추가 쿼리 파라미터
+            region: Region name to query
+            **query: Additional query parameters to pass to API
 
         Returns:
-            해당 리전의 클러스터 리스트
+            List of clusters in the region
         """
         max_retries = 3
         retry_delay = 1
@@ -573,7 +573,7 @@ class DataprocClusterConnector(GoogleCloudConnector):
         for attempt in range(max_retries):
             client = None
             try:
-                # 스레드별 독립적인 클라이언트 사용
+                # Use thread-specific independent client
                 client = self._get_thread_safe_client()
                 if not client:
                     logger.warning(f"No client available for region {region}")
@@ -590,10 +590,10 @@ class DataprocClusterConnector(GoogleCloudConnector):
 
             except HttpError as e:
                 if e.resp.status in [404, 403]:
-                    # 404: 리전에 클러스터 없음, 403: 접근 권한 없음
+                    # 404: No clusters in region, 403: No access permission
                     return []
                 elif e.resp.status == 429:
-                    # Rate limit - 지수백오프로 대기
+                    # Rate limit - wait with exponential backoff
                     wait_time = retry_delay * (2**attempt)
                     logger.warning(
                         f"Rate limit in region {region}, waiting {wait_time}s"
@@ -601,7 +601,7 @@ class DataprocClusterConnector(GoogleCloudConnector):
                     time.sleep(wait_time)
                     continue
                 elif e.resp.status >= 500:
-                    # 서버 에러 - 재시도
+                    # Server error - retry
                     if attempt < max_retries - 1:
                         logger.warning(f"Server error in region {region}, retrying...")
                         time.sleep(retry_delay * (attempt + 1))
@@ -637,7 +637,7 @@ class DataprocClusterConnector(GoogleCloudConnector):
                     return []
 
             except Exception as e:
-                # 예상치 못한 에러는 로그만 남기고 빈 리스트 반환
+                # For unexpected errors, just log and return empty list
                 logger.debug(f"Unexpected error in region {region}: {e}")
                 return []
 
@@ -645,16 +645,16 @@ class DataprocClusterConnector(GoogleCloudConnector):
 
     def _get_optimized_regions(self) -> List[str]:
         """
-        최적화된 리전 목록을 반환합니다.
+        Return optimized region list.
 
-        동적 조회 실패 시 핵심 리전만 조회하여 성능을 개선합니다.
+        When dynamic query fails, improve performance by querying only core regions.
 
         Returns:
-            최적화된 리전 리스트
+            Optimized region list
         """
         current_time = time.time()
 
-        # 캐시가 유효한 경우 캐시된 값 반환
+        # Return cached value if cache is valid
         if (
             self._regions_cache is not None
             and current_time - self._cache_timestamp < self._cache_ttl
@@ -669,10 +669,10 @@ class DataprocClusterConnector(GoogleCloudConnector):
             )
         except Exception as e:
             logger.warning(f"Failed to fetch dynamic regions, using core regions: {e}")
-            # 동적 조회 실패 시 핵심 리전만 사용 (성능 최적화)
+            # Use only core regions when dynamic query fails (performance optimization)
             regions = self._get_core_regions()
 
-        # 캐시 업데이트
+        # Update cache
         self._regions_cache = regions
         self._cache_timestamp = current_time
 
@@ -681,46 +681,46 @@ class DataprocClusterConnector(GoogleCloudConnector):
 
     def _get_core_regions(self) -> List[str]:
         """
-        핵심 리전만 반환하여 성능을 최적화합니다.
+        Return only core regions to optimize performance.
 
         Returns:
-            주요 사용 리전 리스트
+            List of major usage regions
         """
         return [
-            # 아시아 주요 리전
-            "asia-east1",  # 대만
-            "asia-northeast1",  # 도쿄
-            "asia-northeast3",  # 서울
-            "asia-southeast1",  # 싱가포르
-            # 유럽 주요 리전
-            "europe-west1",  # 벨기에
-            "europe-west4",  # 네덜란드
-            # 미국 주요 리전
-            "us-central1",  # 아이오와
-            "us-east1",  # 사우스 캐롤라이나
-            "us-west1",  # 오레곤
-            "us-west2",  # 로스앤젤레스
+            # Major Asia regions
+            "asia-east1",  # Taiwan
+            "asia-northeast1",  # Tokyo
+            "asia-northeast3",  # Seoul
+            "asia-southeast1",  # Singapore
+            # Major Europe regions
+            "europe-west1",  # Belgium
+            "europe-west4",  # Netherlands
+            # Major US regions
+            "us-central1",  # Iowa
+            "us-east1",  # South Carolina
+            "us-west1",  # Oregon
+            "us-west2",  # Los Angeles
         ]
 
     def _get_available_regions(self) -> List[str]:
         """
-        사용 가능한 Dataproc 리전 목록을 반환합니다.
+        Return list of available Dataproc regions.
 
-        캐시를 사용하여 성능을 최적화하며, 동적으로 리전 목록을 조회합니다.
+        Optimize performance using cache and dynamically query region list.
 
         Returns:
-            Dataproc을 사용할 수 있는 Google Cloud 리전의 리스트
+            List of Google Cloud regions where Dataproc is available
         """
         current_time = time.time()
 
-        # 캐시가 유효한 경우 캐시된 값 반환
+        # Return cached value if cache is valid
         if (
             self._regions_cache is not None
             and current_time - self._cache_timestamp < self._cache_ttl
         ):
             return self._regions_cache
 
-        # 동적 리전 조회 시도, 실패 시 fallback 사용
+        # Attempt dynamic region query, use fallback on failure
         try:
             regions = self._fetch_dataproc_regions()
             logger.info(
@@ -730,7 +730,7 @@ class DataprocClusterConnector(GoogleCloudConnector):
             logger.warning(f"Failed to fetch dynamic regions, using fallback: {e}")
             regions = self._get_fallback_regions()
 
-        # 캐시 업데이트
+        # Update cache
         self._regions_cache = regions
         self._cache_timestamp = current_time
 
@@ -739,20 +739,20 @@ class DataprocClusterConnector(GoogleCloudConnector):
 
     def _fetch_dataproc_regions(self) -> List[str]:
         """
-        Google Cloud API를 통해 Dataproc 지원 리전을 동적으로 조회합니다.
+        Dynamically query Dataproc-supported regions through Google Cloud API.
 
         Returns:
-            Dataproc을 지원하는 Google Cloud 리전의 리스트
+            List of Google Cloud regions that support Dataproc
 
         Raises:
-            Exception: API 호출 실패 시
+            Exception: When API call fails
         """
         if not hasattr(self, "client") or not self.client:
             raise ValueError("Client not initialized for dynamic region fetching")
 
         try:
-            # Compute Engine API를 통해 사용 가능한 리전 조회
-            # 부모 클래스에서 설정된 credentials 사용
+            # Query available regions through Compute Engine API
+            # Use credentials set in parent class
             compute_client = googleapiclient.discovery.build(
                 "compute", "v1", credentials=self.credentials
             )
@@ -763,11 +763,11 @@ class DataprocClusterConnector(GoogleCloudConnector):
             if "items" in response:
                 for region in response["items"]:
                     region_name = region.get("name", "")
-                    # Dataproc 지원 리전 필터링 (일반적으로 대부분의 리전에서 지원)
+                    # Filter Dataproc-supported regions (generally supported in most regions)
                     if region_name and region.get("status") == "UP":
                         all_regions.append(region_name)
 
-            # 일반적으로 알려진 Dataproc 미지원 리전 제외
+            # Exclude commonly known Dataproc-unsupported regions
             excluded_regions = {"global"}
             supported_regions = [r for r in all_regions if r not in excluded_regions]
 
@@ -782,10 +782,10 @@ class DataprocClusterConnector(GoogleCloudConnector):
 
     def _get_fallback_regions(self) -> List[str]:
         """
-        동적 조회 실패 시 사용할 fallback 리전 목록을 반환합니다.
+        Return fallback region list to use when dynamic query fails.
 
         Returns:
-            알려진 Dataproc 지원 리전의 리스트
+            List of known Dataproc-supported regions
         """
         return [
             "asia-east1",

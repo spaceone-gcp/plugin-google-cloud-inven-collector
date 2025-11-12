@@ -92,7 +92,7 @@ class CloudBuildConnectionV2Manager(GoogleCloudManager):
                 ##################################
                 # 2. Make Base Data
                 ##################################
-                # SCM 타입 자동 감지 및 username 추출
+                # Automatic SCM type detection and username extraction
                 scm_type = "Unknown"
                 username = ""
 

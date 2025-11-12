@@ -131,6 +131,6 @@ class VPCNetworkConnector(GoogleCloudConnector):
         return subnetwork_list
 
     def _log_api_response(self, api_name, response):
-        """API 응답을 로깅합니다."""
+        """Log API response."""
         import json
-        _LOGGER.info(f"✅ VPCNetwork/{api_name} : {json.dumps(response, indent=2, ensure_ascii=False)}")
+        _LOGGER.info(f"VPCNetwork/{api_name} : {json.dumps(response, indent=2, ensure_ascii=False)}")

@@ -53,7 +53,7 @@ class DataprocClusterManager(GoogleCloudManager):
         try:
             clusters = cluster_connector.list_clusters()
             logger.info(
-                f"📊 Successfully found {len(clusters)} Dataproc clusters "
+                f"Successfully found {len(clusters)} Dataproc clusters "
                 f"(parallel processing enabled)"
             )
             return clusters
@@ -115,7 +115,7 @@ class DataprocClusterManager(GoogleCloudManager):
         try:
             jobs = cluster_connector.list_jobs(region=region, cluster_name=cluster_name)
             logger.info(
-                f"⚡ Found {len(jobs)} Dataproc jobs "
+                f"Found {len(jobs)} Dataproc jobs "
                 f"(parallel processing with optimized timeouts)"
             )
             return jobs

@@ -15,7 +15,7 @@ class CloudRunV1Connector(GoogleCloudConnector):
         super().__init__(**kwargs)
 
     def list_locations(self, name, **query):
-        """V1 API에서 locations 조회"""
+        """Query locations from V1 API"""
         locations = []
         query.update({"name": name})
         _LOGGER.info(f"V1 API: Getting locations for name: {name}")
@@ -30,7 +30,7 @@ class CloudRunV1Connector(GoogleCloudConnector):
             try:
                 response = request.execute()
                 raw_locations = response.get("locations", [])
-                # global 위치는 제외
+                # Exclude global location
                 filtered_locations = [
                     loc for loc in raw_locations if loc.get("locationId") != "global"
                 ]
@@ -67,7 +67,7 @@ class CloudRunV1Connector(GoogleCloudConnector):
         return domain_mappings
 
     def list_services(self, parent, **query):
-        """V1 API에서 services 조회 (namespace 기반)"""
+        """Query services from V1 API (namespace-based)"""
         services = []
         query.update({"parent": parent})
 
@@ -88,7 +88,7 @@ class CloudRunV1Connector(GoogleCloudConnector):
         return services
 
     def list_jobs(self, parent, **query):
-        """V1 API에서 jobs 조회 (제한적 지원, namespace 기반)"""
+        """Query jobs from V1 API (limited support, namespace-based)"""
         jobs = []
         query.update({"parent": parent})
 
@@ -109,7 +109,7 @@ class CloudRunV1Connector(GoogleCloudConnector):
         return jobs
 
     def list_revisions(self, parent, **query):
-        """V1 API에서 revisions 조회 (namespace 기반)"""
+        """Query revisions from V1 API (namespace-based)"""
         revisions = []
         query.update({"parent": parent})
 
@@ -130,7 +130,7 @@ class CloudRunV1Connector(GoogleCloudConnector):
         return revisions
 
     def list_executions(self, parent, **query):
-        """V1 API에서 executions 조회 (namespace 기반)"""
+        """Query executions from V1 API (namespace-based)"""
         executions = []
         query.update({"parent": parent})
 
@@ -151,7 +151,7 @@ class CloudRunV1Connector(GoogleCloudConnector):
         return executions
 
     def list_tasks(self, parent, **query):
-        """V1 API에서 tasks 조회 (namespace 기반)"""
+        """Query tasks from V1 API (namespace-based)"""
         tasks = []
         query.update({"parent": parent})
 
@@ -172,7 +172,7 @@ class CloudRunV1Connector(GoogleCloudConnector):
         return tasks
 
     def list_routes(self, parent, **query):
-        """V1 API에서 routes 조회 (namespace 기반)"""
+        """Query routes from V1 API (namespace-based)"""
         routes = []
         query.update({"parent": parent})
 
@@ -193,7 +193,7 @@ class CloudRunV1Connector(GoogleCloudConnector):
         return routes
 
     def list_configurations(self, parent, **query):
-        """V1 API에서 configurations 조회 (namespace 기반)"""
+        """Query configurations from V1 API (namespace-based)"""
         configurations = []
         query.update({"parent": parent})
 
@@ -216,7 +216,7 @@ class CloudRunV1Connector(GoogleCloudConnector):
         return configurations
 
     def list_worker_pools(self, parent, **query):
-        """V1 API에서 worker pools 조회 (namespace 기반)"""
+        """Query worker pools from V1 API (namespace-based)"""
         worker_pools = []
         query.update({"parent": parent})
 

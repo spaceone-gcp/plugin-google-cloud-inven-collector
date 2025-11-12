@@ -1,18 +1,19 @@
 from schematics import Model
 from schematics.types import (
-    ModelType,
-    ListType,
-    StringType,
-    IntType,
-    DateTimeType,
     BooleanType,
+    DateTimeType,
     FloatType,
+    IntType,
+    ListType,
+    ModelType,
+    StringType,
 )
+
 from spaceone.inventory.libs.schema.cloud_service import BaseResource
+from spaceone.inventory.libs.schema.google_cloud_logging import GoogleCloudLoggingModel
 from spaceone.inventory.libs.schema.google_cloud_monitoring import (
     GoogleCloudMonitoringModel,
 )
-from spaceone.inventory.libs.schema.google_cloud_logging import GoogleCloudLoggingModel
 
 
 class Labels(Model):
@@ -390,7 +391,7 @@ class HostRule(Model):
 
 
 class RoutingRule(Model):
-    """라우팅 테이블의 개별 규칙을 나타내는 모델"""
+    """Model representing individual rules in the routing table"""
     host = StringType(serialize_when_none=False)
     path = StringType(serialize_when_none=False)
     backend = StringType(serialize_when_none=False)
@@ -556,9 +557,9 @@ class LoadBalancing(BaseResource):
 
     def _get_console_url(self):
         """
-        LoadBalancer 타입에 따라 적절한 Google Cloud Console URL을 생성합니다.
+        Generate appropriate Google Cloud Console URL based on LoadBalancer type.
         """
-        # 기본 정보 추출
+        # Extract basic information
         project = getattr(self, 'project', '')
         region = getattr(self, 'region', '')
         name = getattr(self, 'name', '')
@@ -566,13 +567,13 @@ class LoadBalancing(BaseResource):
         internal_or_external = getattr(self, 'internal_or_external', '')
         
         if not all([project, name]):
-            # 필수 정보가 없으면 API URL 반환 (fallback)
+            # Return API URL if essential information is missing (fallback)
             return getattr(self, 'self_link', '')
         
-        # LoadBalancer 타입별 Console URL 매핑
+        # Console URL mapping by LoadBalancer type
         base_url = "https://console.cloud.google.com/net-services/loadbalancing/details"
         
-        # Internal vs External 구분
+        # Distinguish between Internal vs External
         if internal_or_external == "INTERNAL_MANAGED":
             if region:
                 # Regional Internal LoadBalancer
@@ -600,5 +601,5 @@ class LoadBalancing(BaseResource):
                 elif "SSL" in lb_type:
                     return f"{base_url}/externalGlobalSsl/{name}?project={project}"
         
-        # 기본 LoadBalancing 목록 페이지로 fallback
+        # Fallback to default LoadBalancing list page
         return f"https://console.cloud.google.com/net-services/loadbalancing/list/loadBalancers?project={project}"

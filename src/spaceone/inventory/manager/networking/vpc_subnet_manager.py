@@ -1,18 +1,22 @@
-import time
 import logging
-from ipaddress import ip_address, IPv4Address
+import time
+from ipaddress import IPv4Address, ip_address
 
-from spaceone.inventory.libs.manager import GoogleCloudManager
-from spaceone.inventory.libs.schema.base import ReferenceModel, reset_state_counters, log_state_summary
 from spaceone.inventory.connector.networking.vpc_subnet import VPCSubnetConnector
-from spaceone.inventory.model.networking.vpc_subnet.cloud_service_type import (
-    CLOUD_SERVICE_TYPES,
+from spaceone.inventory.libs.manager import GoogleCloudManager
+from spaceone.inventory.libs.schema.base import (
+    ReferenceModel,
+    log_state_summary,
+    reset_state_counters,
 )
 from spaceone.inventory.model.networking.vpc_subnet.cloud_service import (
     VPCSubnetResource,
     VPCSubnetResponse,
 )
-from spaceone.inventory.model.networking.vpc_subnet.data import VPCSubnet, IPAddress
+from spaceone.inventory.model.networking.vpc_subnet.cloud_service_type import (
+    CLOUD_SERVICE_TYPES,
+)
+from spaceone.inventory.model.networking.vpc_subnet.data import IPAddress, VPCSubnet
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -36,7 +40,7 @@ class VPCSubnetManager(GoogleCloudManager):
             CloudServiceResponse/ErrorResourceResponse
         """
 
-        # v2.0 로깅 시스템: 상태 카운터 초기화
+        # v2.0 logging system: initialize state counters
         reset_state_counters()
         
         collected_cloud_services = []
@@ -129,7 +133,7 @@ class VPCSubnetManager(GoogleCloudManager):
 
                 ##################################
                 # 5. Make Resource Response Object
-                # v2.0 로깅 시스템: SUCCESS 응답 생성
+                # v2.0 logging system: create SUCCESS response
                 ##################################
                 subnet_response = VPCSubnetResponse.create_with_logging(
                     state="SUCCESS",
@@ -144,7 +148,7 @@ class VPCSubnetManager(GoogleCloudManager):
                 )
                 error_responses.append(error_response)
 
-        # v2.0 로깅 시스템: 수집 완료 시 상태 요약 로깅
+        # v2.0 logging system: log state summary when collection is complete
         log_state_summary()
         _LOGGER.debug(f"** VPC Subnet Finished {time.time() - start_time:.2f} Seconds **")
         _LOGGER.info(f"Collected {len(collected_cloud_services)} VPC Subnets")
@@ -152,7 +156,7 @@ class VPCSubnetManager(GoogleCloudManager):
         return collected_cloud_services, error_responses
 
     def _get_internal_ip_addresses_in_subnet(self, subnet, regional_address, network_name):
-        """서브넷에 속한 내부 IP 주소 목록을 조회합니다."""
+        """Retrieve the list of internal IP addresses belonging to the subnet."""
         all_internal_addresses = []
         subnet_link = subnet.get("selfLink", "")
 
@@ -184,20 +188,20 @@ class VPCSubnetManager(GoogleCloudManager):
         return all_internal_addresses
 
     def _get_flow_log_status(self, subnet):
-        """서브넷의 Flow Log 상태를 확인합니다."""
+        """Check the Flow Log status of the subnet."""
         log_config = subnet.get("logConfig", {})
         return "On" if log_config.get("enable") else "Off"
 
     @staticmethod
     def _valid_ip_address(ip):
-        """IP 주소 유효성을 검사하고 버전을 반환합니다."""
+        """Validate IP address and return its version."""
         try:
             return "IPv4" if type(ip_address(ip)) is IPv4Address else "IPv6"
         except ValueError:
             return "Invalid"
 
     def _get_parse_users(self, users):
-        """IP 주소 사용자 정보를 파싱합니다."""
+        """Parse IP address user information."""
         parsed_used_by = []
         for url_user in users:
             zone = self.get_param_in_url(url_user, "zones")

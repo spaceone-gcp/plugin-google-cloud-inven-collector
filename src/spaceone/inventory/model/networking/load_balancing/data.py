@@ -119,18 +119,13 @@ class TargetHttpsProxy(Model):
 
 
 class TargetProxy(Model):
+    id = StringType(serialize_when_none=False)
     name = StringType(serialize_when_none=False)
-    type = StringType(
-        choices=["GRPC", "HTTP", "HTTPS", "SSL", "TCP"],
-        default="TCP",
-        serialize_when_none=False,
-    )
+    kind = StringType(serialize_when_none=False)
+    urlMap = StringType(serialize_when_none=False)
     description = StringType(serialize_when_none=False)
-    grpc_proxy = ModelType(TargetGRPCProxy, serialize_when_none=False)
-    http_proxy = ModelType(TargetHttpProxy, serialize_when_none=False)
-    https_proxy = ModelType(TargetHttpsProxy, serialize_when_none=False)
-    tcp_proxy = ModelType(TargetTCPProxy, serialize_when_none=False)
-    ssl_proxy = ModelType(TargetSSLProxy, serialize_when_none=False)
+    creation_timestamp = DateTimeType(deserialize_from="creationTimestamp", serialize_when_none=False)
+    self_link = StringType(deserialize_from="selfLink", serialize_when_none=False)
 
 
 class ForwardingRule(Model):

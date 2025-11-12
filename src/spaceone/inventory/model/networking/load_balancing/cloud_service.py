@@ -53,13 +53,10 @@ lb_target_proxy = ItemDynamicLayout.set_fields(
     "Target Proxy",
     root_path="data.target_proxy",
     fields=[
+        TextDyField.data_source("Id", "id"),
         TextDyField.data_source("Name", "name"),
-        EnumDyField.data_source(
-            "Proxy Type",
-            "type",
-            default_outline_badge=["GRPC", "HTTP", "HTTPS", "SSL", "TCP"],
-        ),
-        TextDyField.data_source("Description", "description"),
+        TextDyField.data_source("Kind", "kind"),
+        TextDyField.data_source("URL Map", "urlMap"),
     ],
 )
 

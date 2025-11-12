@@ -13,7 +13,6 @@ from spaceone.inventory.libs.schema.metadata.dynamic_layout import (
     ItemDynamicLayout,
     ListDynamicLayout,
     SimpleTableDynamicLayout,
-    TableDynamicLayout,
 )
 from spaceone.inventory.model.bigquery.sql_workspace.data import *
 
@@ -47,20 +46,9 @@ workspace_dataset_meta = ListDynamicLayout.set_layouts(
     "Dataset Details", layouts=[dataset_details_meta, access_table_meta]
 )
 
-
-workspace_labels_meta = TableDynamicLayout.set_fields(
-    "Labels",
-    root_path="data.labels",
-    fields=[
-        TextDyField.data_source("Key", "key"),
-        TextDyField.data_source("Value", "value"),
-    ],
-)
-
 big_query_workspace_meta = CloudServiceMeta.set_layouts(
     [
         workspace_dataset_meta,
-        workspace_labels_meta,
     ]
 )
 

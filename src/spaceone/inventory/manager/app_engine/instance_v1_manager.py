@@ -653,27 +653,20 @@ class AppEngineInstanceV1Manager(GoogleCloudManager):
                                     # Google Cloud Monitoring 설정
                                     instance_data["google_cloud_monitoring"] = {
                                         "name": f"projects/{project_id}",
-                                        "resource_id": project_id,
+                                        "resource_id": instance_id,
                                         "filters": [
                                             {
-                                                "metric_type": "appengine.googleapis.com/http",
+                                                "metric_type": "appengine.googleapis.com/http/server/response_count",
                                                 "labels": [
-                                                    {
-                                                        "key": "resource.labels.project_id",
-                                                        "value": project_id,
-                                                    },
-                                                    {
-                                                        "key": "resource.labels.module_id",
-                                                        "value": service_id,
-                                                    },
                                                     {
                                                         "key": "resource.labels.version_id",
                                                         "value": version_id,
                                                     },
                                                 ],
-                                            },
+                                            }
                                         ],
                                     }
+                                    
                                     instance_data["google_cloud_logging"] = (
                                         self.set_google_cloud_logging(
                                             "AppEngine",

@@ -159,6 +159,15 @@ class FunctionGen2Manager(GoogleCloudManager):
                         }
                     )
 
+                if secret_environment_variables := serviceConfig.get(
+                    "secretEnvironmentVariables"
+                ):
+                    display.update(
+                        {
+                            "secret_environment_variables": secret_environment_variables
+                        }
+                    )
+
                 ##################################
                 # 3. Make function_gen2 data
                 ##################################

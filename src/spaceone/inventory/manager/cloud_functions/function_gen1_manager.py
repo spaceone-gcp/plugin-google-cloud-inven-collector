@@ -119,12 +119,22 @@ class FunctionGen1Manager(GoogleCloudManager):
                         }
                     )
 
+                if secret_environment_variables := function.get(
+                    "secretEnvironmentVariables"
+                ):
+                    display.update(
+                        {
+                            "secret_environment_variables": secret_environment_variables
+                        }
+                    )
+
+                    
                 function.update({"project": project_id, "display": display})
 
                 function.update(
                     {
                         "google_cloud_logging": self.set_google_cloud_logging(
-                            "CloudFunctions", "Function", project_id, function_id
+                            "CloudFunctions", "Function", project_id, function_name
                         )
                     }
                 )

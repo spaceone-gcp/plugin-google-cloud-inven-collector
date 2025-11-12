@@ -42,6 +42,9 @@ class FunctionDisplay(Model):
     build_environment_variables = ListType(
         ModelType(Variable), serialize_when_none=False
     )
+    secret_environment_variables = ListType(
+        ModelType(SecretEnvVar), serialize_when_none=False
+    )
 
 
 class FunctionGen1(BaseResource):

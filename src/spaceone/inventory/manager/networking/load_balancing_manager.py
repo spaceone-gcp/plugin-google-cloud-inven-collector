@@ -136,6 +136,8 @@ class LoadBalancingManager(GoogleCloudManager):
                 ##################################
                 # 2. Make Base Data
                 ##################################
+                
+                creation_ts = self._get_forwarding_rule_creation_timestamp(lb_forwarding_rules)
 
                 loadbalancer_data = LoadBalancing(
                     {
@@ -160,9 +162,7 @@ class LoadBalancingManager(GoogleCloudManager):
                         "legacy_health_checks": lb_legacy_health_checks,
                         "target_pools": lb_target_pools,
                         "tags": [],
-                        "creation_timestamp": self._get_forwarding_rule_creation_timestamp(
-                            lb_forwarding_rules
-                        ),
+                        "creation_timestamp": creation_ts,
                         "google_cloud_monitoring": self.set_google_cloud_monitoring(
                             project_id, "loadbalancer", load_balancer.get("id", ""), [
                                 {"key": "resource.labels.load_balancer_id", "value": load_balancer.get("id", "")}
@@ -275,11 +275,19 @@ class LoadBalancingManager(GoogleCloudManager):
                 "name": load_balancer.get("name", ""),
                 "description": load_balancer.get("description", ""),
             }
-            target_proxy.update(
-                self._get_target_proxy_type(
-                    load_balancer.get("kind", ""), load_balancer
-                )
+            proxy_type_info = self._get_target_proxy_type(
+                load_balancer.get("kind", ""), load_balancer
             )
+            target_proxy.update(proxy_type_info)
+            
+            # description이 비어있으면 타입에 따라 기본 description 설정
+            if not target_proxy.get("description"):
+                proxy_type = proxy_type_info.get("type", "Unknown")
+                proxy_name = target_proxy.get("name", "")
+                if proxy_name:
+                    target_proxy["description"] = f"{proxy_type} Target Proxy for Load Balancer '{proxy_name}'"
+                else:
+                    target_proxy["description"] = f"{proxy_type} Target Proxy for Load Balancer"
 
         return target_proxy
 
@@ -312,7 +320,7 @@ class LoadBalancingManager(GoogleCloudManager):
             return {
                 "name": proxy_name,
                 "type": proxy_type,
-                "description": f"{proxy_type} Target Proxy for Load Balancer",
+                "description": f"{proxy_type} Target Proxy for Load Balancer '{proxy_name}'",
             }
         except Exception as e:
             _LOGGER.warning(f"Failed to extract target proxy info from {self_link}: {e}")
@@ -349,14 +357,121 @@ class LoadBalancingManager(GoogleCloudManager):
     @staticmethod
     def _get_urlmap(load_balancer, url_maps):
         """
-        Get relatred urlmaps to loadbalancer
+        Get related urlmaps to loadbalancer
         """
         matched_urlmap = {}
         for map in url_maps:
             if map.get("selfLink") == load_balancer.get("urlMap", ""):
                 matched_urlmap = map
+                # URLMap 원본 데이터 구조 로깅
+                _LOGGER.info(f"🗺️ URLMap 원본 데이터 구조:")
+                _LOGGER.info(f"  - name: {map.get('name')}")
+                _LOGGER.info(f"  - defaultService: {map.get('defaultService')}")
+                _LOGGER.info(f"  - hostRules: {map.get('hostRules', [])}")
+                _LOGGER.info(f"  - pathMatchers: {map.get('pathMatchers', [])}")
+                _LOGGER.info(f"  - tests: {map.get('tests', [])}")
+                _LOGGER.info(f"  - 전체 키들: {list(map.keys())}")
 
+        # URLMap 데이터를 Google Cloud UI 스타일의 라우팅 테이블로 변환
+        if matched_urlmap:
+            routing_table = LoadBalancingManager._create_routing_table(matched_urlmap)
+            matched_urlmap['routing_table'] = routing_table
+            
+            # 생성된 라우팅 테이블 로깅
+            _LOGGER.info(f"🗺️ 생성된 라우팅 테이블:")
+            for i, route in enumerate(routing_table):
+                _LOGGER.info(f"  {i+1}. 호스트: {route['host']}")
+                _LOGGER.info(f"     경로: {route['path']}")
+                _LOGGER.info(f"     백엔드: {route['backend']}")
+                _LOGGER.info(f"     ---")
+        
         return matched_urlmap
+
+    @staticmethod
+    def _create_routing_table(urlmap):
+        """
+        URLMap 데이터를 Google Cloud UI 스타일의 라우팅 테이블로 변환합니다.
+        
+        Returns:
+            List[Dict]: [
+                {
+                    "host": "호스트명 또는 'default'",
+                    "path": "경로 또는 'default'", 
+                    "backend": "백엔드 서비스명"
+                }
+            ]
+        """
+        routing_table = []
+        
+        # 기본 서비스 추출 (URL에서 서비스명만)
+        default_service = urlmap.get('defaultService', '')
+        default_backend = LoadBalancingManager._extract_service_name(default_service)
+        
+        # 1. 기본 라우트 (일치하지 않는 모든 URL)
+        routing_table.append({
+            "host": "default",
+            "path": "default",
+            "backend": default_backend
+        })
+        
+        # 2. hostRules와 pathMatchers를 조합하여 라우팅 규칙 생성
+        host_rules = urlmap.get('hostRules', [])
+        path_matchers = urlmap.get('pathMatchers', [])
+        
+        # pathMatchers를 이름으로 인덱싱
+        path_matcher_map = {pm['name']: pm for pm in path_matchers}
+        
+        for host_rule in host_rules:
+            hosts = host_rule.get('hosts', [])
+            path_matcher_name = host_rule.get('pathMatcher', '')
+            
+            if path_matcher_name in path_matcher_map:
+                path_matcher = path_matcher_map[path_matcher_name]
+                
+                for host in hosts:
+                    # 각 호스트에 대한 경로 규칙들
+                    path_rules = path_matcher.get('pathRules', [])
+                    
+                    # 특정 경로 규칙들
+                    for path_rule in path_rules:
+                        paths = path_rule.get('paths', [])
+                        service_url = path_rule.get('service', '')
+                        backend = LoadBalancingManager._extract_service_name(service_url)
+                        
+                        for path in paths:
+                            routing_table.append({
+                                "host": host,
+                                "path": path,
+                                "backend": backend
+                            })
+                    
+                    # 해당 호스트의 기본 경로 (pathMatcher의 defaultService)
+                    matcher_default_service = path_matcher.get('defaultService', '')
+                    matcher_default_backend = LoadBalancingManager._extract_service_name(matcher_default_service)
+                    
+                    routing_table.append({
+                        "host": host,
+                        "path": "default",
+                        "backend": matcher_default_backend
+                    })
+        
+        return routing_table
+    
+    @staticmethod
+    def _extract_service_name(service_url):
+        """
+        백엔드 서비스 URL에서 서비스 이름만 추출합니다.
+        예: https://www.googleapis.com/.../backendServices/load-balancing-test-backend
+        → load-balancing-test-backend
+        """
+        if not service_url:
+            return ""
+        
+        try:
+            # URL의 마지막 부분이 서비스 이름
+            return service_url.split('/')[-1]
+        except:
+            return service_url
 
     @staticmethod
     def _get_backend_services(lb_urlmap, backend_services):
@@ -490,7 +605,6 @@ class LoadBalancingManager(GoogleCloudManager):
             lb_protocol = "TCP"
         elif load_balancer.get("kind") in ["compute#targetSslProxy"]:
             lb_protocol = "SSL"
-
         return lb_protocol
 
     @staticmethod
@@ -498,15 +612,38 @@ class LoadBalancingManager(GoogleCloudManager):
         """
         Forwarding Rules에서 creation_timestamp를 가져옵니다.
         여러 개가 있으면 가장 이른 시간을 반환합니다.
+        Google Cloud API의 camelCase 형식을 지원하고 SpaceONE 표준 형식으로 변환합니다.
         """
         if not forwarding_rules:
             return None
         
+        import re
+        from datetime import datetime
+        
         timestamps = []
         for rule in forwarding_rules:
-            timestamp = rule.get("creation_timestamp")
+            # Google Cloud API는 camelCase를 사용 (creationTimestamp)
+            timestamp = rule.get("creationTimestamp") or rule.get("creation_timestamp")
+            
             if timestamp:
-                timestamps.append(timestamp)
+                try:
+                    # Google Cloud 날짜 형식을 SpaceONE 표준 형식으로 변환
+                    # 예: "2025-11-08T22:47:21.098-08:00" → "2025-11-08 22:47:21"
+                    
+                    # 타임존 정보 제거하고 파싱
+                    clean_timestamp = re.sub(r'[+-]\d{2}:\d{2}$|[+-]\d{4}$', '', timestamp)
+                    clean_timestamp = clean_timestamp.split('.')[0]  # 마이크로초 제거
+                    
+                    # datetime 객체로 파싱 후 원하는 형식으로 변환
+                    dt = datetime.fromisoformat(clean_timestamp)
+                    formatted_timestamp = dt.strftime('%Y-%m-%d %H:%M:%S')
+                    
+                    timestamps.append(formatted_timestamp)
+                        
+                except Exception as e:
+                    _LOGGER.warning(f"날짜 형식 변환 실패: {timestamp}, 오류: {e}")
+                    # 변환 실패 시 원본 그대로 사용
+                    timestamps.append(timestamp)
         
         # 가장 이른 시간 반환, 없으면 None
         return min(timestamps) if timestamps else None

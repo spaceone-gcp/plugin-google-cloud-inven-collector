@@ -46,7 +46,6 @@ vpc_gateway_meta = ItemDynamicLayout.set_fields(
                 "green.500": ["TARGET_VPN_GATEWAY"],
             },
         ),
-        TextDyField.data_source("Region", "data.region"),
         TextDyField.data_source("Network", "data.network"),
         TextDyField.data_source("Status", "data.status"),
         TextDyField.data_source("Router Name", "data.router_name"),
@@ -142,7 +141,6 @@ cst_gateway._metadata = CloudServiceTypeMeta.set_meta(
                 "green.500": ["TARGET_VPN_GATEWAY"],
             },
         ),
-        TextDyField.data_source("Region", "data.region"),
         TextDyField.data_source("Network", "data.network"),
         TextDyField.data_source("Status", "data.status"),
         # is_optional - Default
@@ -157,7 +155,6 @@ cst_gateway._metadata = CloudServiceTypeMeta.set_meta(
     search=[
         SearchField.set(name="Name", key="data.name"),
         SearchField.set(name="Gateway Type", key="data.gateway_type"),
-        SearchField.set(name="Region", key="data.region"),
         SearchField.set(name="Network", key="data.network"),
         SearchField.set(name="Status", key="data.status"),
         SearchField.set(name="Description", key="data.description"),

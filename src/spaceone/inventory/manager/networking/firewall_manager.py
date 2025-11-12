@@ -1,18 +1,18 @@
-import time
 import logging
-from ipaddress import ip_address, IPv4Address
+import time
+from ipaddress import IPv4Address, ip_address
 
+from spaceone.inventory.connector.networking.firewall import FirewallConnector
 from spaceone.inventory.libs.manager import GoogleCloudManager
 from spaceone.inventory.libs.schema.base import ReferenceModel
-from spaceone.inventory.connector.networking.firewall import FirewallConnector
-from spaceone.inventory.model.networking.firewall.cloud_service_type import (
-    CLOUD_SERVICE_TYPES,
-)
 from spaceone.inventory.model.networking.firewall.cloud_service import (
     FirewallResource,
     FirewallResponse,
 )
-from spaceone.inventory.model.networking.firewall.data import Firewall, ComputeVM
+from spaceone.inventory.model.networking.firewall.cloud_service_type import (
+    CLOUD_SERVICE_TYPES,
+)
+from spaceone.inventory.model.networking.firewall.data import ComputeVM, Firewall
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ class FirewallManager(GoogleCloudManager):
     cloud_service_types = CLOUD_SERVICE_TYPES
 
     def collect_cloud_service(self, params):
-        _LOGGER.debug(f"** Firewall START **")
+        _LOGGER.debug("** Firewall START **")
         start_time = time.time()
         """
         Args:
@@ -70,11 +70,26 @@ class FirewallManager(GoogleCloudManager):
                 ##################################
                 protocol_port = []
                 flag = "allowed" if "allowed" in firewall else "denied"
-                for allowed in firewall.get(flag, []):
-                    ip_protocol = allowed.get("IPProtocol", "")
+                # 포트가 없는 프로토콜 목록 (ICMP, ESP, AH, SCTP 등)
+                portless_protocols = ["icmp", "esp", "ah", "sctp"]
 
-                    for port in allowed.get("ports", []):
-                        protocol_port.append(f"{ip_protocol}: {port}")
+                for allowed in firewall.get(flag, []):
+                    ip_protocol = allowed.get("IPProtocol", "").lower()
+                    ports = allowed.get("ports", [])
+
+                    if ip_protocol == "all":
+                        # IPProtocol이 "all"이면 모든 프로토콜과 모든 포트
+                        protocol_port.append("all: all")
+                    elif ports:
+                        # 포트가 있으면 각 포트마다 추가
+                        for port in ports:
+                            protocol_port.append(f"{ip_protocol}: {port}")
+                    elif ip_protocol in portless_protocols:
+                        # 포트가 없는 프로토콜(ICMP, ESP, AH 등)은 포트 표시 없이 프로토콜만
+                        protocol_port.append(ip_protocol)
+                    else:
+                        # 포트가 없으면 해당 프로토콜의 모든 포트를 의미
+                        protocol_port.append(f"{ip_protocol}: all")
 
                 display = {
                     "enforcement": (
@@ -116,7 +131,7 @@ class FirewallManager(GoogleCloudManager):
                 )
 
                 # No Labels on API
-                _name = firewall.get("data", "")
+                _name = firewall.get("name", firewall_id)
                 firewall_data = Firewall(firewall, strict=False)
 
                 ##################################

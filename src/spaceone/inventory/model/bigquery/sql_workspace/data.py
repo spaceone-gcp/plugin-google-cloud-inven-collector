@@ -1,17 +1,17 @@
 from schematics import Model
 from schematics.types import (
-    ModelType,
-    ListType,
-    StringType,
-    IntType,
-    DateTimeType,
     BooleanType,
-    FloatType,
-    DictType,
-    UnionType,
-    MultiType,
+    DateTimeType,
+    IntType,
+    ListType,
+    ModelType,
+    StringType,
 )
+
 from spaceone.inventory.libs.schema.cloud_service import BaseResource
+from spaceone.inventory.libs.schema.google_cloud_logging import (
+    GoogleCloudLoggingModel,
+)
 
 
 class Labels(Model):
@@ -118,6 +118,8 @@ class BigQueryWorkSpace(BaseResource):
 
     creation_time = DateTimeType(deserialize_from="creationTime")
     last_modified_time = DateTimeType(deserialize_from="lastModifiedTime")
+    # Logging data
+    google_cloud_logging = ModelType(GoogleCloudLoggingModel, serialize_when_none=False)
 
     def reference(self):
         return {

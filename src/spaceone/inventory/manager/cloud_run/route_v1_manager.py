@@ -84,6 +84,10 @@ class CloudRunRouteV1Manager(GoogleCloudManager):
                 ##################################
                 # 2. Make Base Data
                 ##################################
+                # Convert metadata labels to tags format
+                metadata_labels = route.get("metadata", {}).get("labels", {}) or {}
+                tags = self.convert_labels_format(metadata_labels)
+                
                 latest_ready_revision_name = ""
                 revision_count = 0
 
@@ -126,6 +130,7 @@ class CloudRunRouteV1Manager(GoogleCloudManager):
                         "name": route_name,
                         "account": project_id,
                         "region_code": location_id,
+                        "tags": tags,
                         "data": route_data,
                         "reference": ReferenceModel(
                             {

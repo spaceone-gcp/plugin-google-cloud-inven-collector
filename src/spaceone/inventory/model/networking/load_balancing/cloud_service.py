@@ -28,7 +28,7 @@ lb_forwarding_rule = TableDynamicLayout.set_fields(
         TextDyField.data_source("Name", "name"),
         TextDyField.data_source("IP Address", "ip_address"),
         EnumDyField.data_source(
-            "Protocol",
+            "IP Protocol",
             "ip_protocol",
             default_outline_badge=[
                 "TCP",
@@ -53,19 +53,16 @@ lb_target_proxy = ItemDynamicLayout.set_fields(
     "Target Proxy",
     root_path="data.target_proxy",
     fields=[
+        TextDyField.data_source("Id", "id"),
         TextDyField.data_source("Name", "name"),
-        EnumDyField.data_source(
-            "Proxy Type",
-            "type",
-            default_outline_badge=["GRPC", "HTTP", "HTTPS", "SSL", "TCP"],
-        ),
-        TextDyField.data_source("Description", "description"),
+        TextDyField.data_source("Kind", "kind"),
+        TextDyField.data_source("URL Map", "urlMap"),
     ],
 )
 
 
 lb_routing_table = TableDynamicLayout.set_fields(
-    "Routing Rules",
+    "UrlMap",
     root_path="data.urlmap.routing_table",
     fields=[
         TextDyField.data_source("Host", "host"),
@@ -118,7 +115,7 @@ lb_backend_service = TableDynamicLayout.set_fields(
             ],
         ),
         ListDyField.data_source("Backends", "backends"),
-        ListDyField.data_source("Health Checks", "health_checks"),
+        # ListDyField.data_source("Health Checks", "health_checks"),
         TextDyField.data_source("TimeOut Seconds", "timeout_sec"),
         TextDyField.data_source("Port", "port"),
         TextDyField.data_source("Port Name", "port_name"),

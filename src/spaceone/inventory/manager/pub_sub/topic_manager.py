@@ -116,22 +116,19 @@ class TopicManager(GoogleCloudManager):
                     }
                 )
 
-                # Google Cloud Monitoring 필터 설정
-                google_cloud_monitoring_filters = [
-                    {"key": "resource.labels.topic_id", "value": topic_id},
-                ]
-
                 topic.update(
                     {
                         # Monitoring data
-                        "google_cloud_monitoring": self._set_multiple_google_cloud_monitoring(
+                        "google_cloud_monitoring": self.set_google_cloud_monitoring(
                             project_id,
-                            [
-                                "logging.googleapis.com/byte_count",
-                                "logging.googleapis.com/log_entry_count",
-                            ],
+                            "pubsub.googleapis.com",
                             topic_id,
-                            google_cloud_monitoring_filters,
+                            [
+                                {
+                                    "key": "resource.labels.topic_id",
+                                    "value": topic_id,
+                                }
+                            ],
                         ),
                         # Logging data
                         "google_cloud_logging": self.set_google_cloud_logging(
@@ -226,29 +223,3 @@ class TopicManager(GoogleCloudManager):
     def _make_subscription_id(subscription_name):
         *path, subscription_id = subscription_name.split("/")
         return subscription_id
-
-    @staticmethod
-    def _set_multiple_google_cloud_monitoring(
-        project_id, metric_types, resource_id, filters
-    ):
-        """
-        Set multiple Google Cloud Monitoring metric types for PubSub Topic.
-
-        Args:
-            project_id (str): GCP project ID
-            metric_types (list): List of metric types
-            resource_id (str): Resource ID
-            filters (list): Filters to apply to all metric types
-
-        Returns:
-            dict: Google Cloud Monitoring configuration with multiple metric types
-        """
-        monitoring_filters = []
-        for metric_type in metric_types:
-            monitoring_filters.append({"metric_type": metric_type, "labels": filters})
-
-        return {
-            "name": f"projects/{project_id}",
-            "resource_id": resource_id,
-            "filters": monitoring_filters,
-        }

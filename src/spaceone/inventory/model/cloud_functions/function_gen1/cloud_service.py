@@ -47,7 +47,7 @@ function_detail_meta = ListDynamicLayout.set_layouts(
 source_information = ItemDynamicLayout.set_fields(
     "Information",
     fields=[
-        TextDyField.data_source("Runtime", "data.display.runtime"),
+        TextDyField.data_source("Runtime", "data.runtime"),
         TextDyField.data_source("Entry point", "data.entry_point"),
     ],
 )

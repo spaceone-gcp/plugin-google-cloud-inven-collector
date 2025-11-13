@@ -31,16 +31,16 @@ class GKEClusterV1Manager(GoogleCloudManager):
         super().__init__(**kwargs)
 
     def list_clusters(self, params: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """GKE 클러스터 목록을 조회합니다 (v1 API).
+        """List GKE clusters (v1 API).
 
         Args:
-            params: 조회에 필요한 파라미터 딕셔너리.
+            params: Parameters dictionary for query.
 
         Returns:
-            GKE 클러스터 목록.
+            List of GKE clusters.
 
         Raises:
-            Exception: GKE API 호출 중 오류 발생 시.
+            Exception: When GKE API call fails.
         """
         cluster_connector: GKEClusterV1Connector = self.locator.get_connector(
             self.connector_name, **params
@@ -66,18 +66,18 @@ class GKEClusterV1Manager(GoogleCloudManager):
     def get_cluster(
         self, name: str, location: str, params: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """특정 GKE 클러스터 정보를 조회합니다 (v1 API).
+        """Get specific GKE cluster information (v1 API).
 
         Args:
-            name: 클러스터 이름.
-            location: 클러스터 위치.
-            params: 조회에 필요한 파라미터 딕셔너리.
+            name: Cluster name.
+            location: Cluster location.
+            params: Parameters dictionary for query.
 
         Returns:
-            GKE 클러스터 정보 딕셔너리.
+            GKE cluster information dictionary.
 
         Raises:
-            Exception: GKE API 호출 중 오류 발생 시.
+            Exception: When GKE API call fails.
         """
         cluster_connector: GKEClusterV1Connector = self.locator.get_connector(
             self.connector_name, **params
@@ -93,16 +93,16 @@ class GKEClusterV1Manager(GoogleCloudManager):
             return {}
 
     def list_operations(self, params: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """GKE 작업 목록을 조회합니다 (v1 API).
+        """List GKE operations (v1 API).
 
         Args:
-            params: 조회에 필요한 파라미터 딕셔너리.
+            params: Parameters dictionary for query.
 
         Returns:
-            GKE 작업 목록.
+            List of GKE operations.
 
         Raises:
-            Exception: GKE API 호출 중 오류 발생 시.
+            Exception: When GKE API call fails.
         """
         cluster_connector: GKEClusterV1Connector = self.locator.get_connector(
             self.connector_name, **params
@@ -117,16 +117,16 @@ class GKEClusterV1Manager(GoogleCloudManager):
             return []
 
     def get_resource_limits(self, params: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """GKE 리소스 제한 정보를 조회합니다.
+        """Get GKE resource limits information.
 
         Args:
-            params: 조회에 필요한 파라미터 딕셔너리.
+            params: Parameters dictionary for query.
 
         Returns:
-            GKE 리소스 제한 목록.
+            List of GKE resource limits.
 
         Raises:
-            Exception: GKE API 호출 중 오류 발생 시.
+            Exception: When GKE API call fails.
         """
         try:
             cluster_connector: GKEClusterV1Connector = self.locator.get_connector(
@@ -163,12 +163,7 @@ class GKEClusterV1Manager(GoogleCloudManager):
                 self.connector_name, **params
             )
 
-            # Get node pools for this cluster
             node_pools = cluster_connector.list_node_pools(cluster_name, location)
-
-            _LOGGER.info(
-                f"[CLUSTER_RESOURCES] Cluster {cluster_name}: Found {len(node_pools)} node pools"
-            )
 
             total_cpu = 0
             total_memory_gb = 0
@@ -326,30 +321,17 @@ class GKEClusterV1Manager(GoogleCloudManager):
                 try:
                     pool_name = node_pool.get("name", "unknown")
 
-                    # Get node count
                     current_node_count = node_pool.get(
                         "currentNodeCount", 0
                     ) or node_pool.get("initialNodeCount", 0)
 
-                    _LOGGER.info(
-                        f"[CLUSTER_RESOURCES] Pool {pool_name}: currentNodeCount={current_node_count}"
-                    )
-
                     if not current_node_count:
-                        _LOGGER.info(
-                            f"[CLUSTER_RESOURCES] Pool {pool_name}: Skipping - no nodes"
-                        )
                         continue
 
                     total_nodes += current_node_count
 
-                    # Get machine type from node config
                     node_config = node_pool.get("config", {})
                     machine_type = node_config.get("machineType", "")
-
-                    _LOGGER.info(
-                        f"[CLUSTER_RESOURCES] Pool {pool_name}: machineType={machine_type}"
-                    )
 
                     if machine_type in machine_type_specs:
                         specs = machine_type_specs[machine_type]
@@ -357,36 +339,25 @@ class GKEClusterV1Manager(GoogleCloudManager):
                         pool_memory = specs["memory_gb"] * current_node_count
                         total_cpu += pool_cpu
                         total_memory_gb += pool_memory
-                        _LOGGER.info(
-                            f"[CLUSTER_RESOURCES] Pool {pool_name}: {machine_type} x {current_node_count} = {pool_cpu} CPU, {pool_memory} GB RAM"
-                        )
                     else:
-                        # For unknown machine types, try to parse from name
-                        # e.g., "n1-standard-4" -> 4 CPUs
                         try:
                             if "-" in machine_type:
                                 parts = machine_type.split("-")
                                 if len(parts) >= 3 and parts[-1].isdigit():
                                     cpu_count = int(parts[-1])
-                                    # Estimate memory based on CPU (rough approximation)
                                     if "highmem" in machine_type:
-                                        memory_gb = cpu_count * 6.5  # High memory ratio
+                                        memory_gb = cpu_count * 6.5
                                     elif "highcpu" in machine_type:
-                                        memory_gb = cpu_count * 0.9  # High CPU ratio
+                                        memory_gb = cpu_count * 0.9
                                     else:
-                                        memory_gb = cpu_count * 3.75  # Standard ratio
+                                        memory_gb = cpu_count * 3.75
 
                                     pool_cpu = cpu_count * current_node_count
                                     pool_memory = memory_gb * current_node_count
                                     total_cpu += pool_cpu
                                     total_memory_gb += pool_memory
-                                    _LOGGER.info(
-                                        f"[CLUSTER_RESOURCES] Pool {pool_name}: {machine_type} (parsed) x {current_node_count} = {pool_cpu} CPU, {pool_memory} GB RAM"
-                                    )
                         except Exception:
-                            _LOGGER.debug(
-                                f"Could not parse machine type: {machine_type}"
-                            )
+                            pass
 
                 except Exception as e:
                     _LOGGER.debug(
@@ -397,13 +368,10 @@ class GKEClusterV1Manager(GoogleCloudManager):
             result = {
                 "total_cpu": int(total_cpu),
                 "total_memory_gb": round(total_memory_gb, 1),
-                "total_memory_mb": int(total_memory_gb * 1024),  # GB를 MB로 변환
+                "total_memory_mb": int(total_memory_gb * 1024),
                 "total_nodes": total_nodes,
             }
 
-            _LOGGER.info(
-                f"[CLUSTER_RESOURCES] Cluster {cluster_name} final result: {result}"
-            )
             return result
 
         except Exception as e:
@@ -420,16 +388,16 @@ class GKEClusterV1Manager(GoogleCloudManager):
     def collect_cloud_service(
         self, params: Dict[str, Any]
     ) -> Tuple[List[Any], List[ErrorResourceResponse]]:
-        """GKE 클러스터 정보를 수집합니다 (v1 API).
+        """Collect GKE cluster information (v1 API).
 
         Args:
-            params: 수집에 필요한 파라미터 딕셔너리.
+            params: Parameters dictionary for collection.
 
         Returns:
-            수집된 클라우드 서비스 목록과 오류 응답 목록의 튜플.
+            Tuple of collected cloud service list and error response list.
 
         Raises:
-            Exception: 데이터 수집 중 오류 발생 시.
+            Exception: When data collection fails.
         """
         _LOGGER.debug("** GKE Cluster V1 START **")
 
@@ -480,27 +448,14 @@ class GKEClusterV1Manager(GoogleCloudManager):
                     "total_memory_mb": str(cluster_resources.get("total_memory_mb", 0)),
                 }
 
-                # 네트워크 설정 추가
                 if "networkConfig" in cluster:
                     try:
                         network_config = cluster["networkConfig"]
                         if not isinstance(network_config, dict):
                             _LOGGER.warning(
-                                f"[CLUSTER_NETWORK_CONFIG] Cluster {cluster_name}: "
-                                f"networkConfig is not a dict, type: {type(network_config)}"
+                                f"Cluster {cluster_name}: networkConfig is not a dict, type: {type(network_config)}"
                             )
                             network_config = {}
-
-                        _LOGGER.info(
-                            f"[CLUSTER_NETWORK_CONFIG] Cluster {cluster_name}: "
-                            f"Original networkConfig keys: {list(network_config.keys()) if isinstance(network_config, dict) else 'N/A'}"
-                        )
-                        _LOGGER.debug(
-                            f"[CLUSTER_NETWORK_CONFIG] Cluster {cluster_name}: "
-                            f"Original networkConfig: {network_config}"
-                        )
-
-                        # 기본 필드들은 항상 추가 (API 응답에 항상 존재)
                         default_snat_status = network_config.get(
                             "defaultSnatStatus", {}
                         )
@@ -562,15 +517,6 @@ class GKEClusterV1Manager(GoogleCloudManager):
                                 network_config.get("enableL4ilbSubsetting", False)
                             )
 
-                        _LOGGER.info(
-                            f"[CLUSTER_NETWORK_CONFIG] Cluster {cluster_name}: "
-                            f"Processed networkConfig keys: {list(processed_network_config.keys())}"
-                        )
-                        _LOGGER.debug(
-                            f"[CLUSTER_NETWORK_CONFIG] Cluster {cluster_name}: "
-                            f"Processed networkConfig: {processed_network_config}"
-                        )
-
                         cluster_data.update(
                             {
                                 "networkConfig": processed_network_config,
@@ -582,11 +528,10 @@ class GKEClusterV1Manager(GoogleCloudManager):
                         )
                     except Exception as e:
                         _LOGGER.error(
-                            f"[CLUSTER_NETWORK_CONFIG] Cluster {cluster_name}: "
-                            f"Failed to process networkConfig: {e}",
+                            f"Cluster {cluster_name}: Failed to process networkConfig: {e}",
                             exc_info=True,
                         )
-                        # 에러 발생 시 기본값으로 설정
+                        # Set default values on error
                         cluster_data.update(
                             {
                                 "networkConfig": {},
@@ -762,7 +707,5 @@ class GKEClusterV1Manager(GoogleCloudManager):
                     )
                 )
 
-        _LOGGER.debug("** GKE Cluster V1 END **")
-        return collected_cloud_services, error_responses
         _LOGGER.debug("** GKE Cluster V1 END **")
         return collected_cloud_services, error_responses

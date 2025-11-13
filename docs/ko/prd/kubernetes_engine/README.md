@@ -281,18 +281,45 @@ def _api_call_with_retry(self, api_method, *args, **kwargs):
 
 ## 모니터링 및 로깅
 
-### 1. 성능 메트릭
+### 1. 로깅 최적화 원칙
+
+#### SUCCESS 상태 무음 처리
+- 정상 처리는 카운터만 증가하고 로그 스팸을 방지합니다.
+- 불필요한 디버깅 로그는 제거하여 로그 볼륨을 최소화합니다.
+
+```python
+# ✅ 올바른 방법: SUCCESS 상태는 카운터만 증가
+response = BaseResponse.create_with_logging(resource_data)
+# 로그는 자동으로 카운터에만 기록됨
+
+# ❌ 피해야 할 방법: 불필요한 디버깅 로그
+_LOGGER.info(f"[CLUSTER_RESOURCES] Cluster {cluster_name}: Found {len(node_pools)} node pools")
+_LOGGER.debug(f"[NODEPOOL_NETWORK_CONFIG] NodePool {node_pool_name}: Original networkConfig keys")
+```
+
+#### FAILURE/TIMEOUT 자동 로깅
+- 에러 및 타임아웃은 자동으로 적절한 로그 레벨로 기록됩니다.
+- ERROR (FAILURE), WARNING (TIMEOUT) 레벨로 자동 분류됩니다.
+
+```python
+# ✅ 자동 로깅: 에러는 자동으로 ERROR 레벨로 기록
+error_response = ErrorResourceResponse.create_with_logging(
+    error_message, resource_id
+)
+```
+
+### 2. 성능 메트릭
 ```python
 def _log_collection_metrics(self, start_time: float, resource_count: int):
     """수집 성능 메트릭 로깅"""
     duration = time.time() - start_time
     self.logger.info(
-        f"GKE 수집 완료: {resource_count}개 리소스, "
-        f"소요시간: {duration:.2f}초"
+        f"GKE collection completed: {resource_count} resources, "
+        f"duration: {duration:.2f} seconds"
     )
 ```
 
-### 2. 상태 추적
+### 3. 상태 추적
 ```python
 def _track_collection_status(self, status: str, details: str = None):
     """수집 상태 추적"""
@@ -303,7 +330,7 @@ def _track_collection_status(self, status: str, details: str = None):
     }
 ```
 
-### 3. 리소스별 상태 모니터링
+### 4. 리소스별 상태 모니터링
 ```python
 def _monitor_cluster_health(self, cluster: dict) -> dict:
     """클러스터 상태 모니터링"""
@@ -327,6 +354,13 @@ def _monitor_cluster_health(self, cluster: dict) -> dict:
     
     return health_info
 ```
+
+### 5. 로그 레벨 가이드
+- **DEBUG**: 개발/테스트 환경에서만 사용, API 요청/응답 상세 정보
+- **INFO**: 중요한 수집 이벤트 (시작/완료, 리소스 발견)
+- **WARNING**: 예상 가능한 문제 (API 할당량 경고, 타임아웃, 네트워크 설정 경고)
+- **ERROR**: 처리되지 않은 오류 (인증 실패, API 호출 오류, 네트워크 설정 처리 실패)
+- **CRITICAL**: 서비스 중단급 오류 (플러그인 초기화 실패)
 
 ## 테스트 전략
 
@@ -478,7 +512,9 @@ Error 408: Request timeout
 **해결 방법**: 타임아웃 값 증가, 배치 크기 감소
 
 ### 2. 디버깅 팁
-- API 응답 로깅 활성화
+- **로깅 최적화**: 불필요한 디버깅 로그 제거로 로그 볼륨 최소화
+- **상태 카운터 활용**: `reset_state_counters()` 및 `log_state_summary()` 사용
+- **에러 자동 로깅**: FAILURE/TIMEOUT 상태는 자동으로 적절한 레벨로 기록
 - 네트워크 지연 시간 모니터링
 - 메모리 사용량 추적
 - API 호출 빈도 제한
@@ -507,12 +543,17 @@ Error 408: Request timeout
 - 비정상 접근 패턴 감지
 - 정기적인 보안 감사
 
-## 최신 업데이트 (2024년 9월)
+## 최신 업데이트 (2024년 12월)
 
-### NodePool 정보 수집 기능 추가
+### 로깅 최적화 및 코드 개선
+- **불필요한 디버깅 로그 제거**: 로그 볼륨 최소화 및 성능 향상
+- **한국어 주석/로그 영어화**: 국제화 지원 및 코드 일관성 개선
+- **로깅 최적화**: SUCCESS 상태 무음 처리, FAILURE/TIMEOUT 자동 로깅
+- **상태 추적 시스템**: `BaseResponse.create_with_logging()` 및 `ErrorResourceResponse.create_with_logging()` 활용
+
+### NodePool 정보 수집 기능 (2024년 9월)
 - **노드 정보 수집**: 각 노드 풀의 개별 노드 정보를 상세하게 수집
 - **노드 메타데이터**: 노드 이름, 상태, 머신 타입, IP 주소, 라벨, 테인트 등
-- **향상된 로깅**: 수집 과정의 상세한 로그 및 에러 처리 개선
 - **에러 처리 강화**: 개별 리소스 수집 실패 시에도 전체 프로세스 계속 진행
 
 ### 구현된 매니저 및 커넥터

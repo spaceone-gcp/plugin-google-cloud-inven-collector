@@ -35,16 +35,16 @@ class GKENodePoolV1Manager(GoogleCloudManager):
         self.params = kwargs  # params를 인스턴스 변수로 저장
 
     def list_node_pools(self, params: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """GKE 노드풀 목록을 조회합니다 (v1 API).
+        """List GKE node pools (v1 API).
 
         Args:
-            params: 조회에 필요한 파라미터 딕셔너리.
+            params: Parameters dictionary for query.
 
         Returns:
-            GKE 노드풀 목록.
+            List of GKE node pools.
 
         Raises:
-            Exception: GKE API 호출 중 오류 발생 시.
+            Exception: When GKE API call fails.
         """
         # params를 인스턴스 변수로 저장
         self.params = params
@@ -139,19 +139,19 @@ class GKENodePoolV1Manager(GoogleCloudManager):
         node_pool_name: str,
         params: Dict[str, Any],
     ) -> Dict[str, Any]:
-        """특정 GKE 노드 그룹 정보를 조회합니다 (v1 API).
+        """Get specific GKE node group information (v1 API).
 
         Args:
-            cluster_name: 클러스터 이름.
-            location: 클러스터 위치.
-            node_pool_name: 노드풀 이름.
-            params: 조회에 필요한 파라미터 딕셔너리.
+            cluster_name: Cluster name.
+            location: Cluster location.
+            node_pool_name: Node pool name.
+            params: Parameters dictionary for query.
 
         Returns:
-            GKE 노드 그룹 정보 딕셔너리.
+            GKE node group information dictionary.
 
         Raises:
-            Exception: GKE API 호출 중 오류 발생 시.
+            Exception: When GKE API call fails.
         """
         try:
             node_pool_connector: GKENodePoolV1Connector = self.locator.get_connector(
@@ -213,19 +213,19 @@ class GKENodePoolV1Manager(GoogleCloudManager):
         node_pool_name: str,
         params: Dict[str, Any],
     ) -> Dict[str, Any]:
-        """GKE 노드풀 메트릭을 조회합니다 (v1 API).
+        """Get GKE node pool metrics (v1 API).
 
         Args:
-            cluster_name: 클러스터 이름.
-            location: 클러스터 위치.
-            node_pool_name: 노드풀 이름.
-            params: 조회에 필요한 파라미터 딕셔너리.
+            cluster_name: Cluster name.
+            location: Cluster location.
+            node_pool_name: Node pool name.
+            params: Parameters dictionary for query.
 
         Returns:
-            GKE 노드 그룹 메트릭 정보.
+            GKE node group metrics information.
 
         Raises:
-            Exception: GKE API 호출 중 오류 발생 시.
+            Exception: When GKE API call fails.
         """
         try:
             # 실제 노드풀 정보를 기반으로 메트릭 계산
@@ -278,34 +278,29 @@ class GKENodePoolV1Manager(GoogleCloudManager):
         node_pool_name: str,
         params: Dict[str, Any],
     ) -> Dict[str, Any]:
-        """GKE 노드풀의 노드 목록을 조회합니다 (v1 API).
-        Compute Engine API를 통해 노드 정보를 조회합니다.
+        """Get node list for GKE node pool (v1 API).
+        Retrieves node information via Compute Engine API.
 
         Args:
-            cluster_name: 클러스터 이름.
-            location: 클러스터 위치.
-            node_pool_name: 노드풀 이름.
-            params: 조회에 필요한 파라미터 딕셔너리.
+            cluster_name: Cluster name.
+            location: Cluster location.
+            node_pool_name: Node pool name.
+            params: Parameters dictionary for query.
 
         Returns:
-            GKE 노드 목록.
+            List of GKE nodes.
 
         Raises:
-            Exception: 데이터 수집 중 오류 발생 시.
+            Exception: When data collection fails.
         """
         try:
-            # Compute Engine 도메인의 커넥터들을 직접 호출
             vm_connector = self.locator.get_connector("VMInstanceConnector", **params)
             instance_group_connector = self.locator.get_connector(
                 "InstanceGroupConnector", **params
             )
 
-            # project_id를 직접 추출하여 사용
             project_id = params.get("secret_data", {}).get("project_id")
             if not project_id:
-                _LOGGER.warning(
-                    "project_id not found in params, cannot proceed with node collection"
-                )
                 return []
 
             # GKE 클러스터 정보를 통해 정확한 location 타입 판단
@@ -383,15 +378,12 @@ class GKENodePoolV1Manager(GoogleCloudManager):
                         f"Both regional and zonal APIs failed for location '{location}'"
                     )
 
-            # 인스턴스 그룹에서 실제 인스턴스 정보 조회
             nodes = []
-            instance_groups_info = []  # 인스턴스 그룹 정보를 저장할 리스트
+            instance_groups_info = []
 
             for group in instance_groups:
                 group_name = group.get("name")
-                _LOGGER.info(f"Processing instance group: {group_name}")
 
-                # 인스턴스 그룹 정보 저장
                 group_info = {
                     "name": group_name,
                     "type": "regional" if is_regional else "zonal",
@@ -410,16 +402,12 @@ class GKENodePoolV1Manager(GoogleCloudManager):
 
                 try:
                     if is_regional:
-                        # regional instance group의 경우 region 내의 모든 zone에서 인스턴스 조회
-                        # regional 클러스터는 보통 3개의 zone에 분산됨
                         zones_in_region = self._get_zones_in_region(
                             vm_connector, location
                         )
-                        _LOGGER.info(f"Zones in region {location}: {zones_in_region}")
 
                         for zone in zones_in_region:
                             try:
-                                # InstanceGroupConnector의 list_instances 메서드에 project_id를 직접 전달
                                 instances = self._get_instances_from_group(
                                     instance_group_connector,
                                     group_name,
@@ -430,15 +418,11 @@ class GKENodePoolV1Manager(GoogleCloudManager):
                                     node_info = self._extract_node_info(instance, zone)
                                     nodes.append(node_info)
                                     group_info["instances"].append(node_info)
-                                    _LOGGER.info(
-                                        f"Found node {node_info['name']} in zone {zone}"
-                                    )
                             except Exception as e:
                                 _LOGGER.debug(
                                     f"Failed to get instances from regional group {group_name} in zone {zone}: {e}"
                                 )
                     else:
-                        # zonal instance group의 경우 해당 zone에서만 인스턴스 조회
                         instances = self._get_instances_from_group(
                             instance_group_connector, group_name, location, project_id
                         )
@@ -446,9 +430,6 @@ class GKENodePoolV1Manager(GoogleCloudManager):
                             node_info = self._extract_node_info(instance, location)
                             nodes.append(node_info)
                             group_info["instances"].append(node_info)
-                            _LOGGER.info(
-                                f"Found node {node_info['name']} in zone {location}"
-                            )
 
                 except Exception as e:
                     _LOGGER.warning(
@@ -456,10 +437,6 @@ class GKENodePoolV1Manager(GoogleCloudManager):
                     )
 
                 instance_groups_info.append(group_info)
-
-            _LOGGER.info(
-                f"Retrieved {len(nodes)} nodes via Compute Engine API for node pool {node_pool_name}"
-            )
 
             # 노드 정보와 인스턴스 그룹 정보를 함께 반환
             return {
@@ -546,32 +523,23 @@ class GKENodePoolV1Manager(GoogleCloudManager):
 
     def _try_get_instances(self, instance_group_connector, group_name, location):
         """
-        특정 location에서 인스턴스 그룹의 인스턴스를 조회합니다.
+        Get instances from instance group at specific location.
         """
         try:
-            # location이 region인지 zone인지 판단
-            is_region = len(location.split("-")) <= 2  # asia-northeast3 형태
+            is_region = len(location.split("-")) <= 2
 
             if is_region:
-                # regional instance group 조회
                 instances = instance_group_connector.list_instances(
                     instance_group=group_name, loc=location, loc_type="region"
                 )
                 if instances:
-                    _LOGGER.info(
-                        f"Found {len(instances)} instances in regional instance group {group_name} at {location}"
-                    )
                     return instances
 
             else:
-                # zonal instance group 조회
                 instances = instance_group_connector.list_instances(
                     instance_group=group_name, loc=location, loc_type="zone"
                 )
                 if instances:
-                    _LOGGER.info(
-                        f"Found {len(instances)} instances in zonal instance group {group_name} at {location}"
-                    )
                     return instances
 
             return []
@@ -584,7 +552,7 @@ class GKENodePoolV1Manager(GoogleCloudManager):
 
     def _get_zones_in_region(self, region):
         """
-        특정 region에 속한 zone 목록을 반환합니다.
+        Return list of zones in a specific region.
         """
         # 일반적인 GCP region-zone 패턴
         zone_patterns = {
@@ -603,7 +571,7 @@ class GKENodePoolV1Manager(GoogleCloudManager):
 
     def _extract_node_info(self, instance, zone):
         """
-        Compute Engine 인스턴스 정보에서 노드 정보를 추출합니다.
+        Extract node information from Compute Engine instance data.
         """
         try:
             return {
@@ -638,16 +606,16 @@ class GKENodePoolV1Manager(GoogleCloudManager):
     def collect_cloud_service(
         self, params: Dict[str, Any]
     ) -> Tuple[List[Any], List[ErrorResourceResponse]]:
-        """GKE 노드 그룹 정보를 수집합니다 (v1 API).
+        """Collect GKE node group information (v1 API).
 
         Args:
-            params: 수집에 필요한 파라미터 딕셔너리.
+            params: Parameters dictionary for collection.
 
         Returns:
-            수집된 클라우드 서비스 목록과 오류 응답 목록의 튜플.
+            Tuple of collected cloud service list and error response list.
 
         Raises:
-            Exception: 데이터 수집 중 오류 발생 시.
+            Exception: When data collection fails.
         """
         _LOGGER.info("** GKE Node Pool V1 START **")
 
@@ -656,12 +624,9 @@ class GKENodePoolV1Manager(GoogleCloudManager):
 
         try:
             project_id = params["secret_data"]["project_id"]
-            # GKE 노드 그룹 목록 조회
             node_groups = self.list_node_pools(params)
-            _LOGGER.info(f"Processing {len(node_groups)} node groups")
 
             if not node_groups:
-                _LOGGER.warning("No node groups found to process")
                 return collected_cloud_services, error_responses
 
             for node_group in node_groups:
@@ -671,42 +636,19 @@ class GKENodePoolV1Manager(GoogleCloudManager):
                     node_pool_name = node_group.get("name")
 
                     if not all([cluster_name, location, node_pool_name]):
-                        _LOGGER.warning(
-                            f"Skipping node group due to missing required fields: {node_group.get('name', 'unknown')}"
-                        )
                         continue
 
-                    # project_id 검증 및 로깅
                     if not project_id or project_id == "unknown":
-                        _LOGGER.warning(
-                            f"Node group {node_pool_name} has invalid project_id: {project_id}"
-                        )
-                        # project_id가 없어도 계속 진행 (다른 정보는 수집 가능)
                         project_id = project_id or "unknown"
 
-                    _LOGGER.info(
-                        f"Processing node group: {node_pool_name} in cluster: {cluster_name} (project: {project_id})"
-                    )
-                    _LOGGER.debug(
-                        f"Node pool name from API: '{node_pool_name}' (type: {type(node_pool_name)})"
-                    )
-
-                    # 메트릭 정보 조회
                     metrics = self.get_node_pool_metrics(
                         cluster_name, location, node_pool_name, params
                     )
 
-                    # 노드 정보 조회
                     nodes_info = self.get_node_pool_nodes(
                         cluster_name, location, node_pool_name, params
                     )
 
-                    # 원본 node_group 데이터 구조 확인 (디버깅용)
-                    _LOGGER.debug(
-                        f"Original node_group keys: {list(node_group.keys())}"
-                    )
-
-                    # 기본 노드 풀 데이터 준비 (NodePool 모델에 맞게 수정)
                     node_pool_data = {
                         "name": str(node_pool_name),
                         "cluster_name": str(cluster_name),
@@ -719,7 +661,6 @@ class GKENodePoolV1Manager(GoogleCloudManager):
                         "self_link": node_group.get("selfLink", ""),
                     }
 
-                    # config 정보 추가
                     if "config" in node_group:
                         config = node_group["config"]
                         node_pool_data["config"] = {
@@ -742,7 +683,6 @@ class GKENodePoolV1Manager(GoogleCloudManager):
                             "min_cpu_platform": str(config.get("minCpuPlatform", "")),
                         }
 
-                    # autoscaling 정보 추가
                     if "autoscaling" in node_group:
                         autoscaling = node_group["autoscaling"]
                         node_pool_data["autoscaling"] = {
@@ -768,7 +708,6 @@ class GKENodePoolV1Manager(GoogleCloudManager):
                             ),
                         }
 
-                    # management 정보 추가
                     if "management" in node_group:
                         management = node_group["management"]
                         node_pool_data["management"] = {
@@ -777,28 +716,15 @@ class GKENodePoolV1Manager(GoogleCloudManager):
                             "upgrade_options": management.get("upgradeOptions", {}),
                         }
 
-                    # networkConfig 정보 추가
                     if "networkConfig" in node_group:
                         try:
                             network_config = node_group["networkConfig"]
                             if not isinstance(network_config, dict):
                                 _LOGGER.warning(
-                                    f"[NODEPOOL_NETWORK_CONFIG] NodePool {node_pool_name}: "
-                                    f"networkConfig is not a dict, type: {type(network_config)}"
+                                    f"NodePool {node_pool_name}: networkConfig is not a dict, type: {type(network_config)}"
                                 )
                                 network_config = {}
 
-                            _LOGGER.info(
-                                f"[NODEPOOL_NETWORK_CONFIG] NodePool {node_pool_name}: "
-                                f"Original networkConfig keys: {list(network_config.keys()) if isinstance(network_config, dict) else 'N/A'}"
-                            )
-                            _LOGGER.debug(
-                                f"[NODEPOOL_NETWORK_CONFIG] NodePool {node_pool_name}: "
-                                f"Original networkConfig: {network_config}"
-                            )
-
-                            # 모든 필드를 항상 추가하여 UI 일관성 유지 (값이 없어도 필드는 표시)
-                            # 불린 타입 필드는 그대로 유지 (모델에서 BooleanType으로 정의됨)
                             processed_network_config = {
                                 "podRange": str(
                                     network_config.get("podRange", "") or ""
@@ -806,17 +732,13 @@ class GKENodePoolV1Manager(GoogleCloudManager):
                                 "podIpv4CidrBlock": str(
                                     network_config.get("podIpv4CidrBlock", "") or ""
                                 ),
-                                # enablePrivateNodes는 BooleanType이므로 불린 값 유지
                                 "enablePrivateNodes": bool(
                                     network_config.get("enablePrivateNodes", False)
                                 ),
-                                # subnetwork는 API 응답에 있을 수 있음
                                 "subnetwork": str(
                                     network_config.get("subnetwork", "") or ""
                                 ),
                             }
-                            # networkTierConfig는 딕셔너리 타입
-                            # 값이 있을 때만 포함 (빈 딕셔너리는 제외)
                             network_tier_config = network_config.get(
                                 "networkTierConfig"
                             )
@@ -828,34 +750,16 @@ class GKENodePoolV1Manager(GoogleCloudManager):
                                 processed_network_config["networkTierConfig"] = (
                                     network_tier_config
                                 )
-                            _LOGGER.info(
-                                f"[NODEPOOL_NETWORK_CONFIG] NodePool {node_pool_name}: "
-                                f"Processed networkConfig keys: {list(processed_network_config.keys())}"
-                            )
-                            _LOGGER.debug(
-                                f"[NODEPOOL_NETWORK_CONFIG] NodePool {node_pool_name}: "
-                                f"Processed networkConfig: {processed_network_config}"
-                            )
                             node_pool_data["networkConfig"] = processed_network_config
                         except Exception as e:
                             _LOGGER.error(
-                                f"[NODEPOOL_NETWORK_CONFIG] NodePool {node_pool_name}: "
-                                f"Failed to process networkConfig: {e}",
+                                f"NodePool {node_pool_name}: Failed to process networkConfig: {e}",
                                 exc_info=True,
                             )
-                            # 에러 발생 시 기본값으로 설정
                             node_pool_data["networkConfig"] = {}
-                    else:
-                        _LOGGER.warning(
-                            f"[NODEPOOL_NETWORK_CONFIG] NodePool {node_pool_name}: "
-                            "networkConfig not found in node_group"
-                        )
 
-                    # 메트릭 정보 추가
                     if metrics:
                         node_pool_data["metrics"] = metrics
-
-                    # 노드 정보 추가
                     if nodes_info:
                         node_pool_data["nodes"] = nodes_info["nodes"]
                         node_pool_data["instance_groups"] = nodes_info[
@@ -864,8 +768,7 @@ class GKENodePoolV1Manager(GoogleCloudManager):
                         node_pool_data["total_nodes"] = nodes_info["total_nodes"]
                         node_pool_data["total_groups"] = nodes_info["total_groups"]
 
-                    # Stackdriver 정보 추가
-                    # Google Cloud Monitoring 리소스 ID: {project_id}:{location}:{cluster_name}:{node_pool_name}
+                    # Google Cloud Monitoring resource ID: {project_id}:{location}:{cluster_name}:{node_pool_name}
                     monitoring_resource_id = (
                         f"{project_id}:{location}:{cluster_name}:{node_pool_name}"
                     )
@@ -923,12 +826,9 @@ class GKENodePoolV1Manager(GoogleCloudManager):
 
                     tags = self.convert_labels_format(all_labels)
 
-                    # NodePoolResource 생성
                     node_pool_resource = NodePoolResource(
                         {
-                            "name": node_pool_data.get(
-                                "name"
-                            ),  # cluster와 동일하게 resource 레벨에 name 설정
+                            "name": node_pool_data.get("name"),
                             "data": node_pool_data_model,
                             "reference": {
                                 "resource_id": f"{cluster_name}/{location}/{node_pool_name}",
@@ -939,23 +839,14 @@ class GKENodePoolV1Manager(GoogleCloudManager):
                             "tags": tags,
                         }
                     )
-                    # _LOGGER.debug(f"### NodePoolResource created - serialized data: {node_pool_resource.to_primitive()}")
 
-                    ##################################
-                    # 4. Make Collected Region Code
-                    ##################################
                     self.set_region_code(location)
 
-                    # NodePoolResponse 생성
                     node_pool_response = NodePoolResponse(
                         {"resource": node_pool_resource}
                     )
 
                     collected_cloud_services.append(node_pool_response)
-                    _LOGGER.info(f"Successfully processed node group: {node_pool_name}")
-                    _LOGGER.debug(
-                        f"### NodePoolResponse created - serialized data: {node_pool_resource.to_primitive()}"
-                    )
 
                 except Exception as e:
                     _LOGGER.error(f"[collect_cloud_service] => {e}", exc_info=True)

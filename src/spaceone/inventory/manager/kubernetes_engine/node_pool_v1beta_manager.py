@@ -36,16 +36,16 @@ class GKENodePoolV1BetaManager(GoogleCloudManager):
         self.params = kwargs  # params를 인스턴스 변수로 저장
 
     def list_node_pools(self, params: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """GKE 노드풀 목록을 조회합니다 (v1beta1 API).
+        """List GKE node pools (v1beta1 API).
 
         Args:
-            params: 조회에 필요한 파라미터 딕셔너리.
+            params: Parameters dictionary for query.
 
         Returns:
-            GKE 노드풀 목록.
+            List of GKE node pools.
 
         Raises:
-            Exception: GKE API 호출 중 오류 발생 시.
+            Exception: When GKE API call fails.
         """
         # params를 인스턴스 변수로 저장
         self.params = params
@@ -142,19 +142,19 @@ class GKENodePoolV1BetaManager(GoogleCloudManager):
         node_pool_name: str,
         params: Dict[str, Any],
     ) -> Dict[str, Any]:
-        """특정 GKE 노드풀 정보를 조회합니다 (v1beta1 API).
+        """Get specific GKE node pool information (v1beta1 API).
 
         Args:
-            cluster_name: 클러스터 이름.
-            location: 클러스터 위치.
-            node_pool_name: 노드풀 이름.
-            params: 조회에 필요한 파라미터 딕셔너리.
+            cluster_name: Cluster name.
+            location: Cluster location.
+            node_pool_name: Node pool name.
+            params: Parameters dictionary for query.
 
         Returns:
-            GKE 노드풀 정보 딕셔너리.
+            GKE node pool information dictionary.
 
         Raises:
-            Exception: GKE API 호출 중 오류 발생 시.
+            Exception: When GKE API call fails.
         """
         try:
             node_pool_connector: GKENodePoolV1BetaConnector = (
@@ -175,16 +175,16 @@ class GKENodePoolV1BetaManager(GoogleCloudManager):
             return {}
 
     def list_node_pool_operations(self, params: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """GKE 노드풀 작업 목록을 조회합니다 (v1beta1 API).
+        """List GKE node pool operations (v1beta1 API).
 
         Args:
-            params: 조회에 필요한 파라미터 딕셔너리.
+            params: Parameters dictionary for query.
 
         Returns:
-            GKE 노드풀 작업 목록.
+            List of GKE node pool operations.
 
         Raises:
-            Exception: GKE API 호출 중 오류 발생 시.
+            Exception: When GKE API call fails.
         """
         try:
             cluster_connector: GKEClusterV1BetaConnector = self.locator.get_connector(
@@ -208,16 +208,16 @@ class GKENodePoolV1BetaManager(GoogleCloudManager):
             return []
 
     def list_fleets(self, params: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """GKE Fleet 목록을 조회합니다 (v1beta1 API).
+        """List GKE fleets (v1beta1 API).
 
         Args:
-            params: 조회에 필요한 파라미터 딕셔너리.
+            params: Parameters dictionary for query.
 
         Returns:
-            GKE Fleet 목록.
+            List of GKE fleets.
 
         Raises:
-            Exception: GKE API 호출 중 오류 발생 시.
+            Exception: When GKE API call fails.
         """
         try:
             cluster_connector: GKEClusterV1BetaConnector = self.locator.get_connector(
@@ -232,16 +232,16 @@ class GKENodePoolV1BetaManager(GoogleCloudManager):
             return []
 
     def list_memberships(self, params: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """GKE Membership 목록을 조회합니다 (v1beta1 API).
+        """List GKE memberships (v1beta1 API).
 
         Args:
-            params: 조회에 필요한 파라미터 딕셔너리.
+            params: Parameters dictionary for query.
 
         Returns:
-            GKE Membership 목록.
+            List of GKE memberships.
 
         Raises:
-            Exception: GKE API 호출 중 오류 발생 시.
+            Exception: When GKE API call fails.
         """
         try:
             cluster_connector: GKEClusterV1BetaConnector = self.locator.get_connector(
@@ -262,19 +262,19 @@ class GKENodePoolV1BetaManager(GoogleCloudManager):
         node_pool_name: str,
         params: Dict[str, Any],
     ) -> Dict[str, Any]:
-        """GKE 노드풀 메트릭을 조회합니다 (v1beta1 API).
+        """Get GKE node pool metrics (v1beta1 API).
 
         Args:
-            cluster_name: 클러스터 이름.
-            location: 클러스터 위치.
-            node_pool_name: 노드풀 이름.
-            params: 조회에 필요한 파라미터 딕셔너리.
+            cluster_name: Cluster name.
+            location: Cluster location.
+            node_pool_name: Node pool name.
+            params: Parameters dictionary for query.
 
         Returns:
-            GKE 노드 그룹 메트릭 정보.
+            GKE node pool metrics information.
 
         Raises:
-            Exception: GKE API 호출 중 오류 발생 시.
+            Exception: When GKE API call fails.
         """
         try:
             # 실제 노드풀 정보를 기반으로 메트릭 계산
@@ -327,20 +327,20 @@ class GKENodePoolV1BetaManager(GoogleCloudManager):
         node_pool_name: str,
         params: Dict[str, Any],
     ) -> Dict[str, Any]:
-        """GKE 노드풀의 노드 목록을 조회합니다 (v1beta1 API).
-        Compute Engine API를 통해 노드 정보를 조회합니다.
+        """Get node list for GKE node pool (v1beta1 API).
+        Retrieves node information via Compute Engine API.
 
         Args:
-            cluster_name: 클러스터 이름.
-            location: 클러스터 위치.
-            node_pool_name: 노드풀 이름.
-            params: 조회에 필요한 파라미터 딕셔너리.
+            cluster_name: Cluster name.
+            location: Cluster location.
+            node_pool_name: Node pool name.
+            params: Parameters dictionary for query.
 
         Returns:
-            GKE 노드 목록과 인스턴스 그룹 정보를 포함한 딕셔너리.
+            Dictionary containing GKE node list and instance group information.
 
         Raises:
-            Exception: 데이터 수집 중 오류 발생 시.
+            Exception: When data collection fails.
         """
         try:
             # Compute Engine 도메인의 커넥터들을 직접 호출
@@ -728,13 +728,13 @@ class GKENodePoolV1BetaManager(GoogleCloudManager):
     def collect_cloud_service(
         self, params: Dict[str, Any]
     ) -> Tuple[List[Any], List[ErrorResourceResponse]]:
-        """GKE 노드 그룹 정보를 수집합니다 (v1beta1 API).
+        """Collect GKE node group information (v1beta1 API).
 
         Args:
-            params: 수집에 필요한 파라미터 딕셔너리.
+            params: Parameters dictionary for collection.
 
         Returns:
-            수집된 클라우드 서비스 목록과 오류 응답 목록의 튜플.
+            Tuple of collected cloud service list and error response list.
 
         Raises:
             Exception: 데이터 수집 중 오류 발생 시.
@@ -869,28 +869,15 @@ class GKENodePoolV1BetaManager(GoogleCloudManager):
                             "upgrade_options": management.get("upgradeOptions", {}),
                         }
 
-                    # networkConfig 정보 추가
                     if "networkConfig" in node_group:
                         try:
                             network_config = node_group["networkConfig"]
                             if not isinstance(network_config, dict):
                                 _LOGGER.warning(
-                                    f"[NODEPOOL_NETWORK_CONFIG] NodePool {node_pool_name}: "
-                                    f"networkConfig is not a dict, type: {type(network_config)}"
+                                    f"NodePool {node_pool_name}: networkConfig is not a dict, type: {type(network_config)}"
                                 )
                                 network_config = {}
 
-                            _LOGGER.info(
-                                f"[NODEPOOL_NETWORK_CONFIG] NodePool {node_pool_name}: "
-                                f"Original networkConfig keys: {list(network_config.keys()) if isinstance(network_config, dict) else 'N/A'}"
-                            )
-                            _LOGGER.debug(
-                                f"[NODEPOOL_NETWORK_CONFIG] NodePool {node_pool_name}: "
-                                f"Original networkConfig: {network_config}"
-                            )
-
-                            # 모든 필드를 항상 추가하여 UI 일관성 유지 (값이 없어도 필드는 표시)
-                            # 불린 타입 필드는 그대로 유지 (모델에서 BooleanType으로 정의됨)
                             processed_network_config = {
                                 "podRange": str(
                                     network_config.get("podRange", "") or ""
@@ -898,17 +885,13 @@ class GKENodePoolV1BetaManager(GoogleCloudManager):
                                 "podIpv4CidrBlock": str(
                                     network_config.get("podIpv4CidrBlock", "") or ""
                                 ),
-                                # enablePrivateNodes는 BooleanType이므로 불린 값 유지
                                 "enablePrivateNodes": bool(
                                     network_config.get("enablePrivateNodes", False)
                                 ),
-                                # subnetwork는 API 응답에 있을 수 있음
                                 "subnetwork": str(
                                     network_config.get("subnetwork", "") or ""
                                 ),
                             }
-                            # networkTierConfig는 딕셔너리 타입
-                            # 값이 있을 때만 포함 (빈 딕셔너리는 제외)
                             network_tier_config = network_config.get(
                                 "networkTierConfig"
                             )
@@ -920,28 +903,13 @@ class GKENodePoolV1BetaManager(GoogleCloudManager):
                                 processed_network_config["networkTierConfig"] = (
                                     network_tier_config
                                 )
-                            _LOGGER.info(
-                                f"[NODEPOOL_NETWORK_CONFIG] NodePool {node_pool_name}: "
-                                f"Processed networkConfig keys: {list(processed_network_config.keys())}"
-                            )
-                            _LOGGER.debug(
-                                f"[NODEPOOL_NETWORK_CONFIG] NodePool {node_pool_name}: "
-                                f"Processed networkConfig: {processed_network_config}"
-                            )
                             node_pool_data["networkConfig"] = processed_network_config
                         except Exception as e:
                             _LOGGER.error(
-                                f"[NODEPOOL_NETWORK_CONFIG] NodePool {node_pool_name}: "
-                                f"Failed to process networkConfig: {e}",
+                                f"NodePool {node_pool_name}: Failed to process networkConfig: {e}",
                                 exc_info=True,
                             )
-                            # 에러 발생 시 기본값으로 설정
                             node_pool_data["networkConfig"] = {}
-                    else:
-                        _LOGGER.warning(
-                            f"[NODEPOOL_NETWORK_CONFIG] NodePool {node_pool_name}: "
-                            "networkConfig not found in node_group"
-                        )
 
                     # 메트릭 정보 추가
                     if metrics:

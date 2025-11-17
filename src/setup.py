@@ -33,7 +33,7 @@ setup(
     install_requires=[
         "grpcio",
         "spaceone-api",
-        "spaceone-core==1.12.37",
+        "spaceone-core",
         "schematics",
         "google-api-python-client",
         "MarkupSafe>=2.0.0rc2",

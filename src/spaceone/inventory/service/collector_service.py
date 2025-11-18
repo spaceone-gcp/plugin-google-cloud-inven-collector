@@ -10,6 +10,7 @@ from spaceone.core.service import (
     check_required,
     transaction,
 )
+from spaceone.inventory.conf.client_config import ClientConfigManager
 from spaceone.inventory.conf.cloud_service_conf import (
     CLOUD_SERVICE_GROUP_MAP,
     FILTER_FORMAT,
@@ -102,6 +103,10 @@ class CollectorService(BaseService):
                 - secret_data
                 - filter
         """
+
+        # ClientConfigManager 전역 설정 초기화
+        options = params.get("options", {})
+        ClientConfigManager.initialize(options)
 
         # Project validation을 건너뛰고 바로 매니저 실행으로 진행
         secret_data = params.get("secret_data", {})

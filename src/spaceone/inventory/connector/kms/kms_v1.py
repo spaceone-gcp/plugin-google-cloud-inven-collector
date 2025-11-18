@@ -177,9 +177,11 @@ class KMSConnector(GoogleCloudConnector):
                             key_ring["location_data"] = location_data
                             all_key_rings.append(key_ring)
 
-                except Exception:
-                    # 권한이 없는 location에 대한 접근은 정상적인 상황이므로 로그 출력하지 않음
-                    # _LOGGER.debug(f"Location {location_id} not accessible or no permission: {e}")
+                except Exception as e:
+                    # 디버깅: 예외 로그 출력
+                    _LOGGER.warning(
+                        f"Failed to list key rings in location {location_id}: {type(e).__name__}: {e}"
+                    )
                     continue
 
             _LOGGER.info(

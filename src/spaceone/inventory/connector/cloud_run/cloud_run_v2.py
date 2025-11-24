@@ -173,7 +173,7 @@ class CloudRunV2Connector(GoogleCloudConnector):
         return revisions
 
     def list_operations(self, parent, **query):
-        """V2 API에서 operations 조회"""
+        """Query operations from V2 API"""
         operations = []
         query.update({"name": parent})
         try:

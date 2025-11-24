@@ -55,7 +55,6 @@ class CloudBuildRepositoryV2Manager(GoogleCloudManager):
         all_repositories = []
         try:
             parent = f"projects/{project_id}"
-            _LOGGER.info(f"Getting locations for project: {parent}")
             locations = cloud_build_v2_conn.list_locations(parent)
             _LOGGER.info(f"V2 API: Found {len(locations)} locations")
 
@@ -67,19 +66,12 @@ class CloudBuildRepositoryV2Manager(GoogleCloudManager):
                         connections = cloud_build_v2_conn.list_connections(parent)
                         for connection in connections:
                             connection_name = connection.get("name", "")
-                            _LOGGER.info(f"Processing connection: {connection_name}")
                             if connection_name:
                                 try:
-                                    _LOGGER.info(
-                                        f"Getting repositories for connection: {connection_name}"
-                                    )
                                     repositories = (
                                         cloud_build_v2_conn.list_repositories(
                                             connection_name
                                         )
-                                    )
-                                    _LOGGER.info(
-                                        f"V2 API: Found {len(repositories)} repositories in connection {connection_name}"
                                     )
                                     for repository in repositories:
                                         repository["_location"] = location_id

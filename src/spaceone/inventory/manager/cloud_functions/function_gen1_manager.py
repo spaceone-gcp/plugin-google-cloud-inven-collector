@@ -58,9 +58,9 @@ class FunctionGen1Manager(GoogleCloudManager):
 
         for function in functions:
             try:
-                function_name = function.get("name")
-                location, function_id = self._make_location_and_id(
-                    function_name, project_id
+                function_id = function.get("name")
+                location, function_name = self._make_location_and_id(
+                    function_id, project_id
                 )
                 labels = function.get("labels")
 
@@ -70,7 +70,9 @@ class FunctionGen1Manager(GoogleCloudManager):
                         "state": function.get("status"),
                         "region": location,
                         "environment": "1st gen",
+                        "environment_lowercase": "gen1",
                         "function_id": function_id,
+                        "function_name": function_name,
                         "last_deployed": self._make_last_deployed(
                             function["updateTime"]
                         ),
@@ -117,12 +119,22 @@ class FunctionGen1Manager(GoogleCloudManager):
                         }
                     )
 
+                if secret_environment_variables := function.get(
+                    "secretEnvironmentVariables"
+                ):
+                    display.update(
+                        {
+                            "secret_environment_variables": secret_environment_variables
+                        }
+                    )
+
+                    
                 function.update({"project": project_id, "display": display})
 
                 function.update(
                     {
                         "google_cloud_logging": self.set_google_cloud_logging(
-                            "CloudFunctions", "Function", project_id, function_id
+                            "CloudFunctions", "Function", project_id, function_name
                         )
                     }
                 )

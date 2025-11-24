@@ -8,7 +8,7 @@ from schematics.types import (
     DictType,
 )
 
-__all__ = ["ServiceConfig"]
+__all__ = ["ServiceConfig", "SecretEnvVar"]
 
 
 class SecretEnvVar(Model):

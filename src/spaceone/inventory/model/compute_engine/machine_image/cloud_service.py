@@ -149,7 +149,7 @@ it_meta_network = TableDynamicLayout.set_fields(
         TextDyField.data_source("Primary internal IP", "primary_ip_address"),
         ListDyField.data_source(
             "Alias IP range",
-            "ip_ranges",
+            "alias_ip_ranges.ip_cidr_range",
             default_badge={"type": "outline", "delimiter": "<br>"},
         ),
         TextDyField.data_source("Public IP", "public_ip_address"),

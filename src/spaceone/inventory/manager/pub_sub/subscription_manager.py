@@ -159,8 +159,8 @@ class SubscriptionManager(GoogleCloudManager):
                         "google_cloud_monitoring": self._set_multiple_google_cloud_monitoring(
                             project_id,
                             [
-                                "logging.googleapis.com/byte_count",
-                                "logging.googleapis.com/log_entry_count",
+                                "pubsub.googleapis.com/subscription/num_undelivered_messages",
+                                "pubsub.googleapis.com/subscription/ack_message_count",
                             ],
                             subscription_id,
                             google_cloud_monitoring_filters,

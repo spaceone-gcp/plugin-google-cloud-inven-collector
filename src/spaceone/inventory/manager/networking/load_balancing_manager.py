@@ -23,7 +23,7 @@ class LoadBalancingManager(GoogleCloudManager):
     cloud_service_types = CLOUD_SERVICE_TYPES
 
     def collect_cloud_service(self, params):
-        _LOGGER.debug(f"** Load Balancing START **")
+        _LOGGER.debug("** Load Balancing START **")
         start_time = time.time()
         """
         Args:
@@ -112,7 +112,7 @@ class LoadBalancingManager(GoogleCloudManager):
                 lb_forwarding_rules = self._get_forwarding_rules(
                     load_balancer, forwarding_rules
                 )
-                lb_target_proxy = self._get_target_proxy(load_balancer)
+                lb_target_proxy = self._get_target_proxy(lb_forwarding_rules, loadbalancing_conn)
                 lb_certificates = self._get_certificates(
                     lb_target_proxy, ssl_certificates
                 )
@@ -255,93 +255,112 @@ class LoadBalancingManager(GoogleCloudManager):
         project_name = self.get_param_in_url(url_self_link, "projects")
         return project_name
 
-    def _get_target_proxy(self, load_balancer) -> dict:
+    def _get_target_proxy(self, forwarding_rules, loadbalancing_conn) -> dict:
         """
-        Loadbalancer type is two case
-        1. proxy type(grpc, http, https, tcp, udp)
-        2. forwarding rule(target pool based)
-        Extract target proxy info from self_link if not available directly
-        """
-        # LoadBalancer의 self_link가 Target Proxy를 가리키는 경우
-        self_link = load_balancer.get("self_link", "")
+        Google Cloud Load Balancer는 3가지 타입을 지원합니다:
+        1. Forwarding Rule → Target Proxy → URL Map → Backend Service
+        2. Forwarding Rule → Backend Service (직접)
+        3. Forwarding Rule → Target Pool
         
-        if "targetHttpProxies" in self_link or "targetHttpsProxies" in self_link or "targetTcpProxies" in self_link or "targetSslProxies" in self_link or "targetGrpcProxies" in self_link:
-            target_proxy = self._extract_target_proxy_from_link(self_link)
-        elif load_balancer.get("kind", "") == "compute#forwardingRule":
-            # Forwarding Rule 기반인 경우 self_link에서 Target Proxy 정보 추출
-            target_proxy = self._extract_target_proxy_from_link(self_link)
-        else:
-            target_proxy = {
-                "name": load_balancer.get("name", ""),
-                "description": load_balancer.get("description", ""),
-            }
-            proxy_type_info = self._get_target_proxy_type(
-                load_balancer.get("kind", ""), load_balancer
-            )
-            target_proxy.update(proxy_type_info)
+        Target Proxy는 1번 타입에서만 존재하므로, Forwarding Rule의 target 필드를 확인하여
+        Target Proxy가 실제로 존재할 때만 데이터를 반환합니다.
+        """
+        _LOGGER.debug(f"🎯 Target Proxy 검사 시작 - Forwarding Rules 개수: {len(forwarding_rules)}")
+        
+        for i, forwarding_rule in enumerate(forwarding_rules):
+            target = forwarding_rule.get("target", "")
+            _LOGGER.debug(f"  📋 Forwarding Rule {i+1}: target = {target}")
             
-            # description이 비어있으면 타입에 따라 기본 description 설정
-            if not target_proxy.get("description"):
-                proxy_type = proxy_type_info.get("type", "Unknown")
-                proxy_name = target_proxy.get("name", "")
-                if proxy_name:
-                    target_proxy["description"] = f"{proxy_type} Target Proxy for Load Balancer '{proxy_name}'"
-                else:
-                    target_proxy["description"] = f"{proxy_type} Target Proxy for Load Balancer"
-
-        return target_proxy
-
-    def _extract_target_proxy_from_link(self, self_link: str) -> dict:
-        """
-        self_link에서 Target Proxy 정보를 추출합니다.
-        예: https://www.googleapis.com/compute/v1/projects/mkkang-project/regions/us-central1/targetHttpProxies/test-load-balancer-target-proxy
-        """
-        if not self_link:
-            return {}
-        
-        try:
-            # URL에서 proxy 타입과 이름 추출
-            if "targetHttpProxies" in self_link:
-                proxy_type = "HTTP"
-            elif "targetHttpsProxies" in self_link:
-                proxy_type = "HTTPS"
-            elif "targetTcpProxies" in self_link:
-                proxy_type = "TCP"
-            elif "targetSslProxies" in self_link:
-                proxy_type = "SSL"
-            elif "targetGrpcProxies" in self_link:
-                proxy_type = "GRPC"
+            # Target이 Target Proxy를 가리키는지 확인
+            if self._is_target_proxy_url(target):
+                _LOGGER.debug(f"  ✅ Target Proxy URL 발견! API 호출 시작...")
+                # 실제 Target Proxy API 호출하여 데이터 가져오기
+                target_proxy_data = self._fetch_target_proxy_data(target, loadbalancing_conn)
+                _LOGGER.debug(f"  📊 Target Proxy 데이터: {target_proxy_data}")
+                return target_proxy_data
             else:
-                proxy_type = "UNKNOWN"
-            
-            # URL에서 proxy 이름 추출 (마지막 부분)
-            proxy_name = self_link.split("/")[-1] if "/" in self_link else ""
-            
-            return {
-                "name": proxy_name,
-                "type": proxy_type,
-                "description": f"{proxy_type} Target Proxy for Load Balancer '{proxy_name}'",
-            }
-        except Exception as e:
-            _LOGGER.warning(f"Failed to extract target proxy info from {self_link}: {e}")
-            return {}
+                _LOGGER.debug(f"  ❌ Target Proxy가 아님 (Backend Service 또는 Target Pool)")
+        
+        _LOGGER.debug("  🚫 Target Proxy 없음 - Type 2 또는 Type 3 Load Balancer")
+        # Target Proxy가 없는 경우 빈 딕셔너리 반환
+        return {}
 
-    @staticmethod
-    def _get_target_proxy_type(kind, target_proxy) -> dict:
-        # Proxy service is managed by type(protocol)
-        if kind == "compute#targetGRPCProxy":
-            proxy_type = {"type": "GRPC", "grpc_proxy": target_proxy}
-        elif kind == "compute#targetHttpProxy":
-            proxy_type = {"type": "HTTP", "http_proxy": target_proxy}
-        elif kind == "compute#targetHttpsProxy":
-            proxy_type = {"type": "HTTPS", "https_proxy": target_proxy}
-        elif kind == "compute#targetSslProxy":
-            proxy_type = {"type": "SSL", "ssl_proxy": target_proxy}
-        elif kind == "compute#targetTcpProxy":
-            proxy_type = {"type": "TCP", "tcp_proxy": target_proxy}
-        else:
-            proxy_type = {}
-        return proxy_type
+    def _is_target_proxy_url(self, target_url: str) -> bool:
+        """
+        Target URL이 Target Proxy를 가리키는지 확인합니다.
+        """
+        if not target_url:
+            return False
+        
+        proxy_types = [
+            "targetHttpProxies",
+            "targetHttpsProxies", 
+            "targetTcpProxies",
+            "targetSslProxies",
+            "targetGrpcProxies"
+        ]
+        
+        return any(proxy_type in target_url for proxy_type in proxy_types)
+
+    def _fetch_target_proxy_data(self, target_url: str, loadbalancing_conn) -> dict:
+        """
+        Target Proxy URL을 사용하여 실제 API를 호출하고 데이터를 가져옵니다.
+        """
+        try:
+            _LOGGER.debug(f"    🔍 URL 파싱 시작: {target_url}")
+            
+            # URL에서 프로젝트, 지역, 프록시 타입, 이름 추출
+            url_parts = target_url.split('/')
+            project_id = None
+            region = None
+            proxy_type = None
+            proxy_name = None
+            
+            for i, part in enumerate(url_parts):
+                if part == "projects" and i + 1 < len(url_parts):
+                    project_id = url_parts[i + 1]
+                elif part == "regions" and i + 1 < len(url_parts):
+                    region = url_parts[i + 1]
+                elif part in ["targetHttpProxies", "targetHttpsProxies", "targetTcpProxies", "targetSslProxies", "targetGrpcProxies"]:
+                    proxy_type = part
+                    if i + 1 < len(url_parts):
+                        proxy_name = url_parts[i + 1]
+            
+            _LOGGER.debug(f"    📋 파싱 결과: project_id={project_id}, region={region}, proxy_type={proxy_type}, proxy_name={proxy_name}")
+            
+            if not all([project_id, proxy_type, proxy_name]):
+                _LOGGER.warning(f"Failed to parse target proxy URL: {target_url}")
+                return {}
+            
+            # LoadBalancingConnector를 통해 Target Proxy 데이터 가져오기
+            _LOGGER.debug(f"    🌐 API 호출 시작...")
+            target_proxy_data = loadbalancing_conn.get_target_proxy(
+                project_id, region, proxy_type, proxy_name
+            )
+            
+            _LOGGER.debug(f"    📊 API 응답: {target_proxy_data}")
+            
+            if target_proxy_data:
+                # 필요한 필드만 추출하여 반환
+                result = {
+                    "id": target_proxy_data.get("id", ""),
+                    "name": target_proxy_data.get("name", ""),
+                    "kind": target_proxy_data.get("kind", ""),
+                    "urlMap": target_proxy_data.get("urlMap", ""),
+                    "description": target_proxy_data.get("description", ""),
+                    "creation_timestamp": target_proxy_data.get("creationTimestamp", ""),
+                    "self_link": target_proxy_data.get("selfLink", "")
+                }
+                _LOGGER.debug(f"    ✅ 최종 결과: {result}")
+                return result
+            else:
+                _LOGGER.warning(f"    ❌ API 응답이 비어있음")
+            
+        except Exception as e:
+            _LOGGER.warning(f"Failed to fetch target proxy data from {target_url}: {e}")
+        
+        return {}
+
 
     @staticmethod
     def _get_certificates(lb_target_proxy, ssl_certificates) -> list:
@@ -363,27 +382,11 @@ class LoadBalancingManager(GoogleCloudManager):
         for map in url_maps:
             if map.get("selfLink") == load_balancer.get("urlMap", ""):
                 matched_urlmap = map
-                # URLMap 원본 데이터 구조 로깅
-                _LOGGER.info(f"🗺️ URLMap 원본 데이터 구조:")
-                _LOGGER.info(f"  - name: {map.get('name')}")
-                _LOGGER.info(f"  - defaultService: {map.get('defaultService')}")
-                _LOGGER.info(f"  - hostRules: {map.get('hostRules', [])}")
-                _LOGGER.info(f"  - pathMatchers: {map.get('pathMatchers', [])}")
-                _LOGGER.info(f"  - tests: {map.get('tests', [])}")
-                _LOGGER.info(f"  - 전체 키들: {list(map.keys())}")
 
         # URLMap 데이터를 Google Cloud UI 스타일의 라우팅 테이블로 변환
         if matched_urlmap:
             routing_table = LoadBalancingManager._create_routing_table(matched_urlmap)
             matched_urlmap['routing_table'] = routing_table
-            
-            # 생성된 라우팅 테이블 로깅
-            _LOGGER.info(f"🗺️ 생성된 라우팅 테이블:")
-            for i, route in enumerate(routing_table):
-                _LOGGER.info(f"  {i+1}. 호스트: {route['host']}")
-                _LOGGER.info(f"     경로: {route['path']}")
-                _LOGGER.info(f"     백엔드: {route['backend']}")
-                _LOGGER.info(f"     ---")
         
         return matched_urlmap
 
@@ -470,7 +473,7 @@ class LoadBalancingManager(GoogleCloudManager):
         try:
             # URL의 마지막 부분이 서비스 이름
             return service_url.split('/')[-1]
-        except:
+        except Exception:
             return service_url
 
     @staticmethod

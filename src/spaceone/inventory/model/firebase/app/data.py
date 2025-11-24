@@ -78,19 +78,9 @@ firebase_app_details = ItemDynamicLayout.set_fields(
     ],
 )
 
-# TAB - Timestamps
-firebase_app_timestamps = ItemDynamicLayout.set_fields(
-    "Timestamps",
-    fields=[
-        TextDyField.data_source("Project ID", "data.project_id"),
-        TextDyField.data_source("Full Name", "data.full_name"),
-    ],
-)
-
 # Unified metadata layout
 firebase_app_meta = CloudServiceMeta.set_layouts(
     [
         firebase_app_details,
-        firebase_app_timestamps,
     ]
 )

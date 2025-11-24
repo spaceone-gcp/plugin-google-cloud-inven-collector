@@ -84,8 +84,8 @@ class SnapshotManager(GoogleCloudManager):
                         "google_cloud_monitoring": self._set_multiple_google_cloud_monitoring(
                             project_id,
                             [
-                                "logging.googleapis.com/byte_count",
-                                "logging.googleapis.com/log_entry_count",
+                                "pubsub.googleapis.com/snapshot/backlog_bytes",
+                                "pubsub.googleapis.com/snapshot/num_messages",
                             ],
                             snapshot_id,
                             google_cloud_monitoring_filters,

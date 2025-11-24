@@ -1,9 +1,10 @@
 import logging
 import time
+from datetime import datetime
 
+from spaceone.inventory.connector.bigquery.sql_workspace import SQLWorkspaceConnector
 from spaceone.inventory.libs.manager import GoogleCloudManager
 from spaceone.inventory.libs.schema.base import ReferenceModel
-from spaceone.inventory.connector.bigquery.sql_workspace import SQLWorkspaceConnector
 from spaceone.inventory.model.bigquery.sql_workspace.cloud_service import (
     BigQueryWorkSpace,
     SQLWorkSpaceResource,
@@ -13,7 +14,6 @@ from spaceone.inventory.model.bigquery.sql_workspace.cloud_service import (
 from spaceone.inventory.model.bigquery.sql_workspace.cloud_service_type import (
     CLOUD_SERVICE_TYPES,
 )
-from datetime import datetime
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ class SQLWorkspaceManager(GoogleCloudManager):
     cloud_service_types = CLOUD_SERVICE_TYPES
 
     def collect_cloud_service(self, params):
-        _LOGGER.debug(f"** Big Query SQL Workspace START **")
+        _LOGGER.debug("** Big Query SQL Workspace START **")
         start_time = time.time()
         """
         Args:
@@ -101,6 +101,10 @@ class SQLWorkspaceManager(GoogleCloudManager):
                             "bigquery.googleapis.com",
                             data_set_id,
                             google_cloud_monitoring_filters,
+                        ),
+                        # Logging data
+                        "google_cloud_logging": self.set_google_cloud_logging(
+                            "BigQuery", "SQLWorkspace", project_id, data_set_id
                         ),
                     }
                 )

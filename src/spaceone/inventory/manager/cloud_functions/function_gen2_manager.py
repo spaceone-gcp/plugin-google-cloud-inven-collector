@@ -76,9 +76,9 @@ class FunctionGen2Manager(GoogleCloudManager):
                 ##################################
                 # 1. Set Basic Information
                 ##################################
-                function_name = function.get("name")
-                location, function_id = self._make_location_and_id(
-                    function_name, project_id
+                function_id = function.get("name")
+                location, function_name = self._make_location_and_id(
+                    function_id, project_id
                 )
                 labels = function.get("labels")
 
@@ -93,10 +93,10 @@ class FunctionGen2Manager(GoogleCloudManager):
                     {
                         "state": function.get("state"),
                         "region": location,
-                        "environment": self._make_readable_environment(
-                            function["environment"]
-                        ),
+                        "environment": "2st gen",
+                        "environment_lowercase": "gen2",
                         "function_id": function_id,
+                        "function_name": function_name,
                         "last_deployed": self._make_last_deployed(
                             function["updateTime"]
                         ),
@@ -156,6 +156,15 @@ class FunctionGen2Manager(GoogleCloudManager):
                             "build_environment_variables": self._dict_to_list_of_dict(
                                 build_environment_variables
                             )
+                        }
+                    )
+
+                if secret_environment_variables := serviceConfig.get(
+                    "secretEnvironmentVariables"
+                ):
+                    display.update(
+                        {
+                            "secret_environment_variables": secret_environment_variables
                         }
                     )
 

@@ -18,7 +18,6 @@ class CloudRunV1Connector(GoogleCloudConnector):
         """Query locations from V1 API"""
         locations = []
         query.update({"name": name})
-        _LOGGER.info(f"V1 API: Getting locations for name: {name}")
 
         try:
             request = self.client.projects().locations().list(**query)

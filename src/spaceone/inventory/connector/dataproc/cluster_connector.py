@@ -181,8 +181,6 @@ class DataprocClusterConnector(GoogleCloudConnector):
             cluster_list = self._list_clusters_parallel(**query)
 
         logger.info(f"Total clusters found: {len(cluster_list)}")
-        for cluster in enumerate(cluster_list):
-            logger.info(f"Cluster {cluster[0] + 1}: {cluster[1]}")
         return cluster_list
 
     def get_cluster(self, cluster_name: str, region: str) -> Optional[Dict[str, Any]]:
@@ -662,7 +660,6 @@ class DataprocClusterConnector(GoogleCloudConnector):
             return self._regions_cache
 
         try:
-            # 동적 리전 조회 시도
             regions = self._fetch_dataproc_regions()
             logger.info(
                 f"Successfully fetched {len(regions)} Dataproc regions dynamically"

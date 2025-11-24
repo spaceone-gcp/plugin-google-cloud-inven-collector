@@ -74,13 +74,6 @@ class GoogleCloudConnector(BaseConnector):
             # HttpRequest.execute()에 num_retries 자동 주입
             self._patch_execute_method()
 
-            _LOGGER.info(
-                f"Connector initialized: "
-                f"service={self.google_client_service}, "
-                f"timeout={timeout}s, "
-                f"max_retry_attempts={self.max_retry_attempts}"
-            )
-
         except Exception as e:
             _LOGGER.error(f"Failed to initialize: {e}")
             raise ValueError(f"Invalid credentials: {e}") from e

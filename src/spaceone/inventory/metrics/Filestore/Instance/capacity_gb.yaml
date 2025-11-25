@@ -27,4 +27,4 @@ query_options:
       operator: sum
 unit: GB
 namespace_id: ns-google-cloud-filestore-instance
-version: '1.0' 
+version: '1.1' 

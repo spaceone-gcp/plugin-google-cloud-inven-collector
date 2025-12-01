@@ -143,6 +143,7 @@ class DiskManager(GoogleCloudManager):
                         "region_code": disk.get("region", "Global") or "Global",
                         "tags": labels,
                         "data": disk_data,
+                        "instance_size": disk_data.size,
                         "reference": ReferenceModel(disk_data.reference()),
                     }
                 )

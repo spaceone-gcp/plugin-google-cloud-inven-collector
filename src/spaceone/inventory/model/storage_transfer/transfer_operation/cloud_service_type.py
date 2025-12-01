@@ -30,7 +30,7 @@ cst_transfer_operation.group = "StorageTransfer"
 cst_transfer_operation.service_code = "Storage Transfer Service"
 cst_transfer_operation.is_primary = False
 cst_transfer_operation.is_major = False
-cst_transfer_operation.labels = ["Storage", "Transfer", "Operation"]
+cst_transfer_operation.labels = ["StorageTransfer", "TransferOperation"]
 cst_transfer_operation.tags = {
     "spaceone:icon": f"{ASSET_URL}/Storage-Transfer.svg",
 }

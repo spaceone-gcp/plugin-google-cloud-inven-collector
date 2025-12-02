@@ -33,14 +33,8 @@ class CloudSQLInstanceConnector(GoogleCloudConnector):
         database_list = []
         query.update({"project": self.project_id, "instance": instance_name})
 
-        request = self.client.databases().list(**query)
-        while request is not None:
-            response = request.execute()
-            for database in response.get("items", []):
-                database_list.append(database)
-            request = self.client.instances().list_next(
-                previous_request=request, previous_response=response
-            )
+        response = self.client.databases().list(**query).execute()
+        database_list = response.get("items", [])
 
         return database_list
 

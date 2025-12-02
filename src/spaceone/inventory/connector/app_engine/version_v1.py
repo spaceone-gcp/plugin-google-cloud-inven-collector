@@ -1,6 +1,4 @@
 import logging
-import google.oauth2.service_account
-import googleapiclient.discovery
 
 from spaceone.inventory.libs.connector import GoogleCloudConnector
 
@@ -28,14 +26,8 @@ class AppEngineVersionV1Connector(GoogleCloudConnector):
             - ...
         """
         self.project_id = secret_data.get("project_id")
-        credentials = (
-            google.oauth2.service_account.Credentials.from_service_account_info(
-                secret_data
-            )
-        )
-        self.client = googleapiclient.discovery.build(
-            "appengine", "v1", credentials=credentials
-        )
+        # 부모 클래스의 _build_client 메서드를 사용하여 타임아웃/재시도 설정 적용
+        self.client = self._build_client("appengine", "v1")
 
     def list_versions(self, service_id, **query):
         """
@@ -46,14 +38,14 @@ class AppEngineVersionV1Connector(GoogleCloudConnector):
             "appsId": self.project_id,
             "servicesId": service_id
         })
-        
+
         try:
             request = self.client.apps().services().versions().list(**query)
             while request is not None:
                 response = request.execute()
                 if "versions" in response:
                     version_list.extend(response.get("versions", []))
-                
+
                 # 페이지네이션 처리
                 try:
                     request = self.client.apps().services().versions().list_next(
@@ -63,7 +55,7 @@ class AppEngineVersionV1Connector(GoogleCloudConnector):
                     break
         except Exception as e:
             _LOGGER.error(f"Failed to list App Engine versions for service {service_id} (v1): {e}")
-            
+
         return version_list
 
     def get_version(self, service_id, version_id, **query):
@@ -91,14 +83,14 @@ class AppEngineVersionV1Connector(GoogleCloudConnector):
             "servicesId": service_id,
             "versionsId": version_id
         })
-        
+
         try:
             request = self.client.apps().services().versions().instances().list(**query)
             while request is not None:
                 response = request.execute()
                 if "instances" in response:
                     instance_list.extend(response.get("instances", []))
-                
+
                 # 페이지네이션 처리
                 try:
                     request = self.client.apps().services().versions().instances().list_next(
@@ -108,7 +100,7 @@ class AppEngineVersionV1Connector(GoogleCloudConnector):
                     break
         except Exception as e:
             _LOGGER.error(f"Failed to list App Engine instances for version {version_id} (v1): {e}")
-            
+
         return instance_list
 
     def get_instance(self, service_id, version_id, instance_id, **query):
@@ -136,7 +128,7 @@ class AppEngineVersionV1Connector(GoogleCloudConnector):
             if version_info:
                 instances = self.list_instances(service_id, version_id)
                 version_info["instances"] = instances
-                
+
             return version_info
         except Exception as e:
             _LOGGER.error(f"Failed to get App Engine version with instances {version_id} (v1): {e}")
@@ -148,13 +140,13 @@ class AppEngineVersionV1Connector(GoogleCloudConnector):
         """
         try:
             versions = self.list_versions(service_id)
-            
+
             for version in versions:
                 version_id = version.get("id")
                 if version_id:
                     instances = self.list_instances(service_id, version_id)
                     version["instances"] = instances
-                    
+
             return versions
         except Exception as e:
             _LOGGER.error(f"Failed to list all App Engine versions with instances for service {service_id} (v1): {e}")
@@ -168,7 +160,7 @@ class AppEngineVersionV1Connector(GoogleCloudConnector):
             # App Engine v1 API에서는 메트릭 정보를 직접 제공하지 않으므로
             # 인스턴스 정보에서 메트릭을 계산
             instances = self.list_instances(service_id, version_id)
-            
+
             metrics = {
                 "instance_count": len(instances),
                 "memory_usage": 0,
@@ -179,7 +171,7 @@ class AppEngineVersionV1Connector(GoogleCloudConnector):
                 "total_memory_gb": 0,
                 "total_cpu_cores": 0
             }
-            
+
             for instance in instances:
                 # 인스턴스 상태별 카운트
                 vm_status = instance.get("vmStatus", "")
@@ -187,22 +179,22 @@ class AppEngineVersionV1Connector(GoogleCloudConnector):
                     metrics["running_instances"] += 1
                 elif vm_status == "IDLE":
                     metrics["idle_instances"] += 1
-                
+
                 # 메모리 사용량 합계
                 memory_usage = instance.get("memoryUsage", 0)
                 if isinstance(memory_usage, (int, float)):
                     metrics["memory_usage"] += memory_usage
-                
+
                 # CPU 사용량 합계
                 cpu_usage = instance.get("cpuUsage", 0)
                 if isinstance(cpu_usage, (int, float)):
                     metrics["cpu_usage"] += cpu_usage
-                
+
                 # 요청 수 합계
                 request_count = instance.get("requestCount", 0)
                 if isinstance(request_count, (int, float)):
                     metrics["request_count"] += request_count
-                
+
                 # 리소스 정보 추가
                 resources = instance.get("resources", {})
                 if resources:
@@ -212,11 +204,11 @@ class AppEngineVersionV1Connector(GoogleCloudConnector):
                         metrics["total_memory_gb"] += memory_gb
                     if isinstance(cpu_cores, (int, float)):
                         metrics["total_cpu_cores"] += cpu_cores
-            
+
             # 메트릭 값들을 문자열로 변환 (SpaceONE 호환성)
             for key, value in metrics.items():
                 metrics[key] = str(value)
-            
+
             _LOGGER.info(f"Retrieved version metrics for {version_id}: {metrics['instance_count']} instances")
             return metrics
         except Exception as e:

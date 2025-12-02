@@ -14,11 +14,15 @@ class InsightConnector(GoogleCloudConnector):
         super().__init__(**kwargs)
 
     def get_insight(self, name):
-        return (
-            self.client.projects()
-            .locations()
-            .insightTypes()
-            .insights()
-            .get(name=name)
-            .execute()
-        )
+        try:
+            return (
+                self.client.projects()
+                .locations()
+                .insightTypes()
+                .insights()
+                .get(name=name)
+                .execute()
+            )
+        except Exception as e:
+            _LOGGER.warning(f"Failed to get insight {name}: {e}")
+            return None

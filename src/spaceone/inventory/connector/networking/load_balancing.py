@@ -250,13 +250,13 @@ class LoadBalancingConnector(GoogleCloudConnector):
     def get_target_proxy(self, project_id: str, region: str, proxy_type: str, proxy_name: str):
         """
         특정 Target Proxy의 상세 정보를 가져옵니다.
-        
+
         Args:
             project_id: 프로젝트 ID
             region: 지역 (global일 수도 있음)
             proxy_type: Target Proxy 타입 (targetHttpProxies, targetHttpsProxies 등)
             proxy_name: Target Proxy 이름
-        
+
         Returns:
             Target Proxy 상세 정보 딕셔너리
         """
@@ -308,10 +308,10 @@ class LoadBalancingConnector(GoogleCloudConnector):
             else:
                 _LOGGER.warning(f"Unsupported proxy type: {proxy_type}")
                 return None
-            
+
             response = request.execute()
             return response
-            
+
         except Exception as e:
             _LOGGER.warning(f"Failed to get target proxy {proxy_name} of type {proxy_type}: {e}")
             return None

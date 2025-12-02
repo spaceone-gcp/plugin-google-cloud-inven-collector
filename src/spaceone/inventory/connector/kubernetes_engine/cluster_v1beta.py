@@ -1,8 +1,5 @@
 import logging
 
-import google.oauth2.service_account
-import googleapiclient.discovery
-
 from spaceone.inventory.libs.connector import GoogleCloudConnector
 
 __all__ = ["GKEClusterV1BetaConnector"]
@@ -29,14 +26,8 @@ class GKEClusterV1BetaConnector(GoogleCloudConnector):
             - ...
         """
         self.project_id = secret_data.get("project_id")
-        credentials = (
-            google.oauth2.service_account.Credentials.from_service_account_info(
-                secret_data
-            )
-        )
-        self.client = googleapiclient.discovery.build(
-            "container", "v1beta1", credentials=credentials
-        )
+        # 부모 클래스의 _build_client 메서드를 사용하여 타임아웃/재시도 설정 적용
+        self.client = self._build_client("container", "v1beta1")
 
     def list_clusters(self, **query):
         """
@@ -185,10 +176,8 @@ class GKEClusterV1BetaConnector(GoogleCloudConnector):
         container_engine_quotas = []
 
         try:
-            # Service Usage API 클라이언트 생성
-            service_usage_client = googleapiclient.discovery.build(
-                "serviceusage", "v1", credentials=self.credentials
-            )
+            # Service Usage API 클라이언트 생성 (타임아웃/재시도 설정 적용)
+            service_usage_client = self._build_client("serviceusage", "v1")
 
             # Container Engine API 서비스 확인
             service_name = "container.googleapis.com"

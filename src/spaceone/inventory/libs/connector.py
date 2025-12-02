@@ -44,7 +44,8 @@ class GoogleCloudConnector(BaseConnector):
 
         try:
             # 인증 정보 생성 (Cloud Platform scope 추가)
-            credentials = (
+            # credentials를 인스턴스 속성으로 저장하여 하위 클래스에서 재사용 가능
+            self.credentials = (
                 google.oauth2.service_account.Credentials.from_service_account_info(
                     secret_data,
                     scopes=["https://www.googleapis.com/auth/cloud-platform"],
@@ -60,7 +61,7 @@ class GoogleCloudConnector(BaseConnector):
 
             # 인증된 HTTP 클라이언트 생성
             authorized_http = google_auth_httplib2.AuthorizedHttp(
-                credentials, http=http
+                self.credentials, http=http
             )
 
             # API 클라이언트 생성 (인증된 http만 전달)
@@ -119,6 +120,37 @@ class GoogleCloudConnector(BaseConnector):
     def get_timeout(self) -> int:
         """HTTP 타임아웃 설정 반환 (초)"""
         return ClientConfigManager.get_config().get_timeout()
+
+    def _build_client(self, service_name: str, version: str):
+        """
+        타임아웃과 재시도 설정이 적용된 Google API 클라이언트를 생성합니다.
+
+        자식 클래스에서 다른 서비스의 클라이언트가 필요할 때 이 메서드를 사용하세요.
+
+        Args:
+            service_name: Google API 서비스 이름 (예: 'container', 'appengine', 'dataproc')
+            version: API 버전 (예: 'v1', 'v1beta1')
+
+        Returns:
+            googleapiclient.discovery.Resource: 생성된 API 클라이언트
+        """
+        timeout = self.get_timeout()
+
+        # HTTP 클라이언트 생성 (타임아웃 적용)
+        http = httplib2.Http(timeout=timeout)
+
+        # 인증된 HTTP 클라이언트 생성
+        authorized_http = google_auth_httplib2.AuthorizedHttp(
+            self.credentials, http=http
+        )
+
+        # API 클라이언트 생성
+        return googleapiclient.discovery.build(
+            service_name,
+            version,
+            http=authorized_http,
+            cache_discovery=False,
+        )
 
     def list_zones(self, **query):
         """zone 목록 조회"""

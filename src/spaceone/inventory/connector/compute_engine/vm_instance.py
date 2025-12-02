@@ -1,10 +1,6 @@
 import logging
 import os
 
-import google.oauth2.service_account
-import googleapiclient
-import googleapiclient.discovery
-
 from spaceone.inventory.libs.connector import GoogleCloudConnector
 
 __all__ = ["VMInstanceConnector"]
@@ -45,14 +41,8 @@ class VMInstanceConnector(GoogleCloudConnector):
         """
         try:
             self.project_id = secret_data.get("project_id")
-            credentials = (
-                google.oauth2.service_account.Credentials.from_service_account_info(
-                    secret_data
-                )
-            )
-            self.client = googleapiclient.discovery.build(
-                "compute", "v1", credentials=credentials
-            )
+            # 부모 클래스의 _build_client 메서드를 사용하여 타임아웃/재시도 설정 적용
+            self.client = self._build_client("compute", "v1")
         except Exception as e:
             _LOGGER.warning(f"Failed to get connect VMInstanceConnector: {str(e)}")
             raise
@@ -396,7 +386,7 @@ class VMInstanceConnector(GoogleCloudConnector):
                 for name, _sbworks_list in response["items"].items():
                     if "subnetworks" in _sbworks_list:
                         subnetworks_list.extend(_sbworks_list.get("subnetworks"))
-                request = self.client.addresses().aggregatedList_next(
+                request = self.client.subnetworks().aggregatedList_next(
                     previous_request=request, previous_response=response
                 )
 

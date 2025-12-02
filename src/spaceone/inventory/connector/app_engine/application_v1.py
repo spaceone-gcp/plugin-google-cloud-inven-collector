@@ -1,6 +1,4 @@
 import logging
-import google.oauth2.service_account
-import googleapiclient.discovery
 
 from spaceone.inventory.libs.connector import GoogleCloudConnector
 
@@ -28,14 +26,8 @@ class AppEngineApplicationV1Connector(GoogleCloudConnector):
             - ...
         """
         self.project_id = secret_data.get("project_id")
-        credentials = (
-            google.oauth2.service_account.Credentials.from_service_account_info(
-                secret_data
-            )
-        )
-        self.client = googleapiclient.discovery.build(
-            "appengine", "v1", credentials=credentials
-        )
+        # 부모 클래스의 _build_client 메서드를 사용하여 타임아웃/재시도 설정 적용
+        self.client = self._build_client("appengine", "v1")
 
     def get_application(self, **query):
         """
@@ -56,14 +48,14 @@ class AppEngineApplicationV1Connector(GoogleCloudConnector):
         """
         service_list = []
         query.update({"appsId": self.project_id})
-        
+
         try:
             request = self.client.apps().services().list(**query)
             while request is not None:
                 response = request.execute()
                 if "services" in response:
                     service_list.extend(response.get("services", []))
-                
+
                 # 페이지네이션 처리
                 try:
                     request = self.client.apps().services().list_next(
@@ -73,7 +65,7 @@ class AppEngineApplicationV1Connector(GoogleCloudConnector):
                     break
         except Exception as e:
             _LOGGER.error(f"Failed to list App Engine services (v1): {e}")
-            
+
         return service_list
 
     def get_service(self, service_id, **query):
@@ -99,14 +91,14 @@ class AppEngineApplicationV1Connector(GoogleCloudConnector):
             "appsId": self.project_id,
             "servicesId": service_id
         })
-        
+
         try:
             request = self.client.apps().services().versions().list(**query)
             while request is not None:
                 response = request.execute()
                 if "versions" in response:
                     version_list.extend(response.get("versions", []))
-                
+
                 # 페이지네이션 처리
                 try:
                     request = self.client.apps().services().versions().list_next(
@@ -116,7 +108,7 @@ class AppEngineApplicationV1Connector(GoogleCloudConnector):
                     break
         except Exception as e:
             _LOGGER.error(f"Failed to list App Engine versions for service {service_id} (v1): {e}")
-            
+
         return version_list
 
     def get_version(self, service_id, version_id, **query):
@@ -144,14 +136,14 @@ class AppEngineApplicationV1Connector(GoogleCloudConnector):
             "servicesId": service_id,
             "versionsId": version_id
         })
-        
+
         try:
             request = self.client.apps().services().versions().instances().list(**query)
             while request is not None:
                 response = request.execute()
                 if "instances" in response:
                     instance_list.extend(response.get("instances", []))
-                
+
                 # 페이지네이션 처리
                 try:
                     request = self.client.apps().services().versions().instances().list_next(
@@ -161,7 +153,7 @@ class AppEngineApplicationV1Connector(GoogleCloudConnector):
                     break
         except Exception as e:
             _LOGGER.error(f"Failed to list App Engine instances for version {version_id} (v1): {e}")
-            
+
         return instance_list
 
     def get_instance(self, service_id, version_id, instance_id, **query):
@@ -186,14 +178,14 @@ class AppEngineApplicationV1Connector(GoogleCloudConnector):
         """
         operation_list = []
         query.update({"appsId": self.project_id})
-        
+
         try:
             request = self.client.apps().operations().list(**query)
             while request is not None:
                 response = request.execute()
                 if "operations" in response:
                     operation_list.extend(response.get("operations", []))
-                
+
                 # 페이지네이션 처리
                 try:
                     request = self.client.apps().operations().list_next(
@@ -203,5 +195,5 @@ class AppEngineApplicationV1Connector(GoogleCloudConnector):
                     break
         except Exception as e:
             _LOGGER.error(f"Failed to list App Engine operations (v1): {e}")
-            
+
         return operation_list

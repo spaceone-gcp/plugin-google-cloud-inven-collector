@@ -1,7 +1,5 @@
 import logging
 
-import googleapiclient
-
 from spaceone.inventory.libs.connector import GoogleCloudConnector
 
 __all__ = ["FirebaseConnector"]
@@ -26,8 +24,9 @@ class FirebaseConnector(GoogleCloudConnector):
 
         if hasattr(self, "credentials") and hasattr(self.credentials, "with_scopes"):
             self.credentials = self.credentials.with_scopes(firebase_scopes)
-            self.client = googleapiclient.discovery.build(
-                self.google_client_service, self.version, credentials=self.credentials
+            # 부모 클래스의 _build_client 메서드를 사용하여 타임아웃/재시도 설정 적용
+            self.client = self._build_client(
+                self.google_client_service, self.version
             )
 
     def list_firebase_apps(self, **query):

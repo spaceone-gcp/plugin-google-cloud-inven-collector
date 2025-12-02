@@ -6,8 +6,6 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Dict, List, Optional
 
-import google.oauth2.service_account
-import googleapiclient.discovery
 from googleapiclient.errors import HttpError
 
 from spaceone.inventory.libs.connector import GoogleCloudConnector
@@ -67,14 +65,8 @@ class DataprocClusterConnector(GoogleCloudConnector):
 
         self.project_id = secret_data.get("project_id")
         try:
-            credentials = (
-                google.oauth2.service_account.Credentials.from_service_account_info(
-                    secret_data
-                )
-            )
-            self.client = googleapiclient.discovery.build(
-                "dataproc", "v1", credentials=credentials
-            )
+            # 부모 클래스의 _build_client 메서드를 사용하여 타임아웃/재시도 설정 적용
+            self.client = self._build_client("dataproc", "v1")
             logger.info("Successfully connected to Dataproc service")
         except ValueError as e:
             logger.error(f"Invalid service account credentials: {e}")
@@ -100,26 +92,12 @@ class DataprocClusterConnector(GoogleCloudConnector):
             # Create independent client for each thread
             try:
                 if hasattr(self, "credentials") and self.credentials:
-                    self._thread_local.client = googleapiclient.discovery.build(
-                        "dataproc",
-                        "v1",
-                        credentials=self.credentials,
-                        cache_discovery=False,
-                    )
+                    # 부모 클래스의 _build_client 메서드를 사용하여 타임아웃/재시도 설정 적용
+                    self._thread_local.client = self._build_client("dataproc", "v1")
                 else:
-                    # If main client exists, extract credentials to create new client
+                    # If main client exists, use it as fallback
                     if hasattr(self, "client") and self.client:
-                        # Get credentials from default client
-                        credentials = getattr(self.client, "_credentials", None)
-                        if credentials:
-                            self._thread_local.client = googleapiclient.discovery.build(
-                                "dataproc",
-                                "v1",
-                                credentials=credentials,
-                                cache_discovery=False,
-                            )
-                        else:
-                            self._thread_local.client = self.client
+                        self._thread_local.client = self.client
                     else:
                         raise ValueError(
                             "No client or credentials available for thread-safe access"
@@ -749,10 +727,8 @@ class DataprocClusterConnector(GoogleCloudConnector):
 
         try:
             # Query available regions through Compute Engine API
-            # Use credentials set in parent class
-            compute_client = googleapiclient.discovery.build(
-                "compute", "v1", credentials=self.credentials
-            )
+            # 부모 클래스의 _build_client 메서드를 사용하여 타임아웃/재시도 설정 적용
+            compute_client = self._build_client("compute", "v1")
             request = compute_client.regions().list(project=self.project_id)
             response = request.execute()
 

@@ -1,8 +1,5 @@
 import logging
 
-import google.oauth2.service_account
-import googleapiclient.discovery
-
 from spaceone.inventory.libs.connector import GoogleCloudConnector
 
 __all__ = ["AppEngineServiceV1Connector"]
@@ -29,14 +26,8 @@ class AppEngineServiceV1Connector(GoogleCloudConnector):
             - ...
         """
         self.project_id = secret_data.get("project_id")
-        credentials = (
-            google.oauth2.service_account.Credentials.from_service_account_info(
-                secret_data
-            )
-        )
-        self.client = googleapiclient.discovery.build(
-            "appengine", "v1", credentials=credentials
-        )
+        # 부모 클래스의 _build_client 메서드를 사용하여 타임아웃/재시도 설정 적용
+        self.client = self._build_client("appengine", "v1")
 
     def list_services(self, **query):
         """

@@ -1,6 +1,4 @@
 import logging
-import google.oauth2.service_account
-import googleapiclient.discovery
 
 from spaceone.inventory.libs.connector import GoogleCloudConnector
 
@@ -29,14 +27,8 @@ class GKENodePoolV1BetaConnector(GoogleCloudConnector):
         """
         self.project_id = secret_data.get("project_id")
         self.secret_data = secret_data  # secret_data를 인스턴스 변수로 저장
-        self.credentials = (
-            google.oauth2.service_account.Credentials.from_service_account_info(
-                secret_data
-            )
-        )
-        self.client = googleapiclient.discovery.build(
-            "container", "v1beta1", credentials=self.credentials
-        )
+        # 부모 클래스의 _build_client 메서드를 사용하여 타임아웃/재시도 설정 적용
+        self.client = self._build_client("container", "v1beta1")
 
     def list_node_pools(self, cluster_name, location, **query):
         """
@@ -46,19 +38,19 @@ class GKENodePoolV1BetaConnector(GoogleCloudConnector):
         if not hasattr(self, 'secret_data'):
             _LOGGER.warning("secret_data not found, cannot list node pools")
             return []
-            
+
         node_pool_list = []
         query.update({
             "parent": f"projects/{self.project_id}/locations/{location}/clusters/{cluster_name}"
         })
-        
+
         try:
             request = self.client.projects().locations().clusters().nodePools().list(**query)
             while request is not None:
                 response = request.execute()
                 if "nodePools" in response:
                     node_pool_list.extend(response.get("nodePools", []))
-                
+
                 # 페이지네이션 처리 - list_next가 있는지 확인
                 try:
                     request = self.client.projects().locations().clusters().nodePools().list_next(
@@ -69,7 +61,7 @@ class GKENodePoolV1BetaConnector(GoogleCloudConnector):
                     break
         except Exception as e:
             _LOGGER.error(f"Failed to list node pools for cluster {cluster_name} (v1beta1): {e}")
-            
+
         return node_pool_list
 
     def get_node_pool(self, cluster_name, location, node_pool_name):
@@ -80,7 +72,7 @@ class GKENodePoolV1BetaConnector(GoogleCloudConnector):
         if not hasattr(self, 'secret_data'):
             _LOGGER.warning("secret_data not found, cannot get node pool")
             return None
-            
+
         try:
             request = self.client.projects().locations().clusters().nodePools().get(
                 name=f"projects/{self.project_id}/locations/{location}/clusters/{cluster_name}/nodePools/{node_pool_name}"

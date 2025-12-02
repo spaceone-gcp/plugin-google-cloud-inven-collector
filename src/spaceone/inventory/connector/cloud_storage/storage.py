@@ -62,10 +62,10 @@ class StorageConnector(GoogleCloudConnector):
                         objects_list.append({"size": size})
                     else:
                         _LOGGER.warning(f"Skipping invalid object template: {type(template)}")
-            # Max iteration
+            # Max iteration - 타입 일관성을 위해 빈 리스트 반환 (False 대신)
             if count > MAX_OBJECTS:
-                # TOO MANY objects
-                return False
+                _LOGGER.warning(f"Too many objects in bucket {bucket_name}: {count} > {MAX_OBJECTS}")
+                return objects_list
             request = self.client.objects().list_next(
                 previous_request=request, previous_response=response
             )

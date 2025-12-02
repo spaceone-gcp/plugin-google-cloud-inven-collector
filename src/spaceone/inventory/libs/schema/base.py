@@ -115,13 +115,13 @@ def log_state_summary():
     total = sum(_STATE_COUNTERS.values())
 
     if total == 0:
-        _LOGGER.info("📊 Response State Summary: No responses processed")
+        _LOGGER.info("Response State Summary: No responses processed")
         return
 
     success_rate = (_STATE_COUNTERS["SUCCESS"] / total) * 100 if total > 0 else 0
 
     _LOGGER.info(
-        f"📊 Response State Summary: "
+        f"Response State Summary: "
         f"Total={total}, "
         f"SUCCESS={_STATE_COUNTERS['SUCCESS']} ({success_rate:.1f}%), "
         f"FAILURE={_STATE_COUNTERS['FAILURE']}, "

@@ -20,7 +20,8 @@ class TopicConnector(GoogleCloudConnector):
 
         while request is not None:
             response = request.execute()
-            topics = response.get("topics", [])
+            # extend 사용하여 모든 페이지 결과 누적 (= 대신 extend)
+            topics.extend(response.get("topics", []))
             request = (
                 self.client.projects()
                 .topics()
@@ -36,7 +37,8 @@ class TopicConnector(GoogleCloudConnector):
 
         while request is not None:
             response = request.execute()
-            snapshots = response.get("snapshots", [])
+            # extend 사용하여 모든 페이지 결과 누적 (= 대신 extend)
+            snapshots.extend(response.get("snapshots", []))
             request = snapshot_service.list_next(
                 previous_request=request, previous_response=response
             )
@@ -50,7 +52,8 @@ class TopicConnector(GoogleCloudConnector):
 
         while request is not None:
             response = request.execute()
-            subscriptions = response.get("subscriptions", [])
+            # extend 사용하여 모든 페이지 결과 누적 (= 대신 extend)
+            subscriptions.extend(response.get("subscriptions", []))
             request = subscription_service.list_next(
                 previous_request=request, previous_response=response
             )

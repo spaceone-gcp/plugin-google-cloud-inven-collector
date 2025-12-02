@@ -1,24 +1,19 @@
 import logging
-from typing import List, Dict, Any, Tuple
+from typing import Any, Dict, List, Tuple
 
 from spaceone.inventory.connector.app_engine.application_v1 import (
     AppEngineApplicationV1Connector,
 )
 from spaceone.inventory.libs.manager import GoogleCloudManager
-
-from spaceone.inventory.model.app_engine.application.cloud_service_type import (
-    CLOUD_SERVICE_TYPES,
-)
-
+from spaceone.inventory.libs.schema.cloud_service import ErrorResourceResponse
 from spaceone.inventory.model.app_engine.application.cloud_service import (
     AppEngineApplicationResource,
     AppEngineApplicationResponse,
 )
-from spaceone.inventory.model.app_engine.application.data import (
-    AppEngineApplication,
+from spaceone.inventory.model.app_engine.application.cloud_service_type import (
+    CLOUD_SERVICE_TYPES,
 )
-from spaceone.inventory.model.kubernetes_engine.cluster.data import convert_datetime
-from spaceone.inventory.libs.schema.cloud_service import ErrorResourceResponse
+from spaceone.inventory.model.app_engine.application.data import AppEngineApplication
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,16 +27,16 @@ class AppEngineApplicationV1Manager(GoogleCloudManager):
         super().__init__(**kwargs)
 
     def get_application(self, params: Dict[str, Any]) -> Dict[str, Any]:
-        """AppEngine 애플리케이션 정보를 조회합니다 (v1 API).
+        """Get App Engine application information (v1 API).
 
         Args:
-            params: 조회에 필요한 파라미터 딕셔너리.
+            params: Parameters dictionary for query.
 
         Returns:
-            App Engine 애플리케이션 정보 딕셔너리.
+            App Engine application information dictionary.
 
         Raises:
-            Exception: App Engine API 호출 중 오류 발생 시.
+            Exception: When App Engine API call fails.
         """
         app_connector: AppEngineApplicationV1Connector = self.locator.get_connector(
             self.connector_name, **params
@@ -57,16 +52,16 @@ class AppEngineApplicationV1Manager(GoogleCloudManager):
             return {}
 
     def list_services(self, params: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """AppEngine 서비스 목록을 조회합니다 (v1 API).
+        """List App Engine services (v1 API).
 
         Args:
-            params: 조회에 필요한 파라미터 딕셔너리.
+            params: Parameters dictionary for query.
 
         Returns:
-            App Engine 서비스 목록.
+            List of App Engine services.
 
         Raises:
-            Exception: App Engine API 호출 중 오류 발생 시.
+            Exception: When App Engine API call fails.
         """
         app_connector: AppEngineApplicationV1Connector = self.locator.get_connector(
             self.connector_name, **params
@@ -83,17 +78,17 @@ class AppEngineApplicationV1Manager(GoogleCloudManager):
     def list_versions(
         self, service_id: str, params: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
-        """특정 서비스의 버전 목록을 조회합니다 (v1 API).
+        """List versions for a specific service (v1 API).
 
         Args:
-            service_id: 서비스 ID.
-            params: 조회에 필요한 파라미터 딕셔너리.
+            service_id: Service ID.
+            params: Parameters dictionary for query.
 
         Returns:
-            서비스 버전 목록.
+            List of service versions.
 
         Raises:
-            Exception: App Engine API 호출 중 오류 발생 시.
+            Exception: When App Engine API call fails.
         """
         app_connector: AppEngineApplicationV1Connector = self.locator.get_connector(
             self.connector_name, **params
@@ -112,18 +107,18 @@ class AppEngineApplicationV1Manager(GoogleCloudManager):
     def list_instances(
         self, service_id: str, version_id: str, params: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
-        """특정 버전의 인스턴스 목록을 조회합니다 (v1 API).
+        """List instances for a specific version (v1 API).
 
         Args:
-            service_id: 서비스 ID.
-            version_id: 버전 ID.
-            params: 조회에 필요한 파라미터 딕셔너리.
+            service_id: Service ID.
+            version_id: Version ID.
+            params: Parameters dictionary for query.
 
         Returns:
-            인스턴스 목록.
+            List of instances.
 
         Raises:
-            Exception: App Engine API 호출 중 오류 발생 시.
+            Exception: When App Engine API call fails.
         """
         app_connector: AppEngineApplicationV1Connector = self.locator.get_connector(
             self.connector_name, **params
@@ -144,16 +139,16 @@ class AppEngineApplicationV1Manager(GoogleCloudManager):
     def collect_cloud_service(
         self, params: Dict[str, Any]
     ) -> Tuple[List[Any], List[ErrorResourceResponse]]:
-        """AppEngine 애플리케이션 정보를 수집합니다 (v1 API).
+        """Collect App Engine application information (v1 API).
 
         Args:
-            params: 수집에 필요한 파라미터 딕셔너리.
+            params: Parameters dictionary for collection.
 
         Returns:
-            수집된 클라우드 서비스 목록과 오류 응답 목록의 튜플.
+            Tuple of collected cloud service list and error response list.
 
         Raises:
-            Exception: 데이터 수집 중 오류 발생 시.
+            Exception: When data collection fails.
         """
         _LOGGER.debug("** AppEngine Application V1 START **")
 
@@ -163,12 +158,10 @@ class AppEngineApplicationV1Manager(GoogleCloudManager):
         secret_data = params["secret_data"]
         project_id = secret_data["project_id"]
 
-        # App Engine 애플리케이션 정보 조회
         application = self.get_application(params)
 
         if application:
             try:
-                # 서비스 목록 조회
                 services = self.list_services(params)
 
                 # 버전 및 인스턴스 정보 수집
@@ -192,18 +185,20 @@ class AppEngineApplicationV1Manager(GoogleCloudManager):
                 # 기본 애플리케이션 데이터 준비
                 app_data = {
                     "name": str(application.get("name", "")),
-                    "projectId": str(project_id),  # secret_data에서 가져온 project_id 사용
+                    "projectId": str(
+                        project_id
+                    ),  # secret_data에서 가져온 project_id 사용
                     "locationId": str(application.get("locationId", "")),
                     "servingStatus": str(application.get("servingStatus", "")),
                     "defaultHostname": str(application.get("defaultHostname", "")),
-                    "defaultCookieExpiration": str(
-                        application.get("defaultCookieExpiration", "")
-                    ),
                     "codeBucket": str(application.get("codeBucket", "")),
                     "gcrDomain": str(application.get("gcrDomain", "")),
                     "databaseType": str(application.get("databaseType", "")),
-                    "createTime": convert_datetime(application.get("createTime")),
-                    "updateTime": convert_datetime(application.get("updateTime")),
+                    # 실제 API에서 제공하는 추가 필드들
+                    "authDomain": str(application.get("authDomain", "")),
+                    "defaultBucket": str(application.get("defaultBucket", "")),
+                    "serviceAccount": str(application.get("serviceAccount", "")),
+                    "sslPolicy": str(application.get("sslPolicy", "")),
                     "version_count": str(total_versions),
                     "instance_count": str(total_instances),
                 }
@@ -248,7 +243,7 @@ class AppEngineApplicationV1Manager(GoogleCloudManager):
                 app_id = application.get("id", "default")
                 # Google Cloud Monitoring/Logging 리소스 ID: App Engine의 경우 module_id (app_id) 사용
                 monitoring_resource_id = app_id
-                
+
                 google_cloud_monitoring_filters = [
                     {"key": "resource.labels.project_id", "value": project_id},
                 ]
@@ -272,7 +267,7 @@ class AppEngineApplicationV1Manager(GoogleCloudManager):
                         "data": app_engine_app_data,
                         "reference": {
                             "resource_id": application.get("name"),
-                            "external_link": f"https://console.cloud.google.com/appengine/instances?project={project_id}",
+                            "external_link": f"https://console.cloud.google.com/appengine?project={project_id}",
                         },
                         "region_code": app_data.get("locationId"),
                         "account": app_data.get("projectId"),

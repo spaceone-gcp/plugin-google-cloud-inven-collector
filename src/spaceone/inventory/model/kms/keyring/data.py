@@ -2,6 +2,9 @@ from schematics import Model
 from schematics.types import DictType, IntType, ListType, ModelType, StringType
 
 from spaceone.inventory.libs.schema.cloud_service import BaseResource
+from spaceone.inventory.libs.schema.google_cloud_logging import (
+    GoogleCloudLoggingModel,
+)
 
 """
 KMS KeyRing Data 모델 정의
@@ -63,6 +66,8 @@ class KMSKeyRingData(BaseResource):
     crypto_key_count = IntType(default=0)
     raw_data = StringType(default="")
     location_raw_data = StringType(default="")
+    # Logging data
+    google_cloud_logging = ModelType(GoogleCloudLoggingModel, serialize_when_none=False)
 
     def reference(self):
         return {

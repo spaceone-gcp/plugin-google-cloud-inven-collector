@@ -275,6 +275,7 @@ firewall = TableDynamicLayout.set_fields(
     ],
 )
 
+
 lb = TableDynamicLayout.set_fields(
     "LB",
     root_path="data.load_balancers",
@@ -315,7 +316,7 @@ tags = TableDynamicLayout.set_fields(
 )
 
 vm_instance_meta = CloudServiceMeta.set_layouts(
-    [compute_engine, labels, tags, disk, nic, firewall, lb]
+    [compute_engine, labels, tags, disk, nic, firewall]
 )
 
 

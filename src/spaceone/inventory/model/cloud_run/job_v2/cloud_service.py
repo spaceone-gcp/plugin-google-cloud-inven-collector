@@ -24,7 +24,8 @@ job_overview = ItemDynamicLayout.set_fields(
     "Job Overview",
     fields=[
         TextDyField.data_source("ID", "data.uid"),
-        TextDyField.data_source("Name", "data.full_name"),
+        TextDyField.data_source("Name", "data.name"),
+        TextDyField.data_source("Full Name", "data.full_name"),
         TextDyField.data_source("Generation", "data.generation"),
         TextDyField.data_source("Creator", "data.creator"),
         TextDyField.data_source("Last Modifier", "data.last_modifier"),

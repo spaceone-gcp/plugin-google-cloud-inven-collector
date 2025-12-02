@@ -1,21 +1,20 @@
 from schematics.types import PolyModelType
 
-from spaceone.inventory.model.bigquery.sql_workspace.data import *
+from spaceone.inventory.libs.schema.cloud_service import (
+    CloudServiceMeta,
+    CloudServiceResource,
+    CloudServiceResponse,
+)
 from spaceone.inventory.libs.schema.metadata.dynamic_field import (
-    TextDyField,
     DateTimeDyField,
+    TextDyField,
 )
 from spaceone.inventory.libs.schema.metadata.dynamic_layout import (
     ItemDynamicLayout,
-    TableDynamicLayout,
     ListDynamicLayout,
     SimpleTableDynamicLayout,
 )
-from spaceone.inventory.libs.schema.cloud_service import (
-    CloudServiceResource,
-    CloudServiceResponse,
-    CloudServiceMeta,
-)
+from spaceone.inventory.model.bigquery.sql_workspace.data import *
 
 """
 SQL Workspace
@@ -28,12 +27,6 @@ dataset_details_meta = ItemDynamicLayout.set_fields(
         TextDyField.data_source("ID", "data.id"),
         TextDyField.data_source("Name", "data.name"),
         TextDyField.data_source("Location", "data.location"),
-        TextDyField.data_source(
-            "Default Partition Expires", "data.default_partition_expiration_ms_display"
-        ),
-        TextDyField.data_source(
-            "Default Table Expires", "data.default_table_expiration_ms_display"
-        ),
         DateTimeDyField.data_source("Creation Time", "data.creation_time"),
         DateTimeDyField.data_source("Last Modified Time", "data.last_modified_time"),
     ],
@@ -53,20 +46,9 @@ workspace_dataset_meta = ListDynamicLayout.set_layouts(
     "Dataset Details", layouts=[dataset_details_meta, access_table_meta]
 )
 
-
-workspace_labels_meta = TableDynamicLayout.set_fields(
-    "Labels",
-    root_path="data.labels",
-    fields=[
-        TextDyField.data_source("Key", "key"),
-        TextDyField.data_source("Value", "value"),
-    ],
-)
-
 big_query_workspace_meta = CloudServiceMeta.set_layouts(
     [
         workspace_dataset_meta,
-        workspace_labels_meta,
     ]
 )
 

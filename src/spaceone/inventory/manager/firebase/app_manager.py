@@ -3,33 +3,27 @@ import time
 
 from spaceone.inventory.connector.firebase.firebase_v1beta1 import FirebaseConnector
 from spaceone.inventory.libs.manager import GoogleCloudManager
-
 from spaceone.inventory.libs.schema.base import (
     ReferenceModel,
-    reset_state_counters,
     log_state_summary,
+    reset_state_counters,
 )
-
+from spaceone.inventory.libs.schema.cloud_service import ErrorResourceResponse
 from spaceone.inventory.model.firebase.app.cloud_service import AppResource, AppResponse
 from spaceone.inventory.model.firebase.app.cloud_service_type import CLOUD_SERVICE_TYPES
 from spaceone.inventory.model.firebase.app.data import App
-from spaceone.inventory.libs.schema.cloud_service import ErrorResourceResponse
 
 _LOGGER = logging.getLogger(__name__)
 
 
 class FirebaseManager(GoogleCloudManager):
-    """
-    Firebase App Manager (Firestore Database 방식과 동일한 구조)
-    """
+    """Firebase App Manager (same structure as Firestore Database)"""
 
     connector_name = "FirebaseConnector"
     cloud_service_types = CLOUD_SERVICE_TYPES
 
     def collect_cloud_service(self, params):
-        """Firebase 앱 정보를 수집합니다."""
-        _LOGGER.debug("** Firebase App START **")
-
+        """Collect Firebase app information."""
         reset_state_counters()
         collected_cloud_services = []
         error_responses = []
@@ -39,20 +33,14 @@ class FirebaseManager(GoogleCloudManager):
         project_id = secret_data["project_id"]
 
         try:
-            # Firebase 커넥터 초기화
             firebase_connector: FirebaseConnector = self.locator.get_connector(
                 self.connector_name, **params
             )
 
-            # Firebase 앱 처리 (App Engine 방식과 동일)
-
-            # Firebase 앱 목록 조회
             firebase_apps = firebase_connector.list_firebase_apps()
-            _LOGGER.info(f"Found {len(firebase_apps)} Firebase apps to process")
 
             for app_data in firebase_apps:
                 try:
-                    # 실제 Google Cloud Monitoring 기반 데이터 수집
                     cloud_service_response = self._process_firebase_app_v2(
                         app_data, project_id, firebase_connector
                     )
@@ -78,29 +66,19 @@ class FirebaseManager(GoogleCloudManager):
             _LOGGER.error(f"Failed to collect Firebase apps: {e}")
 
         log_state_summary()
-        _LOGGER.debug(f"** Firebase App END ** ({time.time() - start_time:.2f}s)")
-        _LOGGER.info(f"Collected {len(collected_cloud_services)} Firebase Apps")
+        _LOGGER.info(
+            f"Collected {len(collected_cloud_services)} Firebase Apps in {time.time() - start_time:.2f}s"
+        )
 
         return collected_cloud_services, error_responses
 
     def _process_firebase_app_v2(
         self, app_data: dict, project_id: str, firebase_connector: FirebaseConnector
     ) -> AppResponse:
-        """
-        개별 Firebase 앱을 처리합니다 (Firestore Database 방식과 동일).
-        """
+        """Process individual Firebase app (same as Firestore Database)."""
         app_id = app_data.get("appId", "")
 
         try:
-            # 플랫폼 기반으로 적절한 service_id 결정 (Firebase App Check 실제 서비스들)
-            platform = app_data.get("platform", "WEB")
-            service_id_map = {
-                "IOS": "oauth2.googleapis.com",  # Google Identity for iOS (공식 지원)
-                "ANDROID": "firestore.googleapis.com",  # Cloud Firestore (공식 지원)
-                "WEB": "firebasestorage.googleapis.com",  # Cloud Storage for Firebase (공식 지원)
-            }
-            service_id = service_id_map.get(platform, "firestore.googleapis.com")
-            
             app_data.update(
                 {
                     "name": app_id,
@@ -123,21 +101,14 @@ class FirebaseManager(GoogleCloudManager):
                 }
             )
 
-            # 4. App 모델 생성
             app_model = App(app_data, strict=False)
 
-            # 5. CloudService 리소스 생성 (Filestore 방식과 동일)
             app_resource = AppResource(
                 {
                     "name": app_data.get("displayName", app_id),
                     "account": project_id,
                     "data": app_model,
-                    "reference": ReferenceModel(
-                        {
-                            "resource_id": app_id,
-                            "external_link": f"https://console.firebase.google.com/project/{project_id}/settings/general/{app_id}",
-                        }
-                    ),
+                    "reference": ReferenceModel(app_model.reference()),
                     "region_code": "global",
                 }
             )
@@ -147,5 +118,3 @@ class FirebaseManager(GoogleCloudManager):
         except Exception as e:
             _LOGGER.error(f"Failed to process Firebase app {app_id}: {e}")
             raise
-
-

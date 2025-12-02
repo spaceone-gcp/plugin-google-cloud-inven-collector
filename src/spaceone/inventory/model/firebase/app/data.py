@@ -1,10 +1,10 @@
 from schematics.types import StringType
 
-from spaceone.inventory.libs.schema.cloud_service import CloudServiceMeta, BaseResource
+from spaceone.inventory.libs.schema.cloud_service import BaseResource, CloudServiceMeta
 from spaceone.inventory.libs.schema.metadata.dynamic_field import (
     BadgeDyField,
-    TextDyField,
     EnumDyField,
+    TextDyField,
 )
 from spaceone.inventory.libs.schema.metadata.dynamic_layout import (
     ItemDynamicLayout,
@@ -13,8 +13,6 @@ from spaceone.inventory.libs.schema.metadata.dynamic_layout import (
 """
 Firebase App Data Model
 """
-
-
 
 
 class App(BaseResource):
@@ -34,13 +32,27 @@ class App(BaseResource):
     # 프로젝트 정보 (BaseResource의 project 필드 재사용 가능하지만 호환성을 위해 유지)
     project_id = StringType(deserialize_from="projectId")
 
-
     def reference(self):
-        project_id = self.project_id or ""
+        # project_id가 없으면 BaseResource의 project 필드 사용
+        project_id = self.project_id or self.project or ""
         app_id = self.app_id or ""
+        namespace = self.namespace or ""
+        platform = (
+            self.platform or ""
+        ).lower()  # IOS -> ios, ANDROID -> android, WEB -> web
+
+        # 모든 플랫폼(Android, iOS, Web)은 namespace 사용
+        if platform and namespace:
+            app_identifier = f"{platform}:{namespace}"
+        elif platform and app_id:
+            # namespace가 없으면 app_id 사용
+            app_identifier = f"{platform}:{app_id}"
+        else:
+            app_identifier = app_id
+
         return {
             "resource_id": self.app_id,
-            "external_link": f"https://console.firebase.google.com/project/{project_id}/settings/general/{app_id}",
+            "external_link": f"https://console.firebase.google.com/project/{project_id}/settings/general/{app_identifier}",
         }
 
 
@@ -50,8 +62,7 @@ firebase_app_details = ItemDynamicLayout.set_fields(
     "App Details",
     fields=[
         TextDyField.data_source("App ID", "data.app_id"),
-        TextDyField.data_source("Display Name", "data.display_name"),
-        TextDyField.data_source("Name", "data.name"),
+        TextDyField.data_source("Name", "data.display_name"),
         EnumDyField.data_source(
             "Platform",
             "data.platform",
@@ -67,19 +78,9 @@ firebase_app_details = ItemDynamicLayout.set_fields(
     ],
 )
 
-# TAB - Timestamps
-firebase_app_timestamps = ItemDynamicLayout.set_fields(
-    "Timestamps",
-    fields=[
-        TextDyField.data_source("Project ID", "data.project_id"),
-        TextDyField.data_source("Full Name", "data.full_name"),
-    ],
-)
-
 # Unified metadata layout
 firebase_app_meta = CloudServiceMeta.set_layouts(
     [
         firebase_app_details,
-        firebase_app_timestamps,
     ]
 )

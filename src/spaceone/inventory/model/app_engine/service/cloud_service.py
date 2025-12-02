@@ -1,19 +1,16 @@
-from schematics.types import ModelType, StringType, PolyModelType
+from schematics.types import ModelType, PolyModelType, StringType
 
-from spaceone.inventory.model.app_engine.service.data import AppEngineService
-from spaceone.inventory.libs.schema.metadata.dynamic_field import (
-    TextDyField,
-    EnumDyField,
-    DateTimeDyField,
-)
-from spaceone.inventory.libs.schema.metadata.dynamic_layout import (
-    ItemDynamicLayout,
-)
 from spaceone.inventory.libs.schema.cloud_service import (
     CloudServiceMeta,
     CloudServiceResource,
     CloudServiceResponse,
 )
+from spaceone.inventory.libs.schema.metadata.dynamic_field import (
+    EnumDyField,
+    TextDyField,
+)
+from spaceone.inventory.libs.schema.metadata.dynamic_layout import ItemDynamicLayout
+from spaceone.inventory.model.app_engine.service.data import AppEngineService
 
 """
 AppEngine Service
@@ -21,23 +18,29 @@ AppEngine Service
 app_engine_service = ItemDynamicLayout.set_fields(
     "AppEngine Service",
     fields=[
-        TextDyField.data_source("Name", "data.name"),
-        TextDyField.data_source("Project ID", "data.project_id"),
-        TextDyField.data_source("Service ID", "data.service_id"),
+        TextDyField.data_source("Service", "data.name"),
+        TextDyField.data_source("Versions", "data.version_count"),
+        TextDyField.data_source("Labels", "data.labels"),
+        TextDyField.data_source("Ingress", "data.network.ingress_traffic_allowed"),
+        TextDyField.data_source("VPC Access Name", "data.vpc_access_connector.name"),
+        TextDyField.data_source(
+            "VPC Egress Setting", "data.vpc_access_connector.egress_setting"
+        ),
+        TextDyField.data_source(
+            "Last Version Deployed", "data.latest_version_deployed"
+        ),
         EnumDyField.data_source(
             "Serving Status",
             "data.serving_status",
             default_state={
                 "safe": ["SERVING"],
-                "warning": ["USER_DISABLED"],
-                "alert": ["STOPPED"],
+                "warning": ["USER_DISABLED", "STOPPED"],
+                "alert": ["SYSTEM_DISABLED"],
             },
         ),
-        TextDyField.data_source("Split", "data.split"),
-        TextDyField.data_source("Version Count", "data.version_count"),
+        TextDyField.data_source("Project ID", "data.project_id"),
+        TextDyField.data_source("Service ID", "data.service_id"),
         TextDyField.data_source("Instance Count", "data.instance_count"),
-        DateTimeDyField.data_source("Created", "data.create_time"),
-        DateTimeDyField.data_source("Updated", "data.update_time"),
     ],
 )
 
@@ -52,15 +55,28 @@ traffic_split = ItemDynamicLayout.set_fields(
 network_settings = ItemDynamicLayout.set_fields(
     "Network Settings",
     fields=[
-        TextDyField.data_source("Forwarded Ports", "data.network.forwardedPorts"),
-        TextDyField.data_source("Instance Tag", "data.network.instanceTag"),
+        TextDyField.data_source("Forwarded Ports", "data.network.forwarded_ports"),
+        TextDyField.data_source("Instance Tag", "data.network.instance_tag"),
         TextDyField.data_source("Network Name", "data.network.name"),
-        TextDyField.data_source("Subnetwork Name", "data.network.subnetworkName"),
+        TextDyField.data_source("Subnetwork Name", "data.network.subnetwork_name"),
+        TextDyField.data_source(
+            "Ingress Traffic Allowed", "data.network.ingress_traffic_allowed"
+        ),
+    ],
+)
+
+vpc_access_connector = ItemDynamicLayout.set_fields(
+    "VPC Access Connector",
+    fields=[
+        TextDyField.data_source("Name", "data.vpc_access_connector.name"),
+        TextDyField.data_source(
+            "Egress Setting", "data.vpc_access_connector.egress_setting"
+        ),
     ],
 )
 
 app_engine_service_meta = CloudServiceMeta.set_layouts(
-    [app_engine_service, traffic_split, network_settings]
+    [app_engine_service, traffic_split, network_settings, vpc_access_connector]
 )
 
 
@@ -74,6 +90,10 @@ class AppEngineServiceResource(AppEngineResource):
     _metadata = ModelType(
         CloudServiceMeta, default=app_engine_service_meta, serialized_name="metadata"
     )
+
+
+class AppEngineServiceResponse(CloudServiceResponse):
+    resource = PolyModelType(AppEngineServiceResource)
 
 
 class AppEngineServiceResponse(CloudServiceResponse):

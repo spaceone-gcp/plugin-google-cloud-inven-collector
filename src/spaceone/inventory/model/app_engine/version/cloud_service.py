@@ -1,19 +1,17 @@
-from schematics.types import ModelType, StringType, PolyModelType
+from schematics.types import ModelType, PolyModelType, StringType
 
-from spaceone.inventory.model.app_engine.version.data import AppEngineVersion
-from spaceone.inventory.libs.schema.metadata.dynamic_field import (
-    TextDyField,
-    EnumDyField,
-    DateTimeDyField,
-)
-from spaceone.inventory.libs.schema.metadata.dynamic_layout import (
-    ItemDynamicLayout,
-)
 from spaceone.inventory.libs.schema.cloud_service import (
     CloudServiceMeta,
     CloudServiceResource,
     CloudServiceResponse,
 )
+from spaceone.inventory.libs.schema.metadata.dynamic_field import (
+    DateTimeDyField,
+    EnumDyField,
+    TextDyField,
+)
+from spaceone.inventory.libs.schema.metadata.dynamic_layout import ItemDynamicLayout
+from spaceone.inventory.model.app_engine.version.data import AppEngineVersion
 
 """
 AppEngine Version
@@ -36,24 +34,48 @@ app_engine_version = ItemDynamicLayout.set_fields(
         ),
         TextDyField.data_source("Runtime", "data.runtime"),
         TextDyField.data_source("Environment", "data.environment"),
+        EnumDyField.data_source(
+            "Scaling Type",
+            "data.scaling_type",
+            default_state={
+                "safe": ["Automatic"],
+                "warning": ["Manual"],
+                "alert": ["Basic"],
+                "disable": ["Unknown"],
+            },
+        ),
         TextDyField.data_source("Instance Count", "data.instance_count"),
         TextDyField.data_source("Memory Usage", "data.memory_usage"),
         TextDyField.data_source("CPU Usage", "data.cpu_usage"),
         DateTimeDyField.data_source("Created", "data.create_time"),
-        DateTimeDyField.data_source("Updated", "data.update_time"),
     ],
 )
 
 automatic_scaling = ItemDynamicLayout.set_fields(
     "Automatic Scaling",
     fields=[
-        TextDyField.data_source("Cool Down Period", "data.automatic_scaling.coolDownPeriod"),
-        TextDyField.data_source("CPU Utilization", "data.automatic_scaling.cpuUtilization"),
-        TextDyField.data_source("Max Concurrent Requests", "data.automatic_scaling.maxConcurrentRequests"),
-        TextDyField.data_source("Max Idle Instances", "data.automatic_scaling.maxIdleInstances"),
-        TextDyField.data_source("Max Total Instances", "data.automatic_scaling.maxTotalInstances"),
-        TextDyField.data_source("Min Idle Instances", "data.automatic_scaling.minIdleInstances"),
-        TextDyField.data_source("Min Total Instances", "data.automatic_scaling.minTotalInstances"),
+        TextDyField.data_source(
+            "Cool Down Period", "data.automatic_scaling.cool_down_period"
+        ),
+        TextDyField.data_source(
+            "CPU Target Utilization",
+            "data.automatic_scaling.cpu_utilization.target_utilization",
+        ),
+        TextDyField.data_source(
+            "Max Concurrent Requests", "data.automatic_scaling.max_concurrent_requests"
+        ),
+        TextDyField.data_source(
+            "Max Idle Instances", "data.automatic_scaling.max_idle_instances"
+        ),
+        TextDyField.data_source(
+            "Max Total Instances", "data.automatic_scaling.max_total_instances"
+        ),
+        TextDyField.data_source(
+            "Min Idle Instances", "data.automatic_scaling.min_idle_instances"
+        ),
+        TextDyField.data_source(
+            "Min Total Instances", "data.automatic_scaling.min_total_instances"
+        ),
     ],
 )
 
@@ -67,8 +89,8 @@ manual_scaling = ItemDynamicLayout.set_fields(
 basic_scaling = ItemDynamicLayout.set_fields(
     "Basic Scaling",
     fields=[
-        TextDyField.data_source("Idle Timeout", "data.basic_scaling.idleTimeout"),
-        TextDyField.data_source("Max Instances", "data.basic_scaling.maxInstances"),
+        TextDyField.data_source("Idle Timeout", "data.basic_scaling.idle_timeout"),
+        TextDyField.data_source("Max Instances", "data.basic_scaling.max_instances"),
     ],
 )
 
@@ -76,8 +98,8 @@ resources = ItemDynamicLayout.set_fields(
     "Resources",
     fields=[
         TextDyField.data_source("CPU", "data.resources.cpu"),
-        TextDyField.data_source("Disk GB", "data.resources.diskGb"),
-        TextDyField.data_source("Memory GB", "data.resources.memoryGb"),
+        TextDyField.data_source("Disk GB", "data.resources.disk_gb"),
+        TextDyField.data_source("Memory GB", "data.resources.memory_gb"),
         TextDyField.data_source("Volumes", "data.resources.volumes"),
     ],
 )

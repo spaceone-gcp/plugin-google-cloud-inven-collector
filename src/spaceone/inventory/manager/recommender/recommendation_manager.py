@@ -1,26 +1,26 @@
+import json
 import logging
 import time
-import requests
-import json
 
+import requests
 from bs4 import BeautifulSoup
 
-from spaceone.inventory.conf.cloud_service_conf import REGION_INFO, RECOMMENDATION_MAP
-from spaceone.inventory.libs.manager import GoogleCloudManager
+from spaceone.inventory.conf.cloud_service_conf import RECOMMENDATION_MAP, REGION_INFO
+from spaceone.inventory.connector import InsightConnector, RecommendationConnector
 from spaceone.inventory.connector.recommender.cloud_asset import CloudAssetConnector
+from spaceone.inventory.libs.manager import GoogleCloudManager
 from spaceone.inventory.libs.schema.base import ReferenceModel
-from spaceone.inventory.model.recommender.recommendation.cloud_sevice_type import (
-    CLOUD_SERVICE_TYPES,
-)
 from spaceone.inventory.model.recommender.recommendation.cloud_service import (
     RecommendationResource,
     RecommendationResponse,
+)
+from spaceone.inventory.model.recommender.recommendation.cloud_sevice_type import (
+    CLOUD_SERVICE_TYPES,
 )
 from spaceone.inventory.model.recommender.recommendation.data import Recommendation
 from spaceone.inventory.model.recommender.recommendation.recommender_data import (
     Recommender,
 )
-from spaceone.inventory.connector import RecommendationConnector, InsightConnector
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -63,7 +63,7 @@ class RecommendationManager(GoogleCloudManager):
         Response:
             CloudServiceResponse/ErrorResourceResponse
         """
-        _LOGGER.debug(f"** Recommendation START **")
+        _LOGGER.debug("** Recommendation START **")
 
         start_time = time.time()
         collected_cloud_services = []
@@ -220,7 +220,8 @@ class RecommendationManager(GoogleCloudManager):
 
     @staticmethod
     def _create_recommendation_id_map_by_crawling():
-        res = requests.get(_RECOMMENDATION_TYPE_DOCS_URL)
+        # 타임아웃 설정으로 무한 대기 방지 (보안 강화)
+        res = requests.get(_RECOMMENDATION_TYPE_DOCS_URL, timeout=30)
         soup = BeautifulSoup(res.content, "html.parser")
         table = soup.find("table")
         rows = table.find_all("tr")

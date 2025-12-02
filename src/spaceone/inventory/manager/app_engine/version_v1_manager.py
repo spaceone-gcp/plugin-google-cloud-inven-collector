@@ -1,24 +1,20 @@
 import logging
-from typing import List, Dict, Any, Tuple
+from typing import Any, Dict, List, Tuple
 
 from spaceone.inventory.connector.app_engine.version_v1 import (
     AppEngineVersionV1Connector,
 )
 from spaceone.inventory.libs.manager import GoogleCloudManager
-
-from spaceone.inventory.model.app_engine.version.cloud_service_type import (
-    CLOUD_SERVICE_TYPES,
-)
-
+from spaceone.inventory.libs.schema.cloud_service import ErrorResourceResponse
 from spaceone.inventory.model.app_engine.version.cloud_service import (
     AppEngineVersionResource,
     AppEngineVersionResponse,
 )
-from spaceone.inventory.model.app_engine.version.data import (
-    AppEngineVersion,
+from spaceone.inventory.model.app_engine.version.cloud_service_type import (
+    CLOUD_SERVICE_TYPES,
 )
+from spaceone.inventory.model.app_engine.version.data import AppEngineVersion
 from spaceone.inventory.model.kubernetes_engine.cluster.data import convert_datetime
-from spaceone.inventory.libs.schema.cloud_service import ErrorResourceResponse
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -34,17 +30,17 @@ class AppEngineVersionV1Manager(GoogleCloudManager):
     def list_versions(
         self, service_id: str, params: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
-        """AppEngine 버전 목록을 조회합니다 (v1 API).
+        """List App Engine versions (v1 API).
 
         Args:
-            service_id: 서비스 ID.
-            params: 조회에 필요한 파라미터 딕셔너리.
+            service_id: Service ID.
+            params: Parameters dictionary for query.
 
         Returns:
-            App Engine 버전 목록.
+            List of App Engine versions.
 
         Raises:
-            Exception: App Engine API 호출 중 오류 발생 시.
+            Exception: When App Engine API call fails.
         """
         version_connector: AppEngineVersionV1Connector = self.locator.get_connector(
             self.connector_name, **params
@@ -63,18 +59,18 @@ class AppEngineVersionV1Manager(GoogleCloudManager):
     def get_version(
         self, service_id: str, version_id: str, params: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """특정 AppEngine 버전 정보를 조회합니다 (v1 API).
+        """Get specific App Engine version information (v1 API).
 
         Args:
-            service_id: 서비스 ID.
-            version_id: 버전 ID.
-            params: 조회에 필요한 파라미터 딕셔너리.
+            service_id: Service ID.
+            version_id: Version ID.
+            params: Parameters dictionary for query.
 
         Returns:
-            App Engine 버전 정보 딕셔너리.
+            App Engine version information dictionary.
 
         Raises:
-            Exception: App Engine API 호출 중 오류 발생 시.
+            Exception: When App Engine API call fails.
         """
         version_connector: AppEngineVersionV1Connector = self.locator.get_connector(
             self.connector_name, **params
@@ -92,18 +88,18 @@ class AppEngineVersionV1Manager(GoogleCloudManager):
     def list_instances(
         self, service_id: str, version_id: str, params: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
-        """특정 버전의 인스턴스 목록을 조회합니다 (v1 API).
+        """List instances for a specific version (v1 API).
 
         Args:
-            service_id: 서비스 ID.
-            version_id: 버전 ID.
-            params: 조회에 필요한 파라미터 딕셔너리.
+            service_id: Service ID.
+            version_id: Version ID.
+            params: Parameters dictionary for query.
 
         Returns:
-            인스턴스 목록.
+            List of instances.
 
         Raises:
-            Exception: App Engine API 호출 중 오류 발생 시.
+            Exception: When App Engine API call fails.
         """
         version_connector: AppEngineVersionV1Connector = self.locator.get_connector(
             self.connector_name, **params
@@ -124,18 +120,18 @@ class AppEngineVersionV1Manager(GoogleCloudManager):
     def get_version_metrics(
         self, service_id: str, version_id: str, params: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """AppEngine 버전 메트릭을 조회합니다 (v1 API).
+        """Get App Engine version metrics (v1 API).
 
         Args:
-            service_id: 서비스 ID.
-            version_id: 버전 ID.
-            params: 조회에 필요한 파라미터 딕셔너리.
+            service_id: Service ID.
+            version_id: Version ID.
+            params: Parameters dictionary for query.
 
         Returns:
-            버전 메트릭 정보 딕셔너리.
+            Version metrics information dictionary.
 
         Raises:
-            Exception: App Engine API 호출 중 오류 발생 시.
+            Exception: When App Engine API call fails.
         """
         version_connector: AppEngineVersionV1Connector = self.locator.get_connector(
             self.connector_name, **params
@@ -151,16 +147,16 @@ class AppEngineVersionV1Manager(GoogleCloudManager):
     def collect_cloud_service(
         self, params: Dict[str, Any]
     ) -> Tuple[List[Any], List[ErrorResourceResponse]]:
-        """AppEngine 버전 정보를 수집합니다 (v1 API).
+        """Collect App Engine version information (v1 API).
 
         Args:
-            params: 수집에 필요한 파라미터 딕셔너리.
+            params: Parameters dictionary for collection.
 
         Returns:
-            수집된 클라우드 서비스 목록과 오류 응답 목록의 튜플.
+            Tuple of collected cloud service list and error response list.
 
         Raises:
-            Exception: 데이터 수집 중 오류 발생 시.
+            Exception: When data collection fails.
         """
         _LOGGER.debug("** AppEngine Version V1 START **")
 
@@ -169,8 +165,6 @@ class AppEngineVersionV1Manager(GoogleCloudManager):
 
         secret_data = params["secret_data"]
         project_id = secret_data["project_id"]
-
-        # 먼저 서비스 목록을 조회하여 각 서비스의 버전을 수집
         from spaceone.inventory.connector.app_engine.application_v1 import (
             AppEngineApplicationV1Connector,
         )
@@ -206,18 +200,30 @@ class AppEngineVersionV1Manager(GoogleCloudManager):
                     # 기본 버전 데이터 준비
                     version_data = {
                         "name": str(version.get("name", "")),
-                        "projectId": str(project_id),  # secret_data에서 가져온 project_id 사용
+                        "projectId": str(
+                            project_id
+                        ),  # secret_data에서 가져온 project_id 사용
                         "serviceId": str(service_id),
                         "id": str(version.get("id", "")),
                         "servingStatus": str(version.get("servingStatus", "")),
                         "runtime": str(version.get("runtime", "")),
-                        "environment": str(version.get("environment", "")),
+                        "environment": str(version.get("env", "")),
                         "createTime": convert_datetime(version.get("createTime")),
-                        "updateTime": convert_datetime(version.get("updateTime")),
                         "instance_count": str(len(instances)),
                         "memory_usage": str(metrics.get("memory_usage", 0)),
                         "cpu_usage": str(metrics.get("cpu_usage", 0)),
                     }
+
+                    # 스케일링 타입 결정
+                    scaling_type = "Unknown"
+                    if "automaticScaling" in version:
+                        scaling_type = "Automatic"
+                    elif "manualScaling" in version:
+                        scaling_type = "Manual"
+                    elif "basicScaling" in version:
+                        scaling_type = "Basic"
+
+                    version_data["scaling_type"] = scaling_type
 
                     # Automatic Scaling 추가
                     if "automaticScaling" in version:
@@ -264,25 +270,31 @@ class AppEngineVersionV1Manager(GoogleCloudManager):
                     # Stackdriver 정보 추가
                     version_id = version.get("id")
                     if not version_id:
-                        _LOGGER.warning(f"Version missing ID, skipping monitoring setup: service={service_id}")
+                        _LOGGER.warning(
+                            f"Version missing ID, skipping monitoring setup: service={service_id}"
+                        )
                         version_id = "unknown"
-                    
+
                     # Google Cloud Monitoring/Logging 리소스 ID: App Engine Version의 경우 version_id 사용
                     monitoring_resource_id = version_id
-                    
+
                     google_cloud_monitoring_filters = [
                         {"key": "resource.labels.module_id", "value": service_id},
                         {"key": "resource.labels.version_id", "value": version_id},
                         {"key": "resource.labels.project_id", "value": project_id},
                     ]
-                    version_data["google_cloud_monitoring"] = self.set_google_cloud_monitoring(
-                        project_id,
-                        "appengine.googleapis.com/system",
-                        monitoring_resource_id,
-                        google_cloud_monitoring_filters,
+                    version_data["google_cloud_monitoring"] = (
+                        self.set_google_cloud_monitoring(
+                            project_id,
+                            "appengine.googleapis.com/system",
+                            monitoring_resource_id,
+                            google_cloud_monitoring_filters,
+                        )
                     )
-                    version_data["google_cloud_logging"] = self.set_google_cloud_logging(
-                        "AppEngine", "Version", project_id, monitoring_resource_id
+                    version_data["google_cloud_logging"] = (
+                        self.set_google_cloud_logging(
+                            "AppEngine", "Version", project_id, monitoring_resource_id
+                        )
                     )
 
                     # AppEngineVersion 모델 생성

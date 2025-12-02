@@ -1,13 +1,18 @@
 from schematics import Model
 from schematics.types import (
-    ModelType,
-    ListType,
-    StringType,
-    IntType,
-    DateTimeType,
     BooleanType,
+    DateTimeType,
+    IntType,
+    ListType,
+    ModelType,
+    StringType,
 )
+
 from spaceone.inventory.libs.schema.cloud_service import BaseResource
+from spaceone.inventory.libs.schema.google_cloud_logging import GoogleCloudLoggingModel
+from spaceone.inventory.libs.schema.google_cloud_monitoring import (
+    GoogleCloudMonitoringModel,
+)
 
 
 class Labels(Model):
@@ -98,9 +103,13 @@ class VPCSubnet(BaseResource):
     log_config = ModelType(LogConfigSubnet, serialize_when_none=False)
     ip_address_data = ListType(ModelType(IPAddress), default=[])
     creation_timestamp = DateTimeType(deserialize_from="creationTimestamp")
+    google_cloud_monitoring = ModelType(
+        GoogleCloudMonitoringModel, serialize_when_none=False
+    )
+    google_cloud_logging = ModelType(GoogleCloudLoggingModel, serialize_when_none=False)
 
     def reference(self):
         return {
             "resource_id": self.self_link,
-            "external_link": f"https://console.cloud.google.com/networking/networks/details/default?project={self.project}&pageTab=SUBNETS",
+            "external_link": f"https://console.cloud.google.com/networking/subnetworks/details/{self.region}/{self.name}?project={self.project}",
         }

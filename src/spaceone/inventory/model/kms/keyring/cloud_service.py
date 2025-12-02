@@ -7,7 +7,6 @@ from spaceone.inventory.libs.schema.cloud_service import (
 )
 from spaceone.inventory.libs.schema.metadata.dynamic_field import (
     DateTimeDyField,
-    ListDyField,
     TextDyField,
 )
 from spaceone.inventory.libs.schema.metadata.dynamic_layout import (
@@ -31,7 +30,6 @@ kms_keyring_info_meta = ItemDynamicLayout.set_fields(
         TextDyField.data_source("Full Name", "data.name"),
         TextDyField.data_source("Project ID", "data.project_id"),
         TextDyField.data_source("Location", "data.location_display_name"),
-        TextDyField.data_source("Location ID", "data.location_id"),
         TextDyField.data_source("CryptoKey Count", "data.crypto_key_count"),
         DateTimeDyField.data_source("Created", "data.create_time"),
     ],
@@ -44,7 +42,6 @@ kms_keyring_crypto_keys_meta = TableDynamicLayout.set_fields(
     root_path="data.crypto_keys",
     fields=[
         TextDyField.data_source("Name", "crypto_key_id"),
-        TextDyField.data_source("Display Name", "display_name"),
         TextDyField.data_source("Purpose", "purpose"),
         TextDyField.data_source("Primary State", "primary_state"),
         TextDyField.data_source("Protection Level", "protection_level"),
@@ -55,30 +52,11 @@ kms_keyring_crypto_keys_meta = TableDynamicLayout.set_fields(
     ],
 )
 
-# TAB - Location Details
-# KeyRing이 속한 Location의 상세 정보를 표시하는 탭
-kms_keyring_location_meta = ItemDynamicLayout.set_fields(
-    "Location Details",
-    fields=[
-        TextDyField.data_source("Location Path", "data.full_location_path"),
-        TextDyField.data_source("Display Name", "data.location_display_name"),
-        ListDyField.data_source(
-            "Location Labels",
-            "data.location_labels",
-            default_badge={
-                "type": "secondary",
-                "delimiter": " : ",
-            },
-        ),
-    ],
-)
-
 # 모든 탭을 포함하는 메타데이터 설정
 kms_keyring_meta = CloudServiceMeta.set_layouts(
     [
         kms_keyring_info_meta,
         kms_keyring_crypto_keys_meta,
-        kms_keyring_location_meta,
     ]
 )
 

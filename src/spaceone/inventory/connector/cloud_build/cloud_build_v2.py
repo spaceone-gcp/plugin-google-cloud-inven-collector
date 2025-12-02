@@ -11,17 +11,11 @@ class CloudBuildV2Connector(GoogleCloudConnector):
     version = "v2"
 
     def __init__(self, **kwargs):
-        try:
-            super().__init__(**kwargs)
-            _LOGGER.info("CloudBuildV2Connector initialized successfully")
-        except Exception as e:
-            _LOGGER.warning(f"Failed to initialize CloudBuildV2Connector: {str(e)}")
-            raise
+        super().__init__(**kwargs)
 
     def list_locations(self, name, **query):
         locations = []
         query.update({"name": name})
-        _LOGGER.info(f"V2 API: Getting locations for name: {name}")
         try:
             request = self.client.projects().locations().list(**query)
         except Exception as e:
@@ -32,7 +26,7 @@ class CloudBuildV2Connector(GoogleCloudConnector):
             try:
                 response = request.execute()
                 raw_locations = response.get("locations", [])
-                # global 위치는 제외
+                # Exclude global location
                 filtered_locations = [
                     loc for loc in raw_locations if loc.get("locationId") != "global"
                 ]
@@ -74,7 +68,6 @@ class CloudBuildV2Connector(GoogleCloudConnector):
     def list_repositories(self, parent, **query):
         repositories = []
         query.update({"parent": parent})
-        _LOGGER.info(f"V2 API: Getting repositories for parent: {parent}")
         try:
             request = (
                 self.client.projects()

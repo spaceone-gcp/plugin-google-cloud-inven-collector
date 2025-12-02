@@ -9,7 +9,6 @@ from spaceone.inventory.libs.schema.metadata.dynamic_field import (
     DateTimeDyField,
     EnumDyField,
     ListDyField,
-    SizeField,
     TextDyField,
 )
 from spaceone.inventory.libs.schema.metadata.dynamic_layout import (
@@ -87,26 +86,7 @@ filestore_file_shares = TableDynamicLayout.set_fields(
     root_path="data.unified_file_shares",
     fields=[
         TextDyField.data_source("Name", "name"),
-        # TextDyField.data_source("Mount Name", "mount_name"),
-        # TextDyField.data_source("Description", "description"),
-        SizeField.data_source("Capacity (GB)", "capacity_gb"),
-        # EnumDyField.data_source(
-        #     "State",
-        #     "state",
-        #     default_state={
-        #         "safe": ["READY"],
-        #         "warning": ["CREATING", "DELETING"],
-        #         "alert": ["ERROR"],
-        #         "disable": ["UNKNOWN", ""],
-        #     },
-        # ),
-        TextDyField.data_source("Source Backup", "source_backup"),
-        ListDyField.data_source(
-            "NFS Export Options",
-            "nfs_export_options",
-            default_badge={"type": "outline", "delimiter": "<br>"},
-        ),
-        # TextDyField.data_source("Data Source", "data_source"),
+        TextDyField.data_source("Capacity (TiB)", "capacity_tib"),
     ],
 )
 
@@ -114,9 +94,10 @@ filestore_file_shares = TableDynamicLayout.set_fields(
 filestore_statistics = ItemDynamicLayout.set_fields(
     "Statistics",
     fields=[
-        SizeField.data_source("Total Capacity (GB)", "data.stats.total_capacity_gb"),
+        TextDyField.data_source(
+            "Total Capacity (TiB)", "data.stats.total_capacity_tib"
+        ),
         TextDyField.data_source("File Share Count", "data.stats.file_share_count"),
-        TextDyField.data_source("Snapshot Count", "data.stats.snapshot_count"),
         TextDyField.data_source("Network Count", "data.stats.network_count"),
     ],
 )

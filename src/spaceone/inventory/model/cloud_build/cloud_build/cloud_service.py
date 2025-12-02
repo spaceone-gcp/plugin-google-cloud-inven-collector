@@ -24,7 +24,8 @@ build_overview = ItemDynamicLayout.set_fields(
     "Build Overview",
     fields=[
         TextDyField.data_source("ID", "data.id"),
-        TextDyField.data_source("Name", "data.full_name"),
+        TextDyField.data_source("Name", "data.name"),
+        TextDyField.data_source("Full Name", "data.full_name"),
         TextDyField.data_source("Status", "data.status"),
         TextDyField.data_source("Build Trigger ID", "data.build_trigger_id"),
         TextDyField.data_source("Service Account", "data.service_account"),
@@ -41,7 +42,7 @@ build_overview = ItemDynamicLayout.set_fields(
 build_config = ItemDynamicLayout.set_fields(
     "Build Configuration",
     fields=[
-        ListDyField.data_source("Images", "data.images"),
+        ListDyField.data_source("Run Image", "data.substitutions._GOOGLE_LABEL_RUN_IMAGE"),
         ListDyField.data_source("Tags", "data.tags"),
     ],
 )

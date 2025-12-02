@@ -91,6 +91,16 @@ class ExternalIPAddressManager(GoogleCloudManager):
                         }
                     )
                 # No Labels (exists on console but No option on APIs)
+                external_ip_addr.update({
+                    "google_cloud_monitoring": self.set_google_cloud_monitoring(
+                        project_id, "external_ip", external_ip_addr_id, [
+                            {"key": "resource.labels.external_ip_id", "value": external_ip_addr_id}
+                        ]
+                    ),
+                    "google_cloud_logging": self.set_google_cloud_logging(
+                        "Networking", "ExternalIPAddress", project_id, external_ip_addr_id
+                    ),
+                })
                 external_ip_addr_data = ExternalIpAddress(
                     external_ip_addr, strict=False
                 )

@@ -45,7 +45,7 @@ vpc_network_detail_meta = ItemDynamicLayout.set_fields(
 
 vpc_network_subnets_meta = TableDynamicLayout.set_fields(
     "Subnets",
-    root_path="data.subnetwork_data.subnets",
+    root_path="data.subnets",
     fields=[
         TextDyField.data_source("Name", "name"),
         TextDyField.data_source("Region", "region"),
@@ -84,11 +84,11 @@ vpc_network_firewall_meta = TableDynamicLayout.set_fields(
         ListDyField.data_source("Protocols / Ports", "display.protocols_port"),
         EnumDyField.data_source(
             "Action On Match",
-            "data.action",
+            "display.action",
             default_badge={"indigo.500": ["Allow"], "coral.600": ["Deny"]},
         ),
         TextDyField.data_source("Priority", "priority"),
-        TextDyField.data_source("Logs", "display.Logs"),
+        TextDyField.data_source("Logs", "display.logs"),
     ],
 )
 

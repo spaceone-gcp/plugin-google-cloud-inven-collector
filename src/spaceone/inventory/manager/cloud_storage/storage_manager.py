@@ -24,14 +24,12 @@ class StorageManager(GoogleCloudManager):
 
     @staticmethod
     def _safe_get(data, key, default=None):
-
         if isinstance(data, dict) and key in data:
             return data[key]
         return default
-    
+
     @staticmethod
     def _safe_get_nested(data, keys, default=None):
-
         current = data
         for key in keys:
             if isinstance(current, dict) and key in current:
@@ -39,8 +37,6 @@ class StorageManager(GoogleCloudManager):
             else:
                 return default
         return current
-
-
 
     def collect_cloud_service(self, params):
         _LOGGER.debug("** Storage START **")
@@ -178,11 +174,19 @@ class StorageManager(GoogleCloudManager):
                         "access_control": self._get_access_control(bucket),
                         "public_access": self._get_public_access(bucket, iam_policy),
                         "labels": labels,
-                    }
-                )
-
-                bucket.update(
-                    {
+                        # Monitoring data
+                        "google_cloud_monitoring": self.set_google_cloud_monitoring(
+                            project_id,
+                            "storage.googleapis.com",
+                            bucket_name,
+                            [
+                                {
+                                    "key": "resource.labels.bucket_name",
+                                    "value": bucket_name,
+                                }
+                            ],
+                        ),
+                        # Logging data
                         "google_cloud_logging": self.set_google_cloud_logging(
                             "CloudStorage", "Bucket", project_id, bucket_name
                         ),

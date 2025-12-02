@@ -1,14 +1,19 @@
 from schematics import Model
 from schematics.types import (
-    ModelType,
-    ListType,
-    StringType,
-    IntType,
-    DateTimeType,
     BooleanType,
+    DateTimeType,
     FloatType,
+    IntType,
+    ListType,
+    ModelType,
+    StringType,
 )
+
 from spaceone.inventory.libs.schema.cloud_service import BaseResource
+from spaceone.inventory.libs.schema.google_cloud_logging import GoogleCloudLoggingModel
+from spaceone.inventory.libs.schema.google_cloud_monitoring import (
+    GoogleCloudMonitoringModel,
+)
 
 
 class Labels(Model):
@@ -115,18 +120,13 @@ class TargetHttpsProxy(Model):
 
 
 class TargetProxy(Model):
+    id = StringType(serialize_when_none=False)
     name = StringType(serialize_when_none=False)
-    type = StringType(
-        choices=["GRPC", "HTTP", "HTTPS", "SSL", "TCP"],
-        default="TCP",
-        serialize_when_none=False,
-    )
+    kind = StringType(serialize_when_none=False)
+    urlMap = StringType(serialize_when_none=False)
     description = StringType(serialize_when_none=False)
-    grpc_proxy = ModelType(TargetGRPCProxy, serialize_when_none=False)
-    http_proxy = ModelType(TargetHttpProxy, serialize_when_none=False)
-    https_proxy = ModelType(TargetHttpsProxy, serialize_when_none=False)
-    tcp_proxy = ModelType(TargetTCPProxy, serialize_when_none=False)
-    ssl_proxy = ModelType(TargetSSLProxy, serialize_when_none=False)
+    creation_timestamp = DateTimeType(deserialize_from="creationTimestamp", serialize_when_none=False)
+    self_link = StringType(deserialize_from="selfLink", serialize_when_none=False)
 
 
 class ForwardingRule(Model):
@@ -385,6 +385,13 @@ class HostRule(Model):
     path_matcher = StringType(deserialize_from="pathMatcher", serialize_when_none=False)
 
 
+class RoutingRule(Model):
+    """Model representing individual rules in the routing table"""
+    host = StringType(serialize_when_none=False)
+    path = StringType(serialize_when_none=False)
+    backend = StringType(serialize_when_none=False)
+
+
 class UrlMap(Model):
     id = StringType(serialize_when_none=False)
     name = StringType
@@ -392,6 +399,9 @@ class UrlMap(Model):
     self_link = StringType(deserialize_from="selfLink", serialize_when_none=False)
     host_rule = ListType(
         ModelType(HostRule), deserialize_from="hostRules", serialize_when_none=False
+    )
+    routing_table = ListType(
+        ModelType(RoutingRule), serialize_when_none=False, default=[]
     )
     creation_timestamp = DateTimeType(deserialize_from="creationTimestamp")
 
@@ -519,12 +529,12 @@ class LoadBalancing(BaseResource):
     )
     self_link = StringType(default="")
     forwarding_rules = ListType(ModelType(ForwardingRule), serialize_when_none=False)
-    target_proxy = (ModelType(TargetProxy, serialize_when_none=False),)
+    target_proxy = ModelType(TargetProxy, serialize_when_none=False)
     urlmap = ModelType(UrlMap, serialize_when_none=False)
     certificates = ListType(ModelType(Certificates), serialize_when_none=False)
     backend_services = ListType(ModelType(BackendService), serialize_when_none=False)
     backend_buckets = ListType(ModelType(BackEndBucket), serialize_when_none=False)
-    heath_checks = ListType(ModelType(HealthCheck), serialize_when_none=False)
+    health_checks = ListType(ModelType(HealthCheck), serialize_when_none=False)
     legacy_health_checks = ListType(
         ModelType(LegacyHealthCheck), serialize_when_none=False
     )
@@ -532,6 +542,59 @@ class LoadBalancing(BaseResource):
     tags = ListType(ModelType(Labels), serialize_when_none=False)
     creation_timestamp = DateTimeType(deserialize_from="creationTimestamp")
     affected_instance_count = IntType(serialize_when_none=False, default=0)
+    google_cloud_monitoring = ModelType(
+        GoogleCloudMonitoringModel, serialize_when_none=False
+    )
+    google_cloud_logging = ModelType(GoogleCloudLoggingModel, serialize_when_none=False)
 
-    def reference(self, refer_link):
-        return {"resource_id": self.self_link, "external_link": refer_link}
+    def reference(self):
+        return {"resource_id": self.self_link, "external_link": self._get_console_url()}
+
+    def _get_console_url(self):
+        """
+        Generate appropriate Google Cloud Console URL based on LoadBalancer type.
+        """
+        # Extract basic information
+        project = getattr(self, 'project', '')
+        region = getattr(self, 'region', '')
+        name = getattr(self, 'name', '')
+        lb_type = getattr(self, 'type', '')
+        internal_or_external = getattr(self, 'internal_or_external', '')
+        
+        if not all([project, name]):
+            # Return API URL if essential information is missing (fallback)
+            return getattr(self, 'self_link', '')
+        
+        # Console URL mapping by LoadBalancer type
+        base_url = "https://console.cloud.google.com/net-services/loadbalancing/details"
+        
+        # Distinguish between Internal vs External
+        if internal_or_external == "INTERNAL_MANAGED":
+            if region:
+                # Regional Internal LoadBalancer
+                if "HTTP" in lb_type:
+                    return f"{base_url}/internalRegionalHttp/{region}/{name}?project={project}"
+                elif "TCP" in lb_type or "SSL" in lb_type:
+                    return f"{base_url}/internalRegionalTcp/{region}/{name}?project={project}"
+            else:
+                # Global Internal LoadBalancer (rare case)
+                return f"{base_url}/internalGlobalHttp/{name}?project={project}"
+        
+        elif internal_or_external in ["EXTERNAL", "EXTERNAL_MANAGED"]:
+            if region:
+                # Regional External LoadBalancer
+                if "HTTP" in lb_type:
+                    return f"{base_url}/externalRegionalHttp/{region}/{name}?project={project}"
+                elif "TCP" in lb_type or "UDP" in lb_type:
+                    return f"{base_url}/externalRegionalTcp/{region}/{name}?project={project}"
+            else:
+                # Global External LoadBalancer
+                if "HTTP" in lb_type:
+                    return f"{base_url}/externalGlobalHttp/{name}?project={project}"
+                elif "TCP" in lb_type:
+                    return f"{base_url}/externalGlobalTcp/{name}?project={project}"
+                elif "SSL" in lb_type:
+                    return f"{base_url}/externalGlobalSsl/{name}?project={project}"
+        
+        # Fallback to default LoadBalancing list page
+        return f"https://console.cloud.google.com/net-services/loadbalancing/list/loadBalancers?project={project}"

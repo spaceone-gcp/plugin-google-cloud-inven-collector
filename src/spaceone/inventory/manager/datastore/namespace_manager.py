@@ -67,6 +67,9 @@ class DatastoreNamespaceManager(GoogleCloudManager):
                     namespace.update(
                         {
                             "project": project_id,
+                            "google_cloud_logging": self.set_google_cloud_logging(
+                                "Datastore", "Namespace", project_id, namespace_id
+                            ),
                         }
                     )
                     namespace_data = DatastoreNamespaceData(namespace, strict=False)

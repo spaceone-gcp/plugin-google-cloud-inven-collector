@@ -2,6 +2,12 @@ from schematics import Model
 from schematics.types import DictType, IntType, ListType, ModelType, StringType
 
 from spaceone.inventory.libs.schema.cloud_service import CloudServiceMeta
+from spaceone.inventory.libs.schema.google_cloud_logging import (
+    GoogleCloudLoggingModel,
+)
+from spaceone.inventory.libs.schema.google_cloud_monitoring import (
+    GoogleCloudMonitoringModel,
+)
 from spaceone.inventory.libs.schema.metadata.dynamic_field import (
     DateTimeDyField,
     EnumDyField,
@@ -19,7 +25,7 @@ Batch Job 기준 Data Models - Job 개별 리소스로 관리
 
 class StatusEvent(Model):
     """Task Status Event 모델"""
-    
+
     event_time = StringType(deserialize_from="eventTime", serialize_when_none=False)
     type = StringType(serialize_when_none=False)
     task_state = StringType(deserialize_from="taskState", serialize_when_none=False)
@@ -63,11 +69,11 @@ class BatchJobResource(Model):
     state = StringType(serialize_when_none=False)
     create_time = StringType(deserialize_from="createTime", serialize_when_none=False)
     update_time = StringType(deserialize_from="updateTime", serialize_when_none=False)
-    
+
     # Location 정보 추가
     location_id = StringType(serialize_when_none=False)
     project_id = StringType(serialize_when_none=False)
-    
+
     # Job 세부 정보
     task_groups = ListType(
         ModelType(BatchTaskGroup),
@@ -79,16 +85,22 @@ class BatchJobResource(Model):
         ModelType(BatchTask),
         serialize_when_none=False,
     )  # UI 표시용 모든 Task 목록 (평면화)
-    
+
     # 메타데이터
     labels = DictType(StringType, serialize_when_none=False)
     annotations = DictType(StringType, serialize_when_none=False)
+    # Monitoring data
+    google_cloud_monitoring = ModelType(
+        GoogleCloudMonitoringModel, serialize_when_none=False
+    )
+    # Logging data
+    google_cloud_logging = ModelType(GoogleCloudLoggingModel, serialize_when_none=False)
 
     def reference(self):
         """Job 개별 참조 링크 생성"""
         if self.name and self.project_id and self.location_id:
             # Job name에서 Job ID 추출 (projects/.../locations/.../jobs/{job_id})
-            job_id = self.name.split('/')[-1] if '/' in self.name else self.name
+            job_id = self.name.split("/")[-1] if "/" in self.name else self.name
             return {
                 "resource_id": self.uid or self.name,
                 "external_link": f"https://console.cloud.google.com/batch/jobsDetail/regions/{self.location_id}/jobs/{job_id}/details?project={self.project_id}",
@@ -108,7 +120,7 @@ job_overview_meta = ItemDynamicLayout.set_fields(
     fields=[
         TextDyField.data_source("Job Name", "data.display_name"),
         TextDyField.data_source("Job ID", "data.uid"),
-        TextDyField.data_source("Full Path", "data.name"),
+        TextDyField.data_source("Full Name", "data.name"),
         EnumDyField.data_source(
             "Status",
             "data.state",

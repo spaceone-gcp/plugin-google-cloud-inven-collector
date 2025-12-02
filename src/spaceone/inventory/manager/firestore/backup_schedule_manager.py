@@ -143,6 +143,12 @@ class FirestoreBackupScheduleManager(GoogleCloudManager):
                             "project": project_id,
                             "recurrence_type": recurrence_info["type"],
                             "weekly_day": recurrence_info.get("weekly_day", ""),
+                            "google_cloud_logging": self.set_google_cloud_logging(
+                                "Firestore",
+                                "BackupSchedule",
+                                project_id,
+                                backup_schedule_id,
+                            ),
                         }
                     )
 

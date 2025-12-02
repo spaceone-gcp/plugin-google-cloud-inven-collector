@@ -1,22 +1,22 @@
 import os
 
+from spaceone.inventory.conf.cloud_service_conf import ASSET_URL
 from spaceone.inventory.libs.common_parser import get_data_from_yaml
 from spaceone.inventory.libs.schema.cloud_service_type import (
+    CloudServiceTypeMeta,
     CloudServiceTypeResource,
     CloudServiceTypeResponse,
-    CloudServiceTypeMeta,
+)
+from spaceone.inventory.libs.schema.metadata.dynamic_field import (
+    DateTimeDyField,
+    EnumDyField,
+    SearchField,
+    TextDyField,
 )
 from spaceone.inventory.libs.schema.metadata.dynamic_widget import (
     CardWidget,
     ChartWidget,
 )
-from spaceone.inventory.libs.schema.metadata.dynamic_field import (
-    TextDyField,
-    SearchField,
-    DateTimeDyField,
-    EnumDyField,
-)
-from spaceone.inventory.conf.cloud_service_conf import ASSET_URL
 
 current_dir = os.path.abspath(os.path.dirname(__file__))
 
@@ -39,7 +39,6 @@ cst_vpc_subnet.tags = {
 
 cst_vpc_subnet._metadata = CloudServiceTypeMeta.set_meta(
     fields=[
-        TextDyField.data_source("Region", "data.region"),
         TextDyField.data_source("VPC Network", "data.network_display"),
         TextDyField.data_source("IP Address Range", "data.ip_cidr_range"),
         TextDyField.data_source("Gateway", "data.gateway_address"),

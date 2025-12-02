@@ -288,6 +288,7 @@ class InstanceGroupManagers(Model):
         serialize_when_none=False,
     )
     base_instance_name = StringType(deserialize_from="baseInstanceName")
+    labels = ListType(DictType(StringType), default=[])
 
     versions = ListType(ModelType(InstanceGroupManagerVersion))
     creation_timestamp = DateTimeType(deserialize_from="creationTimestamp")
@@ -332,5 +333,5 @@ class InstanceGroup(BaseResource):
     def reference(self):
         return {
             "resource_id": self.self_link,
-            "external_link": f"https://console.cloud.google.com/compute/instanceGroups/details/{self.zone}/{self.name}?authuser=1&project={self.project}",
+            "external_link": f"https://console.cloud.google.com/compute/instanceGroups/details/{self.region}/{self.name}?&project={self.project}",
         }

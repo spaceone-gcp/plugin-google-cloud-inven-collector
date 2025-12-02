@@ -1,24 +1,19 @@
 import logging
-from typing import List, Dict, Any, Tuple
+from typing import Any, Dict, List, Tuple
 
 from spaceone.inventory.connector.app_engine.service_v1 import (
     AppEngineServiceV1Connector,
 )
 from spaceone.inventory.libs.manager import GoogleCloudManager
-
-from spaceone.inventory.model.app_engine.service.cloud_service_type import (
-    CLOUD_SERVICE_TYPES,
-)
-
+from spaceone.inventory.libs.schema.cloud_service import ErrorResourceResponse
 from spaceone.inventory.model.app_engine.service.cloud_service import (
     AppEngineServiceResource,
     AppEngineServiceResponse,
 )
-from spaceone.inventory.model.app_engine.service.data import (
-    AppEngineService,
+from spaceone.inventory.model.app_engine.service.cloud_service_type import (
+    CLOUD_SERVICE_TYPES,
 )
-from spaceone.inventory.model.kubernetes_engine.cluster.data import convert_datetime
-from spaceone.inventory.libs.schema.cloud_service import ErrorResourceResponse
+from spaceone.inventory.model.app_engine.service.data import AppEngineService
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,16 +27,16 @@ class AppEngineServiceV1Manager(GoogleCloudManager):
         super().__init__(**kwargs)
 
     def list_services(self, params: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """AppEngine 서비스 목록을 조회합니다 (v1 API).
+        """List App Engine services (v1 API).
 
         Args:
-            params: 조회에 필요한 파라미터 딕셔너리.
+            params: Parameters dictionary for query.
 
         Returns:
-            App Engine 서비스 목록.
+            List of App Engine services.
 
         Raises:
-            Exception: App Engine API 호출 중 오류 발생 시.
+            Exception: When App Engine API call fails.
         """
         service_connector: AppEngineServiceV1Connector = self.locator.get_connector(
             self.connector_name, **params
@@ -56,17 +51,17 @@ class AppEngineServiceV1Manager(GoogleCloudManager):
             return []
 
     def get_service(self, service_id: str, params: Dict[str, Any]) -> Dict[str, Any]:
-        """특정 AppEngine 서비스 정보를 조회합니다 (v1 API).
+        """Get specific App Engine service information (v1 API).
 
         Args:
-            service_id: 서비스 ID.
-            params: 조회에 필요한 파라미터 딕셔너리.
+            service_id: Service ID.
+            params: Parameters dictionary for query.
 
         Returns:
-            App Engine 서비스 정보 딕셔너리.
+            App Engine service information dictionary.
 
         Raises:
-            Exception: App Engine API 호출 중 오류 발생 시.
+            Exception: When App Engine API call fails.
         """
         service_connector: AppEngineServiceV1Connector = self.locator.get_connector(
             self.connector_name, **params
@@ -84,17 +79,17 @@ class AppEngineServiceV1Manager(GoogleCloudManager):
     def list_versions(
         self, service_id: str, params: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
-        """특정 서비스의 버전 목록을 조회합니다 (v1 API).
+        """List versions for a specific service (v1 API).
 
         Args:
-            service_id: 서비스 ID.
-            params: 조회에 필요한 파라미터 딕셔너리.
+            service_id: Service ID.
+            params: Parameters dictionary for query.
 
         Returns:
-            서비스 버전 목록.
+            List of service versions.
 
         Raises:
-            Exception: App Engine API 호출 중 오류 발생 시.
+            Exception: When App Engine API call fails.
         """
         service_connector: AppEngineServiceV1Connector = self.locator.get_connector(
             self.connector_name, **params
@@ -113,18 +108,18 @@ class AppEngineServiceV1Manager(GoogleCloudManager):
     def list_instances(
         self, service_id: str, version_id: str, params: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
-        """특정 버전의 인스턴스 목록을 조회합니다 (v1 API).
+        """List instances for a specific version (v1 API).
 
         Args:
-            service_id: 서비스 ID.
-            version_id: 버전 ID.
-            params: 조회에 필요한 파라미터 딕셔너리.
+            service_id: Service ID.
+            version_id: Version ID.
+            params: Parameters dictionary for query.
 
         Returns:
-            인스턴스 목록.
+            List of instances.
 
         Raises:
-            Exception: App Engine API 호출 중 오류 발생 시.
+            Exception: When App Engine API call fails.
         """
         service_connector: AppEngineServiceV1Connector = self.locator.get_connector(
             self.connector_name, **params
@@ -145,16 +140,16 @@ class AppEngineServiceV1Manager(GoogleCloudManager):
     def collect_cloud_service(
         self, params: Dict[str, Any]
     ) -> Tuple[List[Any], List[ErrorResourceResponse]]:
-        """AppEngine 서비스 정보를 수집합니다 (v1 API).
+        """Collect App Engine service information (v1 API).
 
         Args:
-            params: 수집에 필요한 파라미터 딕셔너리.
+            params: Parameters dictionary for collection.
 
         Returns:
-            수집된 클라우드 서비스 목록과 오류 응답 목록의 튜플.
+            Tuple of collected cloud service list and error response list.
 
         Raises:
-            Exception: 데이터 수집 중 오류 발생 시.
+            Exception: When data collection fails.
         """
         _LOGGER.debug("** AppEngine Service V1 START **")
 
@@ -164,7 +159,6 @@ class AppEngineServiceV1Manager(GoogleCloudManager):
         secret_data = params["secret_data"]
         project_id = secret_data["project_id"]
 
-        # App Engine 서비스 목록 조회
         services = self.list_services(params)
 
         for service in services:
@@ -176,25 +170,49 @@ class AppEngineServiceV1Manager(GoogleCloudManager):
                 if service_id:
                     versions = self.list_versions(service_id, params)
 
-                # 인스턴스 정보 수집
+                # 인스턴스 정보 수집 및 최신 버전 정보 추출
                 total_instances = 0
+                latest_version_info = None
+                latest_create_time = None
+
                 for version in versions:
                     version_id = version.get("id")
                     if version_id:
                         instances = self.list_instances(service_id, version_id, params)
                         total_instances += len(instances)
 
+                        # 최신 버전 정보 추출 (createTime 기준)
+                        version_create_time = version.get("createTime")
+                        if version_create_time and (
+                            latest_create_time is None
+                            or version_create_time > latest_create_time
+                        ):
+                            latest_create_time = version_create_time
+                            latest_version_info = {
+                                "version_id": version_id,
+                                "create_time": version_create_time,
+                                "serving_status": version.get("servingStatus", ""),
+                            }
+
                 # 기본 서비스 데이터 준비
                 service_data = {
                     "name": str(service.get("name", "")),
-                    "projectId": str(project_id),  # secret_data에서 가져온 project_id 사용
+                    "projectId": str(
+                        project_id
+                    ),  # secret_data에서 가져온 project_id 사용
                     "id": str(service.get("id", "")),
-                    "servingStatus": str(service.get("servingStatus", "")),
-                    "createTime": convert_datetime(service.get("createTime")),
-                    "updateTime": convert_datetime(service.get("updateTime")),
                     "version_count": str(len(versions)),
                     "instance_count": str(total_instances),
                 }
+
+                # 최신 버전 배포 정보 추가
+                if latest_version_info:
+                    service_data["latest_version_deployed"] = (
+                        f"{latest_version_info['create_time']} (v{latest_version_info['version_id']})"
+                    )
+                    service_data["serving_status"] = latest_version_info[
+                        "serving_status"
+                    ]
 
                 # Traffic Split 추가
                 if "split" in service:
@@ -208,30 +226,50 @@ class AppEngineServiceV1Manager(GoogleCloudManager):
                 if "network" in service:
                     network_data = service["network"]
                     service_data["network"] = {
-                        "forwardedPorts": str(network_data.get("forwardedPorts", "")),
+                        "forwardedPorts": network_data.get("forwardedPorts", []),
                         "instanceTag": str(network_data.get("instanceTag", "")),
                         "name": str(network_data.get("name", "")),
                         "subnetworkName": str(network_data.get("subnetworkName", "")),
+                        "ingressTrafficAllowed": str(
+                            network_data.get("ingressTrafficAllowed", "")
+                        ),
                     }
+
+                # VPC Access Connector 추가
+                if "vpcAccessConnector" in service:
+                    vpc_data = service["vpcAccessConnector"]
+                    service_data["vpcAccessConnector"] = {
+                        "name": str(vpc_data.get("name", "")),
+                        "egressSetting": str(vpc_data.get("egressSetting", "")),
+                    }
+
+                # Labels 추가 (generatedCustomerMetadata에서 추출)
+                if "generatedCustomerMetadata" in service:
+                    metadata = service["generatedCustomerMetadata"]
+                    service_data["labels"] = metadata
 
                 # Stackdriver 정보 추가
                 service_id = service.get("id")
                 if not service_id:
-                    _LOGGER.warning(f"Service missing ID, skipping monitoring setup: {service}")
+                    _LOGGER.warning(
+                        f"Service missing ID, skipping monitoring setup: {service}"
+                    )
                     service_id = "unknown"
-                
+
                 # Google Cloud Monitoring/Logging 리소스 ID: App Engine Service의 경우 module_id (service_id) 사용
                 monitoring_resource_id = service_id
-                
+
                 google_cloud_monitoring_filters = [
                     {"key": "resource.labels.module_id", "value": service_id},
                     {"key": "resource.labels.project_id", "value": project_id},
                 ]
-                service_data["google_cloud_monitoring"] = self.set_google_cloud_monitoring(
-                    project_id,
-                    "appengine.googleapis.com/system",
-                    monitoring_resource_id,
-                    google_cloud_monitoring_filters,
+                service_data["google_cloud_monitoring"] = (
+                    self.set_google_cloud_monitoring(
+                        project_id,
+                        "appengine.googleapis.com/system",
+                        monitoring_resource_id,
+                        google_cloud_monitoring_filters,
+                    )
                 )
                 service_data["google_cloud_logging"] = self.set_google_cloud_logging(
                     "AppEngine", "Service", project_id, monitoring_resource_id

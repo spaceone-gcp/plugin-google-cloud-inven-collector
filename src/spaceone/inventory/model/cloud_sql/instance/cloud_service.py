@@ -1,21 +1,21 @@
-from schematics.types import ModelType, StringType, PolyModelType
+from schematics.types import ModelType, PolyModelType, StringType
 
-from spaceone.inventory.model.cloud_sql.instance.data import Instance
+from spaceone.inventory.libs.schema.cloud_service import (
+    CloudServiceMeta,
+    CloudServiceResource,
+    CloudServiceResponse,
+)
 from spaceone.inventory.libs.schema.metadata.dynamic_field import (
-    TextDyField,
+    DateTimeDyField,
     EnumDyField,
     ListDyField,
-    DateTimeDyField,
+    TextDyField,
 )
 from spaceone.inventory.libs.schema.metadata.dynamic_layout import (
     ItemDynamicLayout,
     TableDynamicLayout,
 )
-from spaceone.inventory.libs.schema.cloud_service import (
-    CloudServiceResource,
-    CloudServiceResponse,
-    CloudServiceMeta,
-)
+from spaceone.inventory.model.cloud_sql.instance.data import Instance
 
 """
 SQL Instance
@@ -67,11 +67,6 @@ sql_meta_configuration = ItemDynamicLayout.set_fields(
             "data.settings.storage_auto_resize_limit",
         ),
         EnumDyField.data_source(
-            "Point-in-time recovery",
-            "data.settings.storage_auto_resize",
-            default_badge={},
-        ),
-        EnumDyField.data_source(
             "Availability Type",
             "data.settings.availability_type",
             default_outline_badge=[
@@ -119,12 +114,6 @@ sql_meta_database = TableDynamicLayout.set_fields(
         TextDyField.data_source("Name", "name"),
         TextDyField.data_source("charset", "charset"),
         TextDyField.data_source("collation", "collation"),
-        TextDyField.data_source(
-            "Compatibility Level", "sql_server_database_details.compatibility_level"
-        ),
-        TextDyField.data_source(
-            "Recovery Model", "sql_server_database_details.recovery_model"
-        ),
         TextDyField.data_source("Self Link", "self_link"),
     ],
 )
@@ -135,17 +124,7 @@ sql_meta_user = TableDynamicLayout.set_fields(
     "data.users",
     fields=[
         TextDyField.data_source("User Name", "name"),
-        EnumDyField.data_source(
-            "State",
-            "sql_server_user_details.disabled",
-            default_badge={"indigo.500": ["true"], "coral.600": ["false"]},
-        ),
         TextDyField.data_source("Host", "host"),
-        ListDyField.data_source(
-            "Server Roles",
-            "sql_server_user_details.server_roles",
-            default_badge={"type": "outline", "delimiter": "<br>"},
-        ),
     ],
 )
 
@@ -167,16 +146,6 @@ sql_meta_backup = ItemDynamicLayout.set_fields(
         EnumDyField.data_source(
             "Binary Log Enabled",
             "data.settings.backup_configuration.binary_log_enabled",
-            default_badge={"indigo.500": ["true"], "coral.600": ["false"]},
-        ),
-        EnumDyField.data_source(
-            "Replication Log Archiving Enabled",
-            "data.settings.backup_configuration.replication_log_archiving_enabled",
-            default_badge={"indigo.500": ["true"], "coral.600": ["false"]},
-        ),
-        EnumDyField.data_source(
-            "Point In Time Recovery Enabled",
-            "data.settings.backup_configuration.point_in_time_recovery_enabled",
             default_badge={"indigo.500": ["true"], "coral.600": ["false"]},
         ),
     ],

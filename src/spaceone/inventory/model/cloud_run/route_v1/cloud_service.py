@@ -25,7 +25,7 @@ route_v1_meta = CloudServiceMeta.set_layouts(
             "Route Details",
             fields=[
                 TextDyField.data_source("ID", "data.metadata.uid"),
-                TextDyField.data_source("Name", "data.full_name"),
+                TextDyField.data_source("Name", "data.name"),
                 TextDyField.data_source("Kind", "data.kind"),
                 TextDyField.data_source("API Version", "data.api_version"),
                 TextDyField.data_source("Namespace", "data.metadata.namespace"),
@@ -45,9 +45,8 @@ route_v1_meta = CloudServiceMeta.set_layouts(
             ],
         ),
         ItemDynamicLayout.set_fields(
-            "Labels & Annotations",
+            "Annotations",
             fields=[
-                DictDyField.data_source("Labels", "data.metadata.labels"),
                 DictDyField.data_source("Annotations", "data.metadata.annotations"),
             ],
         ),

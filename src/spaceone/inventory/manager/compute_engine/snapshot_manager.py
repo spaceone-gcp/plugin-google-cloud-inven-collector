@@ -1,15 +1,15 @@
-import time
 import logging
+import time
 
+from spaceone.inventory.connector.compute_engine.snapshot import SnapshotConnector
 from spaceone.inventory.libs.manager import GoogleCloudManager
 from spaceone.inventory.libs.schema.base import ReferenceModel
-from spaceone.inventory.connector.compute_engine.snapshot import SnapshotConnector
-from spaceone.inventory.model.compute_engine.snapshot.cloud_service_type import (
-    CLOUD_SERVICE_TYPES,
-)
 from spaceone.inventory.model.compute_engine.snapshot.cloud_service import (
     SnapshotResource,
     SnapshotResponse,
+)
+from spaceone.inventory.model.compute_engine.snapshot.cloud_service_type import (
+    CLOUD_SERVICE_TYPES,
 )
 from spaceone.inventory.model.compute_engine.snapshot.data import Snapshot
 
@@ -17,11 +17,11 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class SnapshotManager(GoogleCloudManager):
-    connector_name = "SnapshotConnector"
+    connector_name = "ComputeEngineSnapshotConnector"
     cloud_service_types = CLOUD_SERVICE_TYPES
 
     def collect_cloud_service(self, params):
-        _LOGGER.debug(f"** Snapshot START **")
+        _LOGGER.debug("** Snapshot START **")
         start_time = time.time()
         """
         Args:

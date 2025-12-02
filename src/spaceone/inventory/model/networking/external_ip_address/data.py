@@ -1,6 +1,10 @@
 from schematics import Model
-from schematics.types import ListType, StringType, DateTimeType
+from schematics.types import ListType, StringType, DateTimeType, ModelType
 from spaceone.inventory.libs.schema.cloud_service import BaseResource
+from spaceone.inventory.libs.schema.google_cloud_monitoring import (
+    GoogleCloudMonitoringModel,
+)
+from spaceone.inventory.libs.schema.google_cloud_logging import GoogleCloudLoggingModel
 
 
 class Labels(Model):
@@ -37,9 +41,13 @@ class ExternalIpAddress(BaseResource):
     ip_version_display = StringType()
     users = ListType(StringType(), default=[])
     creation_timestamp = DateTimeType(deserialize_from="creationTimestamp")
+    google_cloud_monitoring = ModelType(
+        GoogleCloudMonitoringModel, serialize_when_none=False
+    )
+    google_cloud_logging = ModelType(GoogleCloudLoggingModel, serialize_when_none=False)
 
     def reference(self):
         return {
             "resource_id": self.self_link,
-            "external_link": f"https://console.cloud.google.com/networking/addresses/list/project={self.project}",
+            "external_link": f"https://console.cloud.google.com/networking/addresses/list?project={self.project}",
         }

@@ -103,6 +103,7 @@ class StorageTransferManager(GoogleCloudManager):
                         sink_type = (
                             transfer_job_data.transfer_spec.get_sink_type() or "Unknown"
                         )
+
                     else:
                         # Fallback to original method
                         source_type = self._determine_source_type(transfer_spec)
@@ -124,6 +125,15 @@ class StorageTransferManager(GoogleCloudManager):
                     transfer_job_data.transfer_options_display = (
                         transfer_options_display
                     )
+
+                    # Set active source/sink details
+                    if transfer_job_data.transfer_spec:
+                        transfer_job_data.active_source_details = (
+                            transfer_job_data.transfer_spec.get_active_source_details()
+                        )
+                        transfer_job_data.active_sink_details = (
+                            transfer_job_data.transfer_spec.get_active_sink_details()
+                        )
 
                     ##################################
                     # 3. Make Return Resource
@@ -210,7 +220,7 @@ class StorageTransferManager(GoogleCloudManager):
     def _make_schedule_display(schedule: Dict) -> str:
         """Convert schedule information to display string"""
         if not schedule:
-            return "One-time"
+            return "When requested"
 
         repeat_interval = schedule.get("repeatInterval")
         if repeat_interval:

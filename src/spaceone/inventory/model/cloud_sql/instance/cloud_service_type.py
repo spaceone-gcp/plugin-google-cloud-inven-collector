@@ -1,22 +1,22 @@
 import os
 
+from spaceone.inventory.conf.cloud_service_conf import *
 from spaceone.inventory.libs.common_parser import *
+from spaceone.inventory.libs.schema.cloud_service_type import (
+    CloudServiceTypeMeta,
+    CloudServiceTypeResource,
+    CloudServiceTypeResponse,
+)
+from spaceone.inventory.libs.schema.metadata.dynamic_field import (
+    EnumDyField,
+    ListDyField,
+    SearchField,
+    TextDyField,
+)
 from spaceone.inventory.libs.schema.metadata.dynamic_widget import (
     CardWidget,
     ChartWidget,
 )
-from spaceone.inventory.libs.schema.metadata.dynamic_field import (
-    TextDyField,
-    ListDyField,
-    SearchField,
-    EnumDyField,
-)
-from spaceone.inventory.libs.schema.cloud_service_type import (
-    CloudServiceTypeResource,
-    CloudServiceTypeResponse,
-    CloudServiceTypeMeta,
-)
-from spaceone.inventory.conf.cloud_service_conf import *
 
 current_dir = os.path.abspath(os.path.dirname(__file__))
 
@@ -48,7 +48,6 @@ cst_instance._metadata = CloudServiceTypeMeta.set_meta(
             },
         ),
         TextDyField.data_source("Type", "data.database_version"),
-        TextDyField.data_source("Project", "data.project"),
         ListDyField.data_source(
             "Public IP Address",
             "data.ip_addresses",
@@ -64,9 +63,6 @@ cst_instance._metadata = CloudServiceTypeMeta.set_meta(
         ),
         TextDyField.data_source(
             "Connection name", "data.connection_name", options={"is_optional": True}
-        ),
-        TextDyField.data_source(
-            "Location", "data.gce_zone", options={"is_optional": True}
         ),
         TextDyField.data_source(
             "Service Account",

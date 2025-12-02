@@ -1,19 +1,25 @@
 from schematics import Model
 from schematics.types import (
-    ModelType,
-    ListType,
-    StringType,
+    BaseType,
     BooleanType,
-    IntType,
     DateTimeType,
     DictType,
+    IntType,
+    ListType,
+    ModelType,
+    StringType,
 )
+
 from spaceone.inventory.libs.schema.cloud_service import BaseResource
 
 
 class SQLServerUserDetail(Model):
     disabled = BooleanType()
     server_roles = ListType(StringType, deserialize_from="serverRoles")
+
+
+class PasswordPolicy(Model):
+    status = DictType(BaseType, default={})
 
 
 class User(Model):
@@ -23,6 +29,9 @@ class User(Model):
     host = StringType()
     instance = StringType()
     project = StringType()
+    password_policy = ModelType(
+        PasswordPolicy, deserialize_from="passwordPolicy", serialize_when_none=False
+    )
     sql_server_user_details = ModelType(
         SQLServerUserDetail,
         deserialize_from="sqlserverUserDetails",

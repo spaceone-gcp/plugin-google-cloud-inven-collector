@@ -1,6 +1,10 @@
-from schematics.types import StringType, ModelType
 from schematics import Model
+from schematics.types import ModelType, StringType
+
 from spaceone.inventory.libs.schema.cloud_service import BaseResource
+from spaceone.inventory.libs.schema.google_cloud_logging import (
+    GoogleCloudLoggingModel,
+)
 
 
 class Display(Model):
@@ -19,6 +23,8 @@ class Schema(BaseResource):
         serialize_when_none=False, deserialize_from="revisionCreateTime"
     )
     display = ModelType(Display, serialize_when_none=False)
+    # Logging data
+    google_cloud_logging = ModelType(GoogleCloudLoggingModel, serialize_when_none=False)
 
     def reference(self):
         return {

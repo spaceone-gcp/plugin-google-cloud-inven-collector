@@ -1,7 +1,10 @@
 from schematics import Model
-from schematics.types import ModelType, StringType, IntType, BooleanType, DictType
+from schematics.types import BooleanType, DictType, IntType, ModelType, StringType
 
 from spaceone.inventory.libs.schema.cloud_service import BaseResource
+from spaceone.inventory.libs.schema.google_cloud_monitoring import (
+    GoogleCloudMonitoringModel,
+)
 
 
 class RetryPolicy(Model):
@@ -113,6 +116,10 @@ class Subscription(BaseResource):
         serialize_when_none=False, deserialize_from="enableExactlyOnceDelivery"
     )
     state = StringType(choices=("STATE_UNSPECIFIED", "ACTIVE", "RESOURCE_ERROR"))
+    # Monitoring data
+    google_cloud_monitoring = ModelType(
+        GoogleCloudMonitoringModel, serialize_when_none=False
+    )
 
     def reference(self):
         return {

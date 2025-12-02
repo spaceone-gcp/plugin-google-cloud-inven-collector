@@ -11,7 +11,7 @@ from spaceone.inventory.model.pub_sub.topic.cloud_service import (
 from spaceone.inventory.model.pub_sub.topic.cloud_service_type import (
     CLOUD_SERVICE_TYPES,
 )
-from spaceone.inventory.model.pub_sub.topic.data import Topic, Subscription, Snapshot
+from spaceone.inventory.model.pub_sub.topic.data import Snapshot, Subscription, Topic
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ class TopicManager(GoogleCloudManager):
         Response:
             CloudServiceResponse/ErrorResourceResponse
         """
-        _LOGGER.debug(f"** PubSub Topic START **")
+        _LOGGER.debug("** PubSub Topic START **")
 
         start_time = time.time()
         collected_cloud_services = []
@@ -116,11 +116,27 @@ class TopicManager(GoogleCloudManager):
                     }
                 )
 
+                # Google Cloud Monitoring 필터 설정
+                google_cloud_monitoring_filters = [
+                    {"key": "resource.labels.topic_id", "value": topic_id},
+                ]
+
                 topic.update(
                     {
+                        # Monitoring data
+                        "google_cloud_monitoring": self._set_multiple_google_cloud_monitoring(
+                            project_id,
+                            [
+                                "pubsub.googleapis.com/topic/ingestion_byte_count",
+                                "pubsub.googleapis.com/topic/ingestion_message_count",
+                            ],
+                            topic_id,
+                            google_cloud_monitoring_filters,
+                        ),
+                        # Logging data
                         "google_cloud_logging": self.set_google_cloud_logging(
                             "PubSub", "Topic", project_id, topic_name
-                        )
+                        ),
                     }
                 )
 
@@ -210,3 +226,29 @@ class TopicManager(GoogleCloudManager):
     def _make_subscription_id(subscription_name):
         *path, subscription_id = subscription_name.split("/")
         return subscription_id
+
+    @staticmethod
+    def _set_multiple_google_cloud_monitoring(
+        project_id, metric_types, resource_id, filters
+    ):
+        """
+        Set multiple Google Cloud Monitoring metric types for PubSub Topic.
+
+        Args:
+            project_id (str): GCP project ID
+            metric_types (list): List of metric types
+            resource_id (str): Resource ID
+            filters (list): Filters to apply to all metric types
+
+        Returns:
+            dict: Google Cloud Monitoring configuration with multiple metric types
+        """
+        monitoring_filters = []
+        for metric_type in metric_types:
+            monitoring_filters.append({"metric_type": metric_type, "labels": filters})
+
+        return {
+            "name": f"projects/{project_id}",
+            "resource_id": resource_id,
+            "filters": monitoring_filters,
+        }

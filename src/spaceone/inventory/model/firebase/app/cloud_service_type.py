@@ -1,19 +1,19 @@
 import os
 
 from spaceone.inventory.libs.common_parser import get_data_from_yaml
+from spaceone.inventory.libs.schema.cloud_service_type import (
+    CloudServiceTypeMeta,
+    CloudServiceTypeResource,
+    CloudServiceTypeResponse,
+)
+from spaceone.inventory.libs.schema.metadata.dynamic_field import (
+    EnumDyField,
+    SearchField,
+    TextDyField,
+)
 from spaceone.inventory.libs.schema.metadata.dynamic_widget import (
     CardWidget,
     ChartWidget,
-)
-from spaceone.inventory.libs.schema.metadata.dynamic_field import (
-    TextDyField,
-    EnumDyField,
-    SearchField,
-)
-from spaceone.inventory.libs.schema.cloud_service_type import (
-    CloudServiceTypeResource,
-    CloudServiceTypeResponse,
-    CloudServiceTypeMeta,
 )
 
 current_dir = os.path.abspath(os.path.dirname(__file__))
@@ -38,7 +38,6 @@ cst_firebase_app.tags = {
 cst_firebase_app._metadata = CloudServiceTypeMeta.set_meta(
     fields=[
         TextDyField.data_source("App ID", "data.app_id"),
-        TextDyField.data_source("Display Name", "data.display_name"),
         EnumDyField.data_source(
             "Platform",
             "data.platform",
@@ -57,27 +56,27 @@ cst_firebase_app._metadata = CloudServiceTypeMeta.set_meta(
                 "alert": ["DELETED"],
             },
         ),
-     ],
+    ],
     search=[
         SearchField.set(name="App ID", key="data.app_id"),
         SearchField.set(name="Display Name", key="data.display_name"),
         SearchField.set(
-            name="Platform", 
-            key="data.platform", 
+            name="Platform",
+            key="data.platform",
             enums={
                 "IOS": {"label": "iOS"},
                 "ANDROID": {"label": "Android"},
                 "WEB": {"label": "Web"},
-            }
+            },
         ),
         SearchField.set(
-            name="State", 
-            key="data.state", 
+            name="State",
+            key="data.state",
             enums={
                 "ACTIVE": {"label": "Active"},
                 "PENDING_DELETE": {"label": "Pending Delete"},
                 "DELETED": {"label": "Deleted"},
-            }
+            },
         ),
     ],
     widget=[

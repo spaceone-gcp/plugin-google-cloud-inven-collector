@@ -10,7 +10,7 @@ FILTER_FORMAT = []
 CLOUD_SERVICE_GROUP_MAP = {
     "ComputeEngine": [
         "VMInstanceManager",
-        "SnapshotManager",
+        "ComputeEngineSnapshotManager",
         "MachineImageManager",
         "InstanceTemplateManager",
         "InstanceGroupManager",
@@ -63,7 +63,7 @@ CLOUD_SERVICE_GROUP_MAP = {
         "CloudRunWorkerPoolV2Manager",
         # "CloudRunOperationV2Manager",
     ],
-    "KubernetesEngine": ["GKEClusterV1Manager", "GKENodePoolV1Manager"],
+    "KubernetesEngine": ["GKEClusterV1BetaManager", "GKENodePoolV1BetaManager"],
     "AppEngine": [
         "AppEngineApplicationV1Manager",
         "AppEngineServiceV1Manager",
@@ -118,7 +118,12 @@ CLOUD_LOGGING_RESOURCE_TYPE_MAP = {
             "labels_key": "resource.labels.database_id",
         }
     },
-    "BigQuery": {},
+    "BigQuery": {
+        "SQLWorkspace": {
+            "resource_type": "bigquery_dataset",
+            "labels_key": "resource.labels.dataset_id",
+        },
+    },
     "CloudBuild": {
         "Build": {
             "resource_type": "cloud_build",
@@ -160,6 +165,10 @@ CLOUD_LOGGING_RESOURCE_TYPE_MAP = {
         "Snapshot": {
             "resource_type": "pubsub_snapshot",
             "labels_key": "resource.labels.snapshot_id",
+        },
+        "Schema": {
+            "resource_type": "pubsub_schema",
+            "labels_key": "resource.labels.schema_id",
         },
     },
     "CloudFunctions": {
@@ -286,7 +295,15 @@ CLOUD_LOGGING_RESOURCE_TYPE_MAP = {
         "Database": {
             "resource_type": "firestore_database",
             "labels_key": "resource.labels.database_id",
-        }
+        },
+        "BackupSchedule": {
+            "resource_type": "firestore_backup_schedule",
+            "labels_key": "resource.labels.backup_schedule_id",
+        },
+        "Backup": {
+            "resource_type": "firestore_backup",
+            "labels_key": "resource.labels.backup_id",
+        },
     },
     "KMS": {
         "KeyRing": {
@@ -295,6 +312,36 @@ CLOUD_LOGGING_RESOURCE_TYPE_MAP = {
         }
     },
     "Recommender": {},
+    "Networking": {
+        "LoadBalancing": {
+            "resource_type": "gce_load_balancer",
+            "labels_key": "resource.labels.load_balancer_id",
+        },
+        "ExternalIPAddress": {
+            "resource_type": "gce_external_ip",
+            "labels_key": "resource.labels.external_ip_id",
+        },
+        "Firewall": {
+            "resource_type": "gce_firewall",
+            "labels_key": "resource.labels.firewall_id",
+        },
+        "Route": {
+            "resource_type": "gce_route",
+            "labels_key": "resource.labels.route_id",
+        },
+        "VPCGateway": {
+            "resource_type": "gce_vpc_gateway",
+            "labels_key": "resource.labels.gateway_id",
+        },
+        "VPCNetwork": {
+            "resource_type": "gce_network",
+            "labels_key": "resource.labels.network_id",
+        },
+        "VPCSubnet": {
+            "resource_type": "gce_subnetwork",
+            "labels_key": "resource.labels.subnetwork_id",
+        },
+    },
 }
 
 ASSET_URL = "https://spaceone-custom-assets.s3.ap-northeast-2.amazonaws.com/console-assets/icons/cloud-services/google_cloud"

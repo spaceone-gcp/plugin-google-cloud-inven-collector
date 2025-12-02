@@ -25,6 +25,7 @@ class FunctionDisplay(Model):
     environment_lowercase = StringType(serialize_when_none=False)
     environment = StringType(serialize_when_none=False)
     function_id = StringType(serialize_when_none=False)
+    function_name = StringType(serialize_when_none=False)
     last_deployed = StringType(serialize_when_none=False)
     runtime = StringType(serialize_when_none=False)
     timeout = StringType(serialize_when_none=False)
@@ -40,6 +41,9 @@ class FunctionDisplay(Model):
     )
     build_environment_variables = ListType(
         ModelType(Variable), serialize_when_none=False
+    )
+    secret_environment_variables = ListType(
+        ModelType(SecretEnvVar), serialize_when_none=False
     )
 
 
@@ -155,5 +159,5 @@ class FunctionGen1(BaseResource):
     def reference(self):
         return {
             "resource_id": self.name,
-            "external_link": f"https://console.cloud.google.com/functions/details/{self.display.region}/{self.display.function_id}?env={self.display.environment_lowercase}&project={self.project}",
+            "external_link": f"https://console.cloud.google.com/functions/details/{self.display.region}/{self.display.function_name}?env={self.display.environment_lowercase}&project={self.project}&tab=details",
         }

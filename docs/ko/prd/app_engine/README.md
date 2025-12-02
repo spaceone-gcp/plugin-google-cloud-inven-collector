@@ -224,18 +224,45 @@ def _api_call_with_retry(self, api_method, *args, **kwargs):
 
 ## 모니터링 및 로깅
 
-### 1. 성능 메트릭
+### 1. 로깅 최적화 원칙
+
+#### SUCCESS 상태 무음 처리
+- 정상 처리는 카운터만 증가하고 로그 스팸을 방지합니다.
+- 불필요한 디버깅 로그는 제거하여 로그 볼륨을 최소화합니다.
+
+```python
+# ✅ 올바른 방법: SUCCESS 상태는 카운터만 증가
+response = BaseResponse.create_with_logging(resource_data)
+# 로그는 자동으로 카운터에만 기록됨
+
+# ❌ 피해야 할 방법: 불필요한 디버깅 로그
+_LOGGER.info(f"[API_DEBUG] Response: {response}")
+_LOGGER.debug(f"Processing instance {instance_id}")
+```
+
+#### FAILURE/TIMEOUT 자동 로깅
+- 에러 및 타임아웃은 자동으로 적절한 로그 레벨로 기록됩니다.
+- ERROR (FAILURE), WARNING (TIMEOUT) 레벨로 자동 분류됩니다.
+
+```python
+# ✅ 자동 로깅: 에러는 자동으로 ERROR 레벨로 기록
+error_response = ErrorResourceResponse.create_with_logging(
+    error_message, resource_id
+)
+```
+
+### 2. 성능 메트릭
 ```python
 def _log_collection_metrics(self, start_time: float, resource_count: int):
     """수집 성능 메트릭 로깅"""
     duration = time.time() - start_time
     self.logger.info(
-        f"App Engine 수집 완료: {resource_count}개 리소스, "
-        f"소요시간: {duration:.2f}초"
+        f"App Engine collection completed: {resource_count} resources, "
+        f"duration: {duration:.2f} seconds"
     )
 ```
 
-### 2. 상태 추적
+### 3. 상태 추적
 ```python
 def _track_collection_status(self, status: str, details: str = None):
     """수집 상태 추적"""
@@ -245,6 +272,13 @@ def _track_collection_status(self, status: str, details: str = None):
         "details": details
     }
 ```
+
+### 4. 로그 레벨 가이드
+- **DEBUG**: 개발/테스트 환경에서만 사용, API 요청/응답 상세 정보
+- **INFO**: 중요한 수집 이벤트 (시작/완료, 리소스 발견)
+- **WARNING**: 예상 가능한 문제 (API 할당량 경고, 타임아웃)
+- **ERROR**: 처리되지 않은 오류 (인증 실패, API 호출 오류)
+- **CRITICAL**: 서비스 중단급 오류 (플러그인 초기화 실패)
 
 ## 테스트 전략
 

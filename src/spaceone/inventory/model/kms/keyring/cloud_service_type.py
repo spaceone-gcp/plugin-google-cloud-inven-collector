@@ -39,16 +39,11 @@ cst_keyring.tags = {
 
 cst_keyring._metadata = CloudServiceTypeMeta.set_meta(
     fields=[
-        TextDyField.data_source("KeyRing ID", "data.keyring_id"),
-        TextDyField.data_source("Location", "data.location_display_name"),
-        TextDyField.data_source("Project", "data.project_id"),
         TextDyField.data_source("CryptoKey Count", "data.crypto_key_count"),
         DateTimeDyField.data_source("Created", "data.create_time"),
     ],
     search=[
         SearchField.set(name="KeyRing ID", key="data.keyring_id"),
-        SearchField.set(name="Location ID", key="data.location_id"),
-        SearchField.set(name="Location", key="data.location_display_name"),
         SearchField.set(name="Project ID", key="data.project_id"),
         SearchField.set(
             name="CryptoKey Count", key="data.crypto_key_count", data_type="integer"

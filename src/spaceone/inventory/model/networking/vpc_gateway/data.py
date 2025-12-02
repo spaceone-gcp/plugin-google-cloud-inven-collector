@@ -1,15 +1,19 @@
+from schematics.models import Model
 from schematics.types import (
+    BooleanType,
+    DateTimeType,
+    DictType,
+    IntType,
+    ListType,
     ModelType,
     StringType,
-    IntType,
-    DateTimeType,
-    ListType,
-    BooleanType,
-    DictType,
 )
-from schematics.models import Model
 
 from spaceone.inventory.libs.schema.cloud_service import BaseResource
+from spaceone.inventory.libs.schema.google_cloud_logging import GoogleCloudLoggingModel
+from spaceone.inventory.libs.schema.google_cloud_monitoring import (
+    GoogleCloudMonitoringModel,
+)
 
 """
 NAT Gateway Data Model
@@ -33,7 +37,13 @@ class NATGateway(Model):
     router_self_link = StringType()
     region = StringType()
     nat_ip_allocate_option = StringType(choices=("MANUAL_ONLY", "AUTO_ONLY"))
-    source_subnetwork_ip_ranges_to_nat = StringType(choices=("ALL_SUBNETWORKS_ALL_IP_RANGES", "ALL_SUBNETWORKS_ALL_PRIMARY_IP_RANGES", "LIST_OF_SUBNETWORKS"))
+    source_subnetwork_ip_ranges_to_nat = StringType(
+        choices=(
+            "ALL_SUBNETWORKS_ALL_IP_RANGES",
+            "ALL_SUBNETWORKS_ALL_PRIMARY_IP_RANGES",
+            "LIST_OF_SUBNETWORKS",
+        )
+    )
     nat_ips = ListType(StringType(), default=[])
     min_ports_per_vm = IntType()
     enable_endpoint_independent_mapping = BooleanType()
@@ -92,13 +102,15 @@ VPC Gateway (통합 모델)
 
 
 class VPCGateway(BaseResource):
-    gateway_type = StringType(choices=("NAT_GATEWAY", "VPN_GATEWAY", "TARGET_VPN_GATEWAY"))
+    gateway_type = StringType(
+        choices=("NAT_GATEWAY", "VPN_GATEWAY", "TARGET_VPN_GATEWAY")
+    )
     region = StringType()
     status = StringType()
     network = StringType()
     network_name = StringType()
     description = StringType()
-    
+
     # NAT Gateway 관련 필드
     router_name = StringType()
     router_self_link = StringType()
@@ -109,7 +121,7 @@ class VPCGateway(BaseResource):
     enable_endpoint_independent_mapping = BooleanType()
     nat_subnetworks = ListType(ModelType(NATSubnetwork), default=[])
     nat_log_config = ModelType(NATLogConfig)
-    
+
     # 타임아웃 관련 필드
     icmp_idle_timeout_sec = IntType()
     tcp_established_idle_timeout_sec = IntType()
@@ -117,38 +129,49 @@ class VPCGateway(BaseResource):
     tcp_time_wait_timeout_sec = IntType()
     udp_idle_timeout_sec = IntType()
     timeouts = DictType(StringType(), default={})
-    
+
     # VPN Gateway 관련 필드
     vpn_interfaces = ListType(ModelType(VPNGatewayInterface), default=[])
     vpn_interfaces_display = ListType(DictType(StringType()), default=[])
     forwarding_rules = ListType(StringType(), default=[])
     tunnels = ListType(StringType(), default=[])
-    
+
     # 공통 필드
     creation_timestamp = DateTimeType(deserialize_from="creationTimestamp")
     self_link = StringType()
     type = StringType()
+    google_cloud_monitoring = ModelType(
+        GoogleCloudMonitoringModel, serialize_when_none=False
+    )
+    google_cloud_logging = ModelType(GoogleCloudLoggingModel, serialize_when_none=False)
 
     def reference(self):
         if self.gateway_type == "NAT_GATEWAY":
             # NAT Gateway의 경우 router_self_link 또는 name을 사용
-            resource_id = self.router_self_link or f"projects/{self.project}/regions/{self.region}/routers/{self.router_name}"
+            resource_id = (
+                self.router_self_link
+                or f"projects/{self.project}/regions/{self.region}/routers/{self.router_name}"
+            )
             return {
                 "resource_id": resource_id,
-                "external_link": f"https://console.cloud.google.com/net-services/nat/list?project={self.project}",
+                "external_link": f"https://console.cloud.google.com/net-services/nat/details/{self.region}/{self.router_name}/{self.name}?project={self.project}&tab=details",
             }
         elif self.gateway_type in ["VPN_GATEWAY", "TARGET_VPN_GATEWAY"]:
             # VPN Gateway의 경우 self_link 또는 name을 사용
-            resource_id = getattr(self, 'self_link', None) or f"projects/{self.project}/regions/{self.region}/vpnGateways/{self.name}"
+            resource_id = (
+                getattr(self, "self_link", None)
+                or f"projects/{self.project}/regions/{self.region}/vpnGateways/{self.name}"
+            )
             return {
                 "resource_id": resource_id,
-                "external_link": f"https://console.cloud.google.com/net-security/vpn/list?project={self.project}",
+                "external_link": f"https://console.cloud.google.com/hybrid/vpn/gateways/details/{self.region}/{self.name}?project={self.project}",
             }
         # 기본값
-        resource_id = getattr(self, 'self_link', None) or f"projects/{self.project}/regions/{self.region}/gateways/{self.name}"
+        resource_id = (
+            getattr(self, "self_link", None)
+            or f"projects/{self.project}/regions/{self.region}/gateways/{self.name}"
+        )
         return {
             "resource_id": resource_id,
             "external_link": f"https://console.cloud.google.com/networking?project={self.project}",
         }
-
-

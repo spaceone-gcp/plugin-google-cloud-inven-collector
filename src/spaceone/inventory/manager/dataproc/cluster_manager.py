@@ -53,7 +53,7 @@ class DataprocClusterManager(GoogleCloudManager):
         try:
             clusters = cluster_connector.list_clusters()
             logger.info(
-                f"📊 Successfully found {len(clusters)} Dataproc clusters "
+                f"Successfully found {len(clusters)} Dataproc clusters "
                 f"(parallel processing enabled)"
             )
             return clusters
@@ -115,7 +115,7 @@ class DataprocClusterManager(GoogleCloudManager):
         try:
             jobs = cluster_connector.list_jobs(region=region, cluster_name=cluster_name)
             logger.info(
-                f"⚡ Found {len(jobs)} Dataproc jobs "
+                f"Found {len(jobs)} Dataproc jobs "
                 f"(parallel processing with optimized timeouts)"
             )
             return jobs
@@ -293,7 +293,7 @@ class DataprocClusterManager(GoogleCloudManager):
                     }
 
                     cluster_data["config"]["master_config"] = {
-                        "num_instances": str(master_config.get("numInstances", "")),
+                        "num_instances": str(master_config.get("numInstances", "0")),
                         "instance_names": master_config.get("instanceNames", []),
                         "image_uri": str(master_config.get("imageUri", "")),
                         "machine_type_uri": str(
@@ -309,7 +309,7 @@ class DataprocClusterManager(GoogleCloudManager):
                     }
                 else:
                     cluster_data["config"]["master_config"] = {
-                        "num_instances": "",
+                        "num_instances": "0",
                         "instance_names": [],
                         "image_uri": "",
                         "machine_type_uri": "",
@@ -332,7 +332,7 @@ class DataprocClusterManager(GoogleCloudManager):
                     }
 
                     cluster_data["config"]["worker_config"] = {
-                        "num_instances": str(worker_config.get("numInstances", "")),
+                        "num_instances": str(worker_config.get("numInstances", "0")),
                         "instance_names": worker_config.get("instanceNames", []),
                         "image_uri": str(worker_config.get("imageUri", "")),
                         "machine_type_uri": str(
@@ -349,7 +349,7 @@ class DataprocClusterManager(GoogleCloudManager):
                     }
                 else:
                     cluster_data["config"]["worker_config"] = {
-                        "num_instances": "",
+                        "num_instances": "0",
                         "instance_names": [],
                         "image_uri": "",
                         "machine_type_uri": "",
@@ -450,6 +450,7 @@ class DataprocClusterManager(GoogleCloudManager):
                         "data": dataproc_cluster_data,
                         "region_code": location,
                         "account": project_id,
+                        "tags": cluster_data.get("labels", []),
                         "reference": ReferenceModel(dataproc_cluster_data.reference()),
                     }
                 )

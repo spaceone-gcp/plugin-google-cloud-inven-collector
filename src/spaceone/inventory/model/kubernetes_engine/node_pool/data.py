@@ -1,13 +1,13 @@
 from schematics import Model
 from schematics.types import (
     BooleanType,
-    DateTimeType,
     DictType,
     IntType,
     ListType,
     ModelType,
     StringType,
 )
+
 from spaceone.inventory.libs.schema.cloud_service import BaseResource
 
 
@@ -47,10 +47,17 @@ class MaxPodsConstraint(Model):
 
 
 class NetworkConfig(Model):
-    pod_range = StringType(deserialize_from="podRange")
-    pod_ipv4_cidr_block = StringType(deserialize_from="podIpv4CidrBlock")
-    create_pod_range = BooleanType(deserialize_from="createPodRange")
-    enable_private_nodes = BooleanType(deserialize_from="enablePrivateNodes")
+    pod_range = StringType(deserialize_from="podRange", serialize_when_none=False)
+    pod_ipv4_cidr_block = StringType(
+        deserialize_from="podIpv4CidrBlock", serialize_when_none=False
+    )
+    enable_private_nodes = BooleanType(
+        deserialize_from="enablePrivateNodes", serialize_when_none=False
+    )
+    subnetwork = StringType(serialize_when_none=False)
+    network_tier_config = DictType(
+        StringType, deserialize_from="networkTierConfig", serialize_when_none=True
+    )
 
 
 class NodeInfo(Model):
@@ -91,6 +98,7 @@ class Metrics(Model):
 
 class NodePool(BaseResource):
     """GKE NodePool 데이터 모델 (SpaceONE 표준 패턴)"""
+
     name = StringType(serialize_when_none=False)
     cluster_name = StringType()
     location = StringType()
@@ -99,24 +107,23 @@ class NodePool(BaseResource):
     status_message = StringType(deserialize_from="statusMessage")
     initial_node_count = IntType(deserialize_from="initialNodeCount")
     total_nodes = IntType(serialize_when_none=False)
-    create_time = DateTimeType(deserialize_from="createTime")
-    update_time = DateTimeType(deserialize_from="updateTime")
-    api_version = StringType()
     config = ModelType(NodeConfig)
     autoscaling = ModelType(AutoScaling)
     management = ModelType(Management)
-    max_pods_constraint = ModelType(MaxPodsConstraint, deserialize_from="maxPodsConstraint")
+    max_pods_constraint = ModelType(
+        MaxPodsConstraint, deserialize_from="maxPodsConstraint"
+    )
     network_config = ModelType(NetworkConfig, deserialize_from="networkConfig")
     version = StringType()
     instance_group_urls = ListType(StringType, deserialize_from="instanceGroupUrls")
     pod_ipv4_cidr_size = IntType(deserialize_from="podIpv4CidrSize")
     upgrade_settings = DictType(StringType, deserialize_from="upgradeSettings")
-    
+
     # BaseResource에서 상속받는 필드들:
     # - self_link
     # - google_cloud_monitoring
     # - google_cloud_logging
-    
+
     # Additional fields for extended node pool information
     nodes = ListType(ModelType(NodeInfo), serialize_when_none=False)
     instance_groups = ListType(ModelType(InstanceGroupInfo), serialize_when_none=False)

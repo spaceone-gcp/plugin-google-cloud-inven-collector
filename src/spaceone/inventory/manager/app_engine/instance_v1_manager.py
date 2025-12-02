@@ -1,30 +1,33 @@
 import logging
-from typing import List, Dict, Any, Tuple
+from typing import Any, Dict, List, Tuple
 
 from spaceone.inventory.connector.app_engine.instance_v1 import (
     AppEngineInstanceV1Connector,
 )
 from spaceone.inventory.libs.manager import GoogleCloudManager
-
-from spaceone.inventory.model.app_engine.instance.cloud_service_type import (
-    CLOUD_SERVICE_TYPES,
+from spaceone.inventory.libs.schema.base import (
+    BaseResponse,
+    log_state_summary,
+    reset_state_counters,
 )
-
+from spaceone.inventory.libs.schema.cloud_service import ErrorResourceResponse
 from spaceone.inventory.model.app_engine.instance.cloud_service import (
     AppEngineInstanceResource,
 )
-from spaceone.inventory.model.app_engine.instance.data import (
-    AppEngineInstance,
+from spaceone.inventory.model.app_engine.instance.cloud_service_type import (
+    CLOUD_SERVICE_TYPES,
 )
+from spaceone.inventory.model.app_engine.instance.data import AppEngineInstance
 from spaceone.inventory.model.kubernetes_engine.cluster.data import convert_datetime
-from spaceone.inventory.libs.schema.cloud_service import ErrorResourceResponse
-from spaceone.inventory.libs.schema.base import (
-    BaseResponse,
-    reset_state_counters,
-    log_state_summary,
-)
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def bytes_to_mb(bytes_value):
+    """Convert bytes to MB."""
+    if not bytes_value or bytes_value == 0:
+        return 0.0
+    return round(float(bytes_value) / (1024 * 1024), 1)
 
 
 class AppEngineInstanceV1Manager(GoogleCloudManager):
@@ -35,21 +38,78 @@ class AppEngineInstanceV1Manager(GoogleCloudManager):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
+    def _convert_memory_usage(
+        self, instance: Dict[str, Any], instance_id: str
+    ) -> float:
+        """Convert memory usage from bytes to MB."""
+        memory_bytes = instance.get("memoryUsage", 0) or 0
+
+        if not memory_bytes or memory_bytes == 0:
+            return 0.0
+
+        memory_mb = bytes_to_mb(memory_bytes)
+        return memory_mb
+
+    def _extract_request_count(self, instance: Dict[str, Any], instance_id: str) -> int:
+        """Extract request count from instance data."""
+
+        possible_fields = [
+            "requests",
+            "requestCount",
+            "request_count",
+            "totalRequests",
+            "total_requests",
+            "requestsCount",
+            "numRequests",
+            "num_requests",
+        ]
+
+        request_count = 0
+        found_field = None
+
+        for field_name in possible_fields:
+            if field_name in instance:
+                value = instance[field_name]
+                if value is not None:
+                    try:
+                        request_count = int(value)
+                        found_field = field_name
+                        break
+                    except (ValueError, TypeError):
+                        continue
+
+        if found_field is None:
+            if "metrics" in instance:
+                metrics = instance["metrics"]
+                if isinstance(metrics, dict):
+                    for field_name in possible_fields:
+                        if field_name in metrics:
+                            value = metrics[field_name]
+                            if value is not None:
+                                try:
+                                    request_count = int(value)
+                                    found_field = f"metrics.{field_name}"
+                                    break
+                                except (ValueError, TypeError):
+                                    continue
+
+        return request_count
+
     def list_instances(
         self, service_id: str, version_id: str, params: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
-        """AppEngine 인스턴스 목록을 조회합니다 (v1 API).
+        """List App Engine instances (v1beta API).
 
         Args:
-            service_id: 서비스 ID.
-            version_id: 버전 ID.
-            params: 조회에 필요한 파라미터 딕셔너리.
+            service_id: Service ID.
+            version_id: Version ID.
+            params: Parameters dictionary for query.
 
         Returns:
-            App Engine 인스턴스 목록.
+            List of App Engine instances.
 
         Raises:
-            Exception: App Engine API 호출 중 오류 발생 시.
+            Exception: When App Engine API call fails.
         """
         instance_connector: AppEngineInstanceV1Connector = self.locator.get_connector(
             self.connector_name, **params
@@ -58,31 +118,31 @@ class AppEngineInstanceV1Manager(GoogleCloudManager):
         try:
             instances = instance_connector.list_instances(service_id, version_id)
             _LOGGER.info(
-                f"Found {len(instances)} instances for version {version_id} (v1)"
+                f"Found {len(instances)} instances for version {version_id} (v1beta)"
             )
             return instances
         except Exception as e:
             _LOGGER.error(
-                f"Failed to list instances for version {version_id} (v1): {e}"
+                f"Failed to list instances for version {version_id} (v1beta): {e}"
             )
             return []
 
     def get_instance(
         self, service_id: str, version_id: str, instance_id: str, params: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """특정 AppEngine 인스턴스 정보를 조회합니다 (v1 API).
+        """Get specific App Engine instance information (v1beta API).
 
         Args:
-            service_id: 서비스 ID.
-            version_id: 버전 ID.
-            instance_id: 인스턴스 ID.
-            params: 조회에 필요한 파라미터 딕셔너리.
+            service_id: Service ID.
+            version_id: Version ID.
+            instance_id: Instance ID.
+            params: Parameters dictionary for query.
 
         Returns:
-            App Engine 인스턴스 정보 딕셔너리.
+            App Engine instance information dictionary.
 
         Raises:
-            Exception: App Engine API 호출 중 오류 발생 시.
+            Exception: When App Engine API call fails.
         """
         instance_connector: AppEngineInstanceV1Connector = self.locator.get_connector(
             self.connector_name, **params
@@ -100,16 +160,16 @@ class AppEngineInstanceV1Manager(GoogleCloudManager):
             return {}
 
     def list_all_instances(self, params: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """모든 AppEngine 인스턴스를 조회합니다 (v1 API).
+        """List all App Engine instances (v1 API).
 
         Args:
-            params: 조회에 필요한 파라미터 딕셔너리.
+            params: Parameters dictionary for query.
 
         Returns:
-            모든 App Engine 인스턴스 목록.
+            List of all App Engine instances.
 
         Raises:
-            Exception: App Engine API 호출 중 오류 발생 시.
+            Exception: When App Engine API call fails.
         """
         instance_connector: AppEngineInstanceV1Connector = self.locator.get_connector(
             self.connector_name, **params
@@ -126,19 +186,19 @@ class AppEngineInstanceV1Manager(GoogleCloudManager):
     def get_instance_metrics(
         self, service_id: str, version_id: str, instance_id: str, params: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """AppEngine 인스턴스 메트릭을 조회합니다 (v1 API).
+        """Get App Engine instance metrics (v1 API).
 
         Args:
-            service_id: 서비스 ID.
-            version_id: 버전 ID.
-            instance_id: 인스턴스 ID.
-            params: 조회에 필요한 파라미터 딕셔너리.
+            service_id: Service ID.
+            version_id: Version ID.
+            instance_id: Instance ID.
+            params: Parameters dictionary for query.
 
         Returns:
-            인스턴스 메트릭 정보 딕셔너리.
+            Instance metrics information dictionary.
 
         Raises:
-            Exception: App Engine API 호출 중 오류 발생 시.
+            Exception: When App Engine API call fails.
         """
         instance_connector: AppEngineInstanceV1Connector = self.locator.get_connector(
             self.connector_name, **params
@@ -156,19 +216,19 @@ class AppEngineInstanceV1Manager(GoogleCloudManager):
     def get_instance_details(
         self, service_id: str, version_id: str, instance_id: str, params: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """AppEngine 인스턴스 상세 정보를 조회합니다 (v1 API).
+        """Get App Engine instance details (v1 API).
 
         Args:
-            service_id: 서비스 ID.
-            version_id: 버전 ID.
-            instance_id: 인스턴스 ID.
-            params: 조회에 필요한 파라미터 딕셔너리.
+            service_id: Service ID.
+            version_id: Version ID.
+            instance_id: Instance ID.
+            params: Parameters dictionary for query.
 
         Returns:
-            인스턴스 상세 정보 딕셔너리.
+            Instance details information dictionary.
 
         Raises:
-            Exception: App Engine API 호출 중 오류 발생 시.
+            Exception: When App Engine API call fails.
         """
         instance_connector: AppEngineInstanceV1Connector = self.locator.get_connector(
             self.connector_name, **params
@@ -186,20 +246,19 @@ class AppEngineInstanceV1Manager(GoogleCloudManager):
     def collect_cloud_service(
         self, params: Dict[str, Any]
     ) -> Tuple[List[Any], List[ErrorResourceResponse]]:
-        """AppEngine 인스턴스 정보를 수집합니다 (v1 API).
+        """Collect App Engine instance information (v1 API).
 
         Args:
-            params: 수집에 필요한 파라미터 딕셔너리.
+            params: Parameters dictionary for collection.
 
         Returns:
-            수집된 클라우드 서비스 목록과 오류 응답 목록의 튜플.
+            Tuple of collected cloud service list and error response list.
 
         Raises:
-            Exception: 데이터 수집 중 오류 발생 시.
+            Exception: When data collection fails.
         """
-        _LOGGER.debug("** AppEngine Instance V1 START **")
+        _LOGGER.debug("** AppEngine Instance V1Beta START **")
 
-        # 상태 카운터 초기화
         reset_state_counters()
 
         collected_cloud_services = []
@@ -208,12 +267,11 @@ class AppEngineInstanceV1Manager(GoogleCloudManager):
         secret_data = params["secret_data"]
         project_id = secret_data["project_id"]
 
-        # App Engine 서비스를 통해 체계적으로 인스턴스 수집
         try:
-            # 서비스 목록 조회
-            app_connector = self.locator.get_connector("AppEngineApplicationV1Connector", **params)
+            app_connector = self.locator.get_connector(
+                "AppEngineApplicationV1Connector", **params
+            )
             services = app_connector.list_services()
-            _LOGGER.info(f"Found {len(services)} App Engine services")
 
             for service in services:
                 service_id = service.get("id")
@@ -221,9 +279,7 @@ class AppEngineInstanceV1Manager(GoogleCloudManager):
                     continue
 
                 try:
-                    # 각 서비스의 버전 목록 조회
                     versions = app_connector.list_versions(service_id)
-                    _LOGGER.debug(f"Found {len(versions)} versions for service {service_id}")
 
                     for version in versions:
                         version_id = version.get("id")
@@ -231,214 +287,276 @@ class AppEngineInstanceV1Manager(GoogleCloudManager):
                             continue
 
                         try:
-                            # 각 버전의 인스턴스 목록 조회
-                            instances = self.list_instances(service_id, version_id, params)
-                            _LOGGER.debug(f"Found {len(instances)} instances for version {service_id}/{version_id}")
+                            instances = self.list_instances(
+                                service_id, version_id, params
+                            )
 
                             for instance in instances:
                                 try:
                                     instance_id = instance.get("id")
 
                                     if not instance_id:
-                                        _LOGGER.warning(f"Instance without ID found in service {service_id}, version {version_id}")
+                                        _LOGGER.warning(
+                                            f"Instance without ID found in service {service_id}, version {version_id}"
+                                        )
                                         continue
 
-                                    _LOGGER.debug(f"Processing instance {instance_id} for service {service_id}, version {version_id}")
-                                    _LOGGER.debug(f"Raw instance data: {instance}")
-
-                                    # 인스턴스 상세 정보 조회
-                                    instance_details = self.get_instance_details(service_id, version_id, instance_id, params)
+                                    instance_details = self.get_instance_details(
+                                        service_id, version_id, instance_id, params
+                                    )
                                     if instance_details:
-                                        # 상세 정보로 기본 정보 업데이트
                                         instance.update(instance_details)
-                                        _LOGGER.debug(f"Enhanced instance {instance_id} with detailed information")
 
-                                    # 메트릭 정보 조회
-                                    metrics = self.get_instance_metrics(service_id, version_id, instance_id, params)
+                                    metrics = self.get_instance_metrics(
+                                        service_id, version_id, instance_id, params
+                                    )
                                     if metrics:
                                         instance["metrics"] = metrics
-                                        _LOGGER.debug(f"Added metrics to instance {instance_id}")
-
-                                    _LOGGER.debug(f"Final instance data after enhancements: {instance}")
-
-                                    # 기본 인스턴스 데이터 준비 - API 응답 구조와 정확히 일치하도록 수정
                                     instance_data = {
-                                        # 기본 정보 - API 응답에서 직접 매핑
-                                        "name": str(instance.get("name", instance_id)),  # name이 없으면 instance_id 사용
-                                        "project_id": str(project_id),  # secret_data에서 가져온 project_id 사용
+                                        "instance_id": str(instance_id),
+                                        "project_id": str(project_id),
                                         "service_id": str(service_id),
-                                        "version_id": str(version_id), 
-                                        "instance_id": str(instance_id),  # API에서 'id' 필드
-                                        
-                                        # VM 상태 정보
-                                        "vm_status": str(instance.get("vmStatus", "UNKNOWN")),
-                                        "vm_debug_enabled": bool(instance.get("vmDebugEnabled", False)),
-                                        "vm_liveness": str(instance.get("vmLiveness", "")),
-                                        
-                                        # 사용량 정보
-                                        "request_count": int(instance.get("requests", instance.get("requestCount", 0)) or 0),
-                                        "memory_usage": float(instance.get("memoryUsage", 0) or 0),
-                                        "cpu_usage": float(instance.get("averageLatency", instance.get("cpuUsage", 0)) or 0),
-                                        
-                                        # 시간 정보
-                                        "create_time": convert_datetime(instance.get("startTime", instance.get("createTime"))),
-                                        "update_time": convert_datetime(instance.get("updateTime", "")),
-                                        "start_time": convert_datetime(instance.get("startTime", "")),
+                                        "version_id": str(version_id),
+                                        "vm_status": str(
+                                            instance.get("vmStatus")
+                                            or instance.get("status")
+                                            or instance.get("servingStatus")
+                                            or (
+                                                instance.get("availability")
+                                                if instance.get("availability")
+                                                in ["RUNNING", "DYNAMIC", "RESIDENT"]
+                                                else None
+                                            )
+                                            or "UNKNOWN"
+                                        ),
+                                        "vm_debug_enabled": bool(
+                                            instance.get("vmDebugEnabled", False)
+                                        ),
+                                        "vm_liveness": str(
+                                            instance.get(
+                                                "vmLiveness",
+                                                instance.get("liveness", ""),
+                                            )
+                                        ),
+                                        "request_count": self._extract_request_count(
+                                            instance, instance_id
+                                        ),
+                                        "memory_usage": self._convert_memory_usage(
+                                            instance, instance_id
+                                        ),
+                                        "cpu_usage": float(
+                                            instance.get("cpuUsage", 0) or 0
+                                        ),
+                                        "qps": float(instance.get("qps", 0) or 0),
+                                        "average_latency": float(
+                                            instance.get("averageLatency", 0) or 0
+                                        ),
+                                        "errors": int(instance.get("errors", 0) or 0),
+                                        "create_time": convert_datetime(
+                                            instance.get(
+                                                "startTime", instance.get("createTime")
+                                            )
+                                        ),
+                                        "start_time": convert_datetime(
+                                            instance.get("startTime", "")
+                                        ),
                                     }
 
-                                    # 수집된 메트릭 정보 추가 (기존 availability는 덮어쓰지 않음)
                                     if "metrics" in instance:
                                         metrics_data = instance["metrics"]
+
                                         enhanced_metrics = {
-                                            "memory_usage_enhanced": metrics_data.get("memory_usage", ""),
-                                            "cpu_usage_enhanced": metrics_data.get("cpu_usage", ""),
-                                            "request_count_enhanced": metrics_data.get("request_count", ""),
-                                            "app_engine_release_enhanced": metrics_data.get("app_engine_release", ""),
+                                            "memory_usage_enhanced": metrics_data.get(
+                                                "memory_usage", ""
+                                            ),
+                                            "cpu_usage_enhanced": metrics_data.get(
+                                                "cpu_usage", ""
+                                            ),
+                                            "request_count_enhanced": metrics_data.get(
+                                                "request_count", ""
+                                            ),
+                                            "app_engine_release_enhanced": metrics_data.get(
+                                                "app_engine_release", ""
+                                            ),
                                         }
+
+                                        if "memory_usage" in metrics_data:
+                                            safe_metrics = {
+                                                k: v
+                                                for k, v in metrics_data.items()
+                                                if k != "memory_usage"
+                                            }
+                                            instance_data.update(safe_metrics)
+
                                         instance_data.update(enhanced_metrics)
 
-                                    # VM Details 추가 - 딕셔너리 타입 검증 후 전달
                                     if "vmDetails" in instance:
                                         vm_details = instance["vmDetails"]
                                         if isinstance(vm_details, dict):
                                             instance_data["vm_details"] = vm_details
                                         else:
-                                            _LOGGER.warning(f"vmDetails is not a dict for instance {instance_id}: {type(vm_details)}")
+                                            _LOGGER.warning(
+                                                f"vmDetails is not a dict for instance {instance_id}: {type(vm_details)}"
+                                            )
 
-                                    # App Engine Release 추가
                                     if "appEngineRelease" in instance:
-                                        instance_data["app_engine_release"] = str(instance["appEngineRelease"])
+                                        instance_data["app_engine_release"] = str(
+                                            instance["appEngineRelease"]
+                                        )
 
-                                    # Availability 추가 - 타입에 따라 적절히 변환
-                                    if "availability" in instance:
-                                        availability = instance["availability"]
-                                        _LOGGER.debug(f"Processing availability for {instance_id}: {availability} (type: {type(availability)})")
-                                        
-                                        if isinstance(availability, dict):
-                                            # 이미 딕셔너리 형태면 그대로 사용
-                                            instance_data["availability"] = availability
-                                        elif isinstance(availability, str):
-                                            # 문자열이면 liveness 필드로 매핑
+                                    availability_data = None
+
+                                    for field_name in [
+                                        "availability",
+                                        "vmLiveness",
+                                        "liveness",
+                                        "status",
+                                    ]:
+                                        if field_name in instance:
+                                            availability_data = instance[field_name]
+                                            break
+
+                                    if availability_data is not None:
+                                        if isinstance(availability_data, dict):
+                                            instance_data["availability"] = (
+                                                availability_data
+                                            )
+                                        elif isinstance(availability_data, str):
                                             instance_data["availability"] = {
-                                                "liveness": availability,
-                                                "readiness": ""
+                                                "liveness": availability_data,
+                                                "readiness": "",
                                             }
                                         else:
-                                            # 다른 타입이면 문자열로 변환하여 liveness에 설정
                                             instance_data["availability"] = {
-                                                "liveness": str(availability),
-                                                "readiness": ""
+                                                "liveness": str(availability_data),
+                                                "readiness": "",
                                             }
                                     else:
-                                        # availability 필드가 없는 경우 기본값 설정
+                                        vm_status = instance_data.get(
+                                            "vm_status", "UNKNOWN"
+                                        )
+                                        liveness_status = (
+                                            "HEALTHY"
+                                            if vm_status == "RUNNING"
+                                            else "UNHEALTHY"
+                                            if vm_status != "UNKNOWN"
+                                            else ""
+                                        )
                                         instance_data["availability"] = {
-                                            "liveness": "",
-                                            "readiness": ""
+                                            "liveness": liveness_status,
+                                            "readiness": "",
                                         }
 
-                                    # Network 추가 - 딕셔너리 타입 검증 후 전달  
                                     if "network" in instance:
                                         network = instance["network"]
                                         if isinstance(network, dict):
                                             instance_data["network"] = network
                                         else:
-                                            _LOGGER.warning(f"network is not a dict for instance {instance_id}: {type(network)}")
+                                            _LOGGER.warning(
+                                                f"network is not a dict for instance {instance_id}: {type(network)}"
+                                            )
 
-                                    # Resources 추가 - 딕셔너리 타입 검증 후 전달
                                     if "resources" in instance:
                                         resources = instance["resources"]
                                         if isinstance(resources, dict):
                                             instance_data["resources"] = resources
                                         else:
-                                            _LOGGER.warning(f"resources is not a dict for instance {instance_id}: {type(resources)}")
+                                            _LOGGER.warning(
+                                                f"resources is not a dict for instance {instance_id}: {type(resources)}"
+                                            )
 
-                                    _LOGGER.debug(f"Created instance_data for {instance_id}: {instance_data}")
-
-                                    # Stackdriver 정보 추가
                                     if not instance_id:
-                                        _LOGGER.warning(f"Instance missing ID, skipping monitoring setup: service={service_id}, version={version_id}")
+                                        _LOGGER.warning(
+                                            f"Instance missing ID, skipping monitoring setup: service={service_id}, version={version_id}"
+                                        )
                                         instance_id = "unknown"
-                                    
-                                    # Google Cloud Monitoring/Logging 리소스 ID: App Engine Instance의 경우 instance_id 사용
-                                    monitoring_resource_id = instance_id
-                                    
-                                    google_cloud_monitoring_filters = [
-                                        {"key": "resource.labels.module_id", "value": service_id},
-                                        {"key": "resource.labels.version_id", "value": version_id},
-                                        {"key": "resource.labels.instance_id", "value": instance_id},
-                                        {"key": "resource.labels.project_id", "value": project_id},
-                                    ]
-                                    instance_data["google_cloud_monitoring"] = self.set_google_cloud_monitoring(
-                                        project_id,
-                                        "appengine.googleapis.com/flex/instance",
-                                        monitoring_resource_id,
-                                        google_cloud_monitoring_filters,
-                                    )
-                                    instance_data["google_cloud_logging"] = self.set_google_cloud_logging(
-                                        "AppEngine", "Instance", project_id, monitoring_resource_id
+
+                                    instance_data["google_cloud_monitoring"] = {
+                                        "name": f"projects/{project_id}",
+                                        "resource_id": instance_id,
+                                        "filters": [
+                                            {
+                                                "metric_type": "appengine.googleapis.com/http/server/response_count",
+                                                "labels": [
+                                                    {
+                                                        "key": "resource.labels.version_id",
+                                                        "value": version_id,
+                                                    },
+                                                ],
+                                            }
+                                        ],
+                                    }
+
+                                    instance_data["google_cloud_logging"] = (
+                                        self.set_google_cloud_logging(
+                                            "AppEngine",
+                                            "Instance",
+                                            project_id,
+                                            instance_id,
+                                        )
                                     )
 
-                                    # AppEngineInstance 모델 생성
                                     app_engine_instance_data = AppEngineInstance(
                                         instance_data, strict=False
                                     )
-                                    _LOGGER.debug(f"Created AppEngineInstance model for {instance_id}: {app_engine_instance_data}")
 
-                                    # AppEngineInstanceResource 생성
                                     instance_resource = AppEngineInstanceResource(
                                         {
-                                            "name": instance_data.get("name"),
+                                            "name": instance_data.get("instance_id"),
                                             "data": app_engine_instance_data,
                                             "reference": {
                                                 "resource_id": instance_id,
                                                 "external_link": f"https://console.cloud.google.com/appengine/instances?project={project_id}&serviceId={service_id}&versionId={version_id}",
                                             },
-                                            "region_code": "global",  # App Engine은 global 리소스
+                                            "region_code": "global",
                                             "account": instance_data.get("project_id"),
                                         }
                                     )
-                                    _LOGGER.debug(f"Created AppEngineInstanceResource for {instance_id}")
 
-                                    ##################################
-                                    # 4. Make Collected Region Code
-                                    ##################################
                                     self.set_region_code("global")
 
-                                    # BaseResponse를 사용한 로깅 기반 응답 생성
-                                    instance_response = BaseResponse.create_with_logging(
-                                        state="SUCCESS",
-                                        resource_type="inventory.CloudService",
-                                        resource=instance_resource,
-                                        match_rules={
-                                            "1": [
-                                                "reference.resource_id",
-                                                "provider",
-                                                "cloud_service_type",
-                                                "cloud_service_group",
-                                            ]
-                                        }
+                                    instance_response = (
+                                        BaseResponse.create_with_logging(
+                                            state="SUCCESS",
+                                            resource_type="inventory.CloudService",
+                                            resource=instance_resource,
+                                            match_rules={
+                                                "1": [
+                                                    "reference.resource_id",
+                                                    "provider",
+                                                    "cloud_service_type",
+                                                    "cloud_service_group",
+                                                ]
+                                            },
+                                        )
                                     )
 
                                     collected_cloud_services.append(instance_response)
-                                    _LOGGER.info(f"Successfully collected App Engine instance: {instance_id} (status: {instance_data.get('vm_status', 'unknown')})")
-                                    _LOGGER.info(f"Instance response data - Service ID: {instance_data.get('service_id')}, Version ID: {instance_data.get('version_id')}, VM Status: {instance_data.get('vm_status')}")
 
                                 except Exception as e:
-                                    _LOGGER.error(f"[collect_cloud_service] Instance {instance_id} => {e}", exc_info=True)
-                                    error_response = ErrorResourceResponse.create_with_logging(
-                                        error_message=str(e),
-                                        error_code="INSTANCE_COLLECTION_ERROR",
-                                        resource_type="inventory.ErrorResource",
-                                        additional_data={
-                                            "cloud_service_group": "AppEngine",
-                                            "cloud_service_type": "Instance",
-                                            "resource_id": instance_id or "unknown"
-                                        }
+                                    _LOGGER.error(
+                                        f"[collect_cloud_service] Instance {instance_id} => {e}",
+                                        exc_info=True,
+                                    )
+                                    error_response = (
+                                        ErrorResourceResponse.create_with_logging(
+                                            error_message=str(e),
+                                            error_code="INSTANCE_COLLECTION_ERROR",
+                                            resource_type="inventory.ErrorResource",
+                                            additional_data={
+                                                "cloud_service_group": "AppEngine",
+                                                "cloud_service_type": "Instance",
+                                                "resource_id": instance_id or "unknown",
+                                            },
+                                        )
                                     )
                                     error_responses.append(error_response)
 
                         except Exception as e:
-                            _LOGGER.error(f"[collect_cloud_service] Version {service_id}/{version_id} => {e}", exc_info=True)
+                            _LOGGER.error(
+                                f"[collect_cloud_service] Version {service_id}/{version_id} => {e}",
+                                exc_info=True,
+                            )
                             error_response = ErrorResourceResponse.create_with_logging(
                                 error_message=str(e),
                                 error_code="VERSION_COLLECTION_ERROR",
@@ -446,13 +564,16 @@ class AppEngineInstanceV1Manager(GoogleCloudManager):
                                 additional_data={
                                     "cloud_service_group": "AppEngine",
                                     "cloud_service_type": "Instance",
-                                    "resource_id": f"{service_id}/{version_id}"
-                                }
+                                    "resource_id": f"{service_id}/{version_id}",
+                                },
                             )
                             error_responses.append(error_response)
 
                 except Exception as e:
-                    _LOGGER.error(f"[collect_cloud_service] Service {service_id} => {e}", exc_info=True)
+                    _LOGGER.error(
+                        f"[collect_cloud_service] Service {service_id} => {e}",
+                        exc_info=True,
+                    )
                     error_response = ErrorResourceResponse.create_with_logging(
                         error_message=str(e),
                         error_code="SERVICE_COLLECTION_ERROR",
@@ -460,8 +581,8 @@ class AppEngineInstanceV1Manager(GoogleCloudManager):
                         additional_data={
                             "cloud_service_group": "AppEngine",
                             "cloud_service_type": "Instance",
-                            "resource_id": service_id or "unknown"
-                        }
+                            "resource_id": service_id or "unknown",
+                        },
                     )
                     error_responses.append(error_response)
 
@@ -474,14 +595,12 @@ class AppEngineInstanceV1Manager(GoogleCloudManager):
                 additional_data={
                     "cloud_service_group": "AppEngine",
                     "cloud_service_type": "Instance",
-                    "resource_id": "AppEngine Instance Collection"
-                }
+                    "resource_id": "AppEngine Instance Collection",
+                },
             )
             error_responses.append(error_response)
 
-        # 수집 결과 요약 로깅
         log_state_summary()
-        
-        _LOGGER.debug("** AppEngine Instance V1 END **")
-        _LOGGER.info(f"Collected {len(collected_cloud_services)} App Engine instances, {len(error_responses)} errors")
+
+        _LOGGER.debug("** AppEngine Instance V1Beta END **")
         return collected_cloud_services, error_responses

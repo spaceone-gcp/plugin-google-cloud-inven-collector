@@ -255,6 +255,15 @@ class VMInstanceManager(GoogleCloudManager):
                     },
                 }
             )
+        else:
+            server_data["data"].update(
+                {
+                    "has_gpu": False,
+                    "display": {
+                        "has_gpu": False,
+                    },
+                }
+            )
 
         machine_type_str = instance.get("machineType", "") or ""
         if machine_type_str and "machineTypes/" in machine_type_str:

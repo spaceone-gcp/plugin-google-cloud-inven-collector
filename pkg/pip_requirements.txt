@@ -6,3 +6,4 @@ requests
 beautifulsoup4
 grpcio
 google-cloud-firestore
+PySocks # for proxy support

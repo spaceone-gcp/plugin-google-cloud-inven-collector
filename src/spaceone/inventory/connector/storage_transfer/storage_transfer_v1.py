@@ -2,6 +2,7 @@ import logging
 from typing import Dict, List
 
 from googleapiclient.errors import HttpError
+
 from spaceone.inventory.libs.connector import GoogleCloudConnector
 
 __all__ = ["StorageTransferConnector"]
@@ -14,6 +15,8 @@ class StorageTransferConnector(GoogleCloudConnector):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        # 부모 클래스의 _build_client 메서드를 사용하여 타임아웃/재시도 설정 적용
+        self.client = self._build_client(self.google_client_service, self.version)
 
     def list_transfer_jobs(self, **query) -> List[Dict]:
         transfer_jobs = []
@@ -47,7 +50,9 @@ class StorageTransferConnector(GoogleCloudConnector):
                 )
                 return []
             else:
-                _LOGGER.error(f"HTTP error listing transfer jobs for project {self.project_id}: {e}")
+                _LOGGER.error(
+                    f"HTTP error listing transfer jobs for project {self.project_id}: {e}"
+                )
                 raise e
         except Exception as e:
             _LOGGER.error(
@@ -97,7 +102,9 @@ class StorageTransferConnector(GoogleCloudConnector):
                 )
                 return []
             else:
-                _LOGGER.error(f"HTTP error listing transfer operations for project {self.project_id}: {e}")
+                _LOGGER.error(
+                    f"HTTP error listing transfer operations for project {self.project_id}: {e}"
+                )
                 raise e
         except Exception as e:
             _LOGGER.error(
@@ -136,7 +143,9 @@ class StorageTransferConnector(GoogleCloudConnector):
                 )
                 return []
             else:
-                _LOGGER.error(f"HTTP error listing agent pools for project {self.project_id}: {e}")
+                _LOGGER.error(
+                    f"HTTP error listing agent pools for project {self.project_id}: {e}"
+                )
                 raise e
         except Exception as e:
             _LOGGER.error(

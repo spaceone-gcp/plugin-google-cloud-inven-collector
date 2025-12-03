@@ -1,4 +1,5 @@
 import logging
+
 from spaceone.inventory.libs.connector import GoogleCloudConnector
 
 __all__ = ["LoadBalancingConnector"]
@@ -11,6 +12,8 @@ class LoadBalancingConnector(GoogleCloudConnector):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        # 부모 클래스의 _build_client 메서드를 사용하여 타임아웃/재시도 설정 적용
+        self.client = self._build_client(self.google_client_service, self.version)
 
     def list_url_maps(self, **query):
         url_map_list = []
@@ -247,7 +250,9 @@ class LoadBalancingConnector(GoogleCloudConnector):
             )
         return autoscaler_list
 
-    def get_target_proxy(self, project_id: str, region: str, proxy_type: str, proxy_name: str):
+    def get_target_proxy(
+        self, project_id: str, region: str, proxy_type: str, proxy_name: str
+    ):
         """
         특정 Target Proxy의 상세 정보를 가져옵니다.
 
@@ -313,5 +318,7 @@ class LoadBalancingConnector(GoogleCloudConnector):
             return response
 
         except Exception as e:
-            _LOGGER.warning(f"Failed to get target proxy {proxy_name} of type {proxy_type}: {e}")
+            _LOGGER.warning(
+                f"Failed to get target proxy {proxy_name} of type {proxy_type}: {e}"
+            )
             return None

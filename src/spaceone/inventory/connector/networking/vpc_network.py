@@ -12,6 +12,8 @@ class VPCNetworkConnector(GoogleCloudConnector):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        # 부모 클래스의 _build_client 메서드를 사용하여 타임아웃/재시도 설정 적용
+        self.client = self._build_client(self.google_client_service, self.version)
 
     def list_instance_for_networks(self, **query):
         instance_list = []
@@ -80,7 +82,6 @@ class VPCNetworkConnector(GoogleCloudConnector):
 
         return address_list
 
-
     def list_routes(self, **query):
         route_list = []
         query.update({"project": self.project_id})
@@ -121,9 +122,7 @@ class VPCNetworkConnector(GoogleCloudConnector):
             response = request.execute()
             for name, subnetworks_scoped_list in response["items"].items():
                 if "subnetworks" in subnetworks_scoped_list:
-                    subnetwork_list.extend(
-                        subnetworks_scoped_list.get("subnetworks")
-                    )
+                    subnetwork_list.extend(subnetworks_scoped_list.get("subnetworks"))
             request = self.client.subnetworks().aggregatedList_next(
                 previous_request=request, previous_response=response
             )
@@ -133,4 +132,7 @@ class VPCNetworkConnector(GoogleCloudConnector):
     def _log_api_response(self, api_name, response):
         """Log API response."""
         import json
-        _LOGGER.info(f"VPCNetwork/{api_name} : {json.dumps(response, indent=2, ensure_ascii=False)}")
+
+        _LOGGER.info(
+            f"VPCNetwork/{api_name} : {json.dumps(response, indent=2, ensure_ascii=False)}"
+        )

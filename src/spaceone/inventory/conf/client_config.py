@@ -5,6 +5,7 @@ Configuration priority: options parameter > default constants
 """
 
 import logging
+import os
 from typing import Optional
 
 _LOGGER = logging.getLogger("spaceone")
@@ -39,6 +40,11 @@ class ClientConfig:
             f"max_retry_attempts={self.max_retry_attempts}, "
             f"timeout={self.timeout_seconds}s"
         )
+        is_proxy = os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy")
+        if is_proxy:
+            _LOGGER.info(
+                "Using proxy in environment variable HTTPS_PROXY/https_proxy = {is_proxy}"
+            )
 
     def get_max_retry_attempts(self) -> int:
         """Return max retry attempts."""

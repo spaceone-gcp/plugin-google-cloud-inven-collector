@@ -1,10 +1,12 @@
 import logging
+import os
 from functools import wraps
 
 import google.oauth2.service_account
-import google_auth_httplib2
 import googleapiclient.discovery
 import httplib2
+import socks
+from google_auth_httplib2 import AuthorizedHttp
 from googleapiclient.http import HttpRequest
 
 from spaceone.core.connector import BaseConnector
@@ -53,24 +55,26 @@ class GoogleCloudConnector(BaseConnector):
             )
 
             # 타임아웃 및 재시도 설정 로드
-            timeout = self.get_timeout()
             self.max_retry_attempts = self.get_max_retry_attempts()
 
-            # HTTP 클라이언트 생성 (타임아웃 적용)
-            http = httplib2.Http(timeout=timeout)
+            ## deprecated code for proxy support
+            # timeout = self.get_timeout()
 
-            # 인증된 HTTP 클라이언트 생성
-            authorized_http = google_auth_httplib2.AuthorizedHttp(
-                self.credentials, http=http
-            )
+            # # HTTP 클라이언트 생성 (타임아웃 적용)
+            # http = httplib2.Http(timeout=timeout)
 
-            # API 클라이언트 생성 (인증된 http만 전달)
-            self.client = googleapiclient.discovery.build(
-                self.google_client_service,
-                self.version,
-                http=authorized_http,
-                cache_discovery=False,
-            )
+            # # 인증된 HTTP 클라이언트 생성
+            # authorized_http = google_auth_httplib2.AuthorizedHttp(
+            #     self.credentials, http=http
+            # )
+
+            # # API 클라이언트 생성 (인증된 http만 전달)
+            # self.client = googleapiclient.discovery.build(
+            #     self.google_client_service,
+            #     self.version,
+            #     http=authorized_http,
+            #     cache_discovery=False,
+            # )
 
             # HttpRequest.execute()에 num_retries 자동 주입
             self._patch_execute_method()
@@ -134,23 +138,26 @@ class GoogleCloudConnector(BaseConnector):
         Returns:
             googleapiclient.discovery.Resource: 생성된 API 클라이언트
         """
-        timeout = self.get_timeout()
-
-        # HTTP 클라이언트 생성 (타임아웃 적용)
-        http = httplib2.Http(timeout=timeout)
-
-        # 인증된 HTTP 클라이언트 생성
-        authorized_http = google_auth_httplib2.AuthorizedHttp(
-            self.credentials, http=http
-        )
-
-        # API 클라이언트 생성
-        return googleapiclient.discovery.build(
-            service_name,
-            version,
-            http=authorized_http,
-            cache_discovery=False,
-        )
+        proxy_http = self._create_http_client()
+        if proxy_http:
+            return googleapiclient.discovery.build(
+                self.google_client_service,
+                self.version,
+                http=AuthorizedHttp(
+                    self.credentials.with_scopes(
+                        [
+                            "https://www.googleapis.com/auth/cloud-platform"
+                        ]  # FOR PROXY SCOPE SUPPORT
+                    ),
+                    http=proxy_http,
+                ),
+            )
+        else:
+            return googleapiclient.discovery.build(
+                self.google_client_service,
+                self.version,
+                credentials=self.credentials,
+            )
 
     def list_zones(self, **query):
         """zone 목록 조회"""
@@ -158,3 +165,36 @@ class GoogleCloudConnector(BaseConnector):
         request = self.client.zones().list(**query)
         result = request.execute()
         return result.get("items", [])
+
+    def _create_http_client(self):
+        https_proxy = os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy")
+        timeout = self.get_timeout()
+
+        if https_proxy:
+            # _LOGGER.info(
+            #     f"** Using proxy in environment variable HTTPS_PROXY/https_proxy: {https_proxy}"
+            # )
+            try:
+                proxy_url = https_proxy.replace("http://", "").replace("https://", "")
+                if ":" in proxy_url:
+                    proxy_host, proxy_port = proxy_url.split(":", 1)
+                    proxy_port = int(proxy_port)
+
+                proxy_info = httplib2.ProxyInfo(
+                    proxy_host=proxy_host,
+                    proxy_port=proxy_port,
+                    proxy_type=socks.PROXY_TYPE_HTTP,
+                )
+
+                return httplib2.Http(
+                    proxy_info=proxy_info,
+                    disable_ssl_certificate_validation=True,
+                    timeout=timeout,
+                )
+            except Exception as e:
+                _LOGGER.warning(
+                    f"Failed to configure proxy. Using direct connection.: {e}. "
+                )
+                return None
+        else:
+            return None

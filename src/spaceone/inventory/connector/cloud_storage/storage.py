@@ -14,6 +14,8 @@ class StorageConnector(GoogleCloudConnector):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        # 부모 클래스의 _build_client 메서드를 사용하여 타임아웃/재시도 설정 적용
+        self.client = self._build_client(self.google_client_service, self.version)
 
     def list_buckets(self, **query):
         bucket_list = []
@@ -29,7 +31,9 @@ class StorageConnector(GoogleCloudConnector):
                     if template is not None and isinstance(template, dict):
                         bucket_list.append(template)
                     else:
-                        _LOGGER.warning(f"Skipping invalid bucket template: {type(template)}")
+                        _LOGGER.warning(
+                            f"Skipping invalid bucket template: {type(template)}"
+                        )
             request = self.client.buckets().list_next(
                 previous_request=request, previous_response=response
             )
@@ -61,10 +65,14 @@ class StorageConnector(GoogleCloudConnector):
                         size = template.get("size", "0")
                         objects_list.append({"size": size})
                     else:
-                        _LOGGER.warning(f"Skipping invalid object template: {type(template)}")
+                        _LOGGER.warning(
+                            f"Skipping invalid object template: {type(template)}"
+                        )
             # Max iteration - 타입 일관성을 위해 빈 리스트 반환 (False 대신)
             if count > MAX_OBJECTS:
-                _LOGGER.warning(f"Too many objects in bucket {bucket_name}: {count} > {MAX_OBJECTS}")
+                _LOGGER.warning(
+                    f"Too many objects in bucket {bucket_name}: {count} > {MAX_OBJECTS}"
+                )
                 return objects_list
             request = self.client.objects().list_next(
                 previous_request=request, previous_response=response

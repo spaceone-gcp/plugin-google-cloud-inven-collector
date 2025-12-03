@@ -16,6 +16,8 @@ class FirestoreDatabaseConnector(GoogleCloudConnector):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._database_clients = {}
+        # 부모 클래스의 _build_client 메서드를 사용하여 타임아웃/재시도 설정 적용
+        self.client = self._build_client(self.google_client_service, self.version)
 
     def _get_admin_client(self, database_id="(default)"):
         if database_id not in self._database_clients:

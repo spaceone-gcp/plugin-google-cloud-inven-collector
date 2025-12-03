@@ -40,6 +40,7 @@ setup(
         "google-cloud-storage",
         "requests",
         "beautifulsoup4",
+        "PySocks",
     ],
     package_data={
         "spaceone": [

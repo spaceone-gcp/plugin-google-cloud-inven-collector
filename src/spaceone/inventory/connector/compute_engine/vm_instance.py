@@ -18,6 +18,8 @@ class VMInstanceConnector(GoogleCloudConnector):
     def __init__(self, **kwargs):
         try:
             super().__init__(**kwargs)
+            # 부모 클래스의 _build_client 메서드를 사용하여 타임아웃/재시도 설정 적용
+            self.client = self._build_client(self.google_client_service, self.version)
         except Exception as e:
             _LOGGER.warning(f"Failed to initialize VMInstanceConnector: {str(e)}")
             raise

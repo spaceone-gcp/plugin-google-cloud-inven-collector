@@ -13,6 +13,8 @@ class DatastoreDatabaseV1Connector(GoogleCloudConnector):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        # 부모 클래스의 _build_client 메서드를 사용하여 타임아웃/재시도 설정 적용
+        self.client = self._build_client(self.google_client_service, self.version)
 
     def list_databases(self):
         try:
@@ -43,7 +45,9 @@ class DatastoreDatabaseV1Connector(GoogleCloudConnector):
                 )
                 return []
             else:
-                _LOGGER.error(f"HTTP error listing databases for project {self.project_id}: {e}")
+                _LOGGER.error(
+                    f"HTTP error listing databases for project {self.project_id}: {e}"
+                )
                 raise e
         except Exception as e:
             _LOGGER.error(f"Error listing databases for project {self.project_id}: {e}")

@@ -1,8 +1,6 @@
 import logging
 
-from spaceone.core import utils
 from spaceone.inventory.libs.connector import GoogleCloudConnector
-from datetime import datetime, timezone
 
 __all__ = ["MonitoringConnector"]
 _LOGGER = logging.getLogger(__name__)
@@ -16,9 +14,10 @@ class MonitoringConnector(GoogleCloudConnector):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        # 부모 클래스의 _build_client 메서드를 사용하여 타임아웃/재시도 설정 적용
+        self.client = self._build_client(self.google_client_service, self.version)
 
     def get_metric_data(self, bucket_name, metric, start, end):
-
         start = self.date_time_to_iso(start)
         end = self.date_time_to_iso(end)
         metric_data = self.list_metrics_time_series(bucket_name, metric, start, end)
